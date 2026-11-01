@@ -178,9 +178,12 @@ class AndroidDesktopRemote(Gtk.Application):
     def _refresh_devices(self) -> None:
         if not self._device_list:
             return
-        # Clear existing rows
-        for row in self._device_list.get_children():
+        # Clear existing rows (GTK4: iterate via first child + next sibling)
+        row = self._device_list.get_first_child()
+        while row is not None:
+            next_row = row.get_next_sibling()
             self._device_list.remove(row)
+            row = next_row
 
         devices = self.adb.list_devices()
         for dev in devices:
