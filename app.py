@@ -69,22 +69,32 @@ class AndroidDesktopRemote(Gtk.Application):
         window.set_title("Android Desktop Remote")
         window.set_default_size(900, 600)
 
-        # Header bar
-        header = Gtk.HeaderBar()
-        header.set_show_title_buttons(True)
-        window.set_titlebar(header)
+        # Top bar with title + refresh button
+        top_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        top_bar.set_margin_top(6)
+        top_bar.set_margin_bottom(6)
+        top_bar.set_margin_start(6)
+        top_bar.set_margin_end(6)
+
+        title_label = Gtk.Label(label="Android Desktop Remote")
+        title_label.set_hexpand(True)
+        title_label.set_halign(Gtk.Align.START)
 
         refresh_btn = Gtk.Button(label="Refresh Devices")
         refresh_btn.connect("clicked", lambda _: self._refresh_devices())
-        header.pack_start(refresh_btn)
+
+        top_bar.append(title_label)
+        top_bar.append(refresh_btn)
 
         # Main box
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
-        box.set_margin_top(12)
-        box.set_margin_bottom(12)
-        box.set_margin_start(12)
-        box.set_margin_end(12)
+        box.set_margin_top(6)
+        box.set_margin_bottom(6)
+        box.set_margin_start(6)
+        box.set_margin_end(6)
         window.set_child(box)
+
+        box.append(top_bar)
 
         # Device list
         list_scroll = Gtk.ScrolledWindow()
@@ -189,7 +199,6 @@ class AndroidDesktopRemote(Gtk.Application):
         for dev in devices:
             row = DeviceRow(dev)
             self._device_list.append(row)
-        self._device_list.show_all()
 
         if self._status_label:
             self._status_label.set_text(f"{len(devices)} device(s) found")
