@@ -10,12 +10,12 @@ from typing import Optional
 
 from gi.repository import Gtk, Gio, GLib
 
-from .adb_client import AdbClient, Device
-from .scrcpy_client import ScrcpyClient
-from .input_controller import InputController
-from .volume_control import VolumeControl
-from .url_launcher import UrlLauncher
-from .window_manager import WindowManager
+from adb_client import AdbClient, Device
+from scrcpy_client import ScrcpyClient
+from input_controller import InputController
+from volume_control import VolumeControl
+from url_launcher import UrlLauncher
+from window_manager import WindowManager
 
 
 APP_ID = "org.example.androiddesktopremote"

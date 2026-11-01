@@ -5,7 +5,7 @@ Translates desktop key and mouse events into Android input events via ADB.
 
 from __future__ import annotations
 
-from .adb_client import AdbClient
+from adb_client import AdbClient
 
 
 # Common Android keyevent codes (original constants, not copied from any binary).

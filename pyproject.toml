@@ -13,8 +13,7 @@ authors = [{ name = "Android Desktop Remote contributors" }]
 dependencies = []
 
 [project.scripts]
-android-desktop-remote = "android_desktop_remote.app:main"
+android-desktop-remote = "app:main"
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["android_desktop_remote*"]
+[tool.setuptools]
+py-modules = ["app", "adb_client", "scrcpy_client", "input_controller", "volume_control", "url_launcher", "window_manager"]

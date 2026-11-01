@@ -5,7 +5,7 @@ Adjusts Android device media volume via ADB keyevents.
 
 from __future__ import annotations
 
-from .adb_client import AdbClient
+from adb_client import AdbClient
 
 
 class VolumeControl:

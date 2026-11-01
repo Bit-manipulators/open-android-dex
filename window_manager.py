@@ -6,7 +6,7 @@ and recent apps.
 
 from __future__ import annotations
 
-from .adb_client import AdbClient
+from adb_client import AdbClient
 
 
 class WindowManager:
