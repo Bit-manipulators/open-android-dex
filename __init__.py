@@ -1,7 +1,6 @@
-"""Android Desktop Remote.
+"""Android Dex — Original reimplementation.
 
-An original, from-scratch desktop application for controlling Android devices
-from Linux using ADB and scrcpy.
+All code is original work written from scratch.
 """
 
 __version__ = "0.1.0"

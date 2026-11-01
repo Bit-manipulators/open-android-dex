@@ -1,19 +1,22 @@
-# Android Desktop Remote
+# Android Dex — Original Reimplementation
 
-Original, from-scratch desktop application for controlling an Android device
-from Linux. Built with Python, GTK4, ADB, and scrcpy.
+Original, from-scratch desktop application for controlling Android devices
+from Linux. Reimplements the Android Dex functionality (ADB device control,
+screen mirroring via scrcpy, input injection, volume, URL launcher, window
+management) using Python, GTK4, ADB, and scrcpy.
 
-This is an independent reimplementation. No code, strings, or assets from any
-third-party binary were copied. All source below is original work.
+All code is original work. No code, strings, or assets were copied from any
+third-party binary.
 
 ## Features
 
 - Discover and connect to Android devices over ADB
-- Mirror device screen to the desktop (scrcpy)
+- Mirror device screen to desktop (scrcpy)
 - Send keyboard and mouse input to the device
 - Control device volume
 - Open URLs on the device
-- Manage application windows
+- Manage application windows (Home, Back, Recent Apps, Lock)
+- Keyboard shortcuts: Ctrl+Shift+{Up, Down, Left, Right}
 
 ## Requirements
 
@@ -22,22 +25,13 @@ third-party binary were copied. All source below is original work.
 - `adb` (Android Debug Bridge)
 - `scrcpy`
 
-## Install
-
-```bash
-git clone <this-repo>
-cd android_desktop_remote
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e .
-```
-
 ## Run
 
 ```bash
-python3 -m android_desktop_remote
+cd /home/amit/github/ID2/open-android-dex
+python3 app.py
 ```
 
 ## License
 
-MIT License. See LICENSE.
+MIT License.

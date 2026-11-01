@@ -8,7 +8,7 @@ from __future__ import annotations
 from adb_client import AdbClient
 
 
-# Common Android keyevent codes (original constants, not copied from any binary).
+# Android keyevent codes (original constants).
 KEYCODE_HOME = 3
 KEYCODE_BACK = 4
 KEYCODE_MENU = 82
@@ -18,6 +18,7 @@ KEYCODE_POWER = 26
 KEYCODE_ENTER = 66
 KEYCODE_DEL = 111
 KEYCODE_SPACE = 62
+KEYCODE_APP_SWITCH = 187
 
 
 class InputController:
@@ -65,6 +66,10 @@ class InputController:
     def space(self, serial: str) -> None:
         """Press space."""
         self.send_key(serial, KEYCODE_SPACE)
+
+    def recent_apps(self, serial: str) -> None:
+        """Open the recent-apps overview."""
+        self.send_key(serial, KEYCODE_APP_SWITCH)
 
     def tap(self, serial: str, x: int, y: int) -> None:
         """Tap a screen coordinate."""

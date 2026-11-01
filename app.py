@@ -1,6 +1,10 @@
-"""Main GTK4 application for Android Desktop Remote.
+"""Android Dex — Original GTK4 desktop application.
 
-All UI code is original and written from scratch.
+Reimplements the Android Dex functionality (ADB device control, scrcpy
+screen mirroring, input injection, volume, URL launcher, window management)
+using Python, GTK4, ADB, and scrcpy.
+
+All code is original work written from scratch.
 """
 
 from __future__ import annotations
@@ -11,8 +15,9 @@ from typing import Optional
 import gi
 
 gi.require_version("Gtk", "4.0")
+gi.require_version("Gdk", "4.0")
 
-from gi.repository import Gtk, Gio, GLib
+from gi.repository import Gtk, Gio, Gdk  # noqa: E402
 
 from adb_client import AdbClient, Device
 from scrcpy_client import ScrcpyClient
@@ -22,7 +27,7 @@ from url_launcher import UrlLauncher
 from window_manager import WindowManager
 
 
-APP_ID = "org.example.androiddesktopremote"
+APP_ID = "com.example.androiddex"
 
 
 class DeviceRow(Gtk.ListBoxRow):
@@ -40,7 +45,7 @@ class DeviceRow(Gtk.ListBoxRow):
         self.set_tooltip_text(device.serial)
 
 
-class AndroidDesktopRemote(Gtk.Application):
+class AndroidDex(Gtk.Application):
     """Main application class."""
 
     def __init__(self) -> None:
@@ -57,6 +62,7 @@ class AndroidDesktopRemote(Gtk.Application):
         self._status_label: Optional[Gtk.Label] = None
         self._connect_btn: Optional[Gtk.Button] = None
         self._mirror_btn: Optional[Gtk.Button] = None
+        self._url_entry: Optional[Gtk.Entry] = None
 
     def do_activate(self) -> None:
         win = self.props.active_window
@@ -66,7 +72,7 @@ class AndroidDesktopRemote(Gtk.Application):
 
     def _build_window(self) -> Gtk.ApplicationWindow:
         window = Gtk.ApplicationWindow(application=self)
-        window.set_title("Android Desktop Remote")
+        window.set_title("Android Dex")
         window.set_default_size(900, 600)
 
         # Top bar with title + refresh button
@@ -76,9 +82,10 @@ class AndroidDesktopRemote(Gtk.Application):
         top_bar.set_margin_start(6)
         top_bar.set_margin_end(6)
 
-        title_label = Gtk.Label(label="Android Desktop Remote")
+        title_label = Gtk.Label(label="Android Dex")
         title_label.set_hexpand(True)
         title_label.set_halign(Gtk.Align.START)
+        title_label.add_css_class("title")
 
         refresh_btn = Gtk.Button(label="Refresh Devices")
         refresh_btn.connect("clicked", lambda _: self._refresh_devices())
@@ -93,7 +100,6 @@ class AndroidDesktopRemote(Gtk.Application):
         box.set_margin_start(6)
         box.set_margin_end(6)
         window.set_child(box)
-
         box.append(top_bar)
 
         # Device list
@@ -149,19 +155,31 @@ class AndroidDesktopRemote(Gtk.Application):
         back_btn = Gtk.Button(label="Back")
         back_btn.connect("clicked", lambda _: self._send_key(4))
 
+        menu_btn = Gtk.Button(label="Menu")
+        menu_btn.connect("clicked", lambda _: self._send_key(82))
+
         vol_up_btn = Gtk.Button(label="Volume Up")
-        vol_up_btn.connect("clicked", lambda _: self.volume.up(self._selected_device.serial) if self._selected_device else None)
+        vol_up_btn.connect("clicked", lambda _: self._volume_up())
 
         vol_down_btn = Gtk.Button(label="Volume Down")
-        vol_down_btn.connect("clicked", lambda _: self.volume.down(self._selected_device.serial) if self._selected_device else None)
+        vol_down_btn.connect("clicked", lambda _: self._volume_down())
+
+        recent_btn = Gtk.Button(label="Recent Apps")
+        recent_btn.connect("clicked", lambda _: self._recent_apps())
+
+        lock_btn = Gtk.Button(label="Lock")
+        lock_btn.connect("clicked", lambda _: self._lock())
 
         btn_grid.attach(self._connect_btn, 0, 0, 1, 1)
         btn_grid.attach(self._mirror_btn, 1, 0, 1, 1)
         btn_grid.attach(stop_btn, 0, 1, 1, 1)
         btn_grid.attach(home_btn, 1, 1, 1, 1)
         btn_grid.attach(back_btn, 0, 2, 1, 1)
-        btn_grid.attach(vol_up_btn, 1, 2, 1, 1)
-        btn_grid.attach(vol_down_btn, 0, 3, 1, 1)
+        btn_grid.attach(menu_btn, 1, 2, 1, 1)
+        btn_grid.attach(vol_up_btn, 0, 3, 1, 1)
+        btn_grid.attach(vol_down_btn, 1, 3, 1, 1)
+        btn_grid.attach(recent_btn, 0, 4, 1, 1)
+        btn_grid.attach(lock_btn, 1, 4, 1, 1)
 
         # URL launcher
         url_frame = Gtk.Frame(label="Open URL")
@@ -180,10 +198,56 @@ class AndroidDesktopRemote(Gtk.Application):
         url_frame.set_child(url_box)
         controls.append(url_frame)
 
+        # Keyboard shortcuts controller
+        self._setup_shortcuts(window)
+
         # Initial refresh
         self._refresh_devices()
 
         return window
+
+    def _setup_shortcuts(self, window: Gtk.ApplicationWindow) -> None:
+        """Register Ctrl+Shift+arrow key shortcuts (Android Dex style)."""
+        controller = Gtk.EventControllerKey()
+        controller.connect("key-pressed", self._on_key_pressed)
+        window.add_controller(controller)
+
+    def _on_key_pressed(
+        self, controller: Gtk.EventControllerKey, keyval: int, keycode: int, state: Gdk.ModifierType
+    ) -> bool:
+        """Handle keyboard shortcuts.
+
+        Ctrl+Shift+Up/Down/Left/Right map to device navigation actions.
+        """
+        ctrl = bool(state & Gdk.ModifierType.CONTROL_MASK)
+        shift = bool(state & Gdk.ModifierType.SHIFT_MASK)
+
+        if not (ctrl and shift):
+            return False
+
+        if not self._selected_device:
+            return True
+
+        # Gdk keyval constants
+        GDK_KEY_Up = 65362
+        GDK_KEY_Down = 65364
+        GDK_KEY_Left = 65361
+        GDK_KEY_Right = 65363
+
+        if keyval == GDK_KEY_Up:
+            self.input.send_key(self._selected_device.serial, 19)  # DPAD_UP
+            return True
+        if keyval == GDK_KEY_Down:
+            self.input.send_key(self._selected_device.serial, 20)  # DPAD_DOWN
+            return True
+        if keyval == GDK_KEY_Left:
+            self.input.send_key(self._selected_device.serial, 21)  # DPAD_LEFT
+            return True
+        if keyval == GDK_KEY_Right:
+            self.input.send_key(self._selected_device.serial, 22)  # DPAD_RIGHT
+            return True
+
+        return False
 
     def _refresh_devices(self) -> None:
         if not self._device_list:
@@ -219,6 +283,26 @@ class AndroidDesktopRemote(Gtk.Application):
             else:
                 self._status_label.set_text("No device selected")
 
+    def _send_key(self, keycode: int) -> None:
+        if self._selected_device:
+            self.input.send_key(self._selected_device.serial, keycode)
+
+    def _volume_up(self) -> None:
+        if self._selected_device:
+            self.volume.up(self._selected_device.serial)
+
+    def _volume_down(self) -> None:
+        if self._selected_device:
+            self.volume.down(self._selected_device.serial)
+
+    def _recent_apps(self) -> None:
+        if self._selected_device:
+            self.windows.recent_apps(self._selected_device.serial)
+
+    def _lock(self) -> None:
+        if self._selected_device:
+            self.windows.lock(self._selected_device.serial)
+
     def _on_connect(self, _button: Gtk.Button) -> None:
         if not self._selected_device:
             return
@@ -238,14 +322,10 @@ class AndroidDesktopRemote(Gtk.Application):
         except RuntimeError as exc:
             self._status_label.set_text(str(exc))
 
-    def _send_key(self, keycode: int) -> None:
-        if self._selected_device:
-            self.input.send_key(self._selected_device.serial, keycode)
-
     def _on_go_url(self, _button: Gtk.Button) -> None:
         if not self._selected_device:
             return
-        url = self._url_entry.get_text().strip()
+        url = self._url_entry.get_text().strip() if self._url_entry else ""
         if not url:
             return
         if not url.startswith(("http://", "https://")):
@@ -255,7 +335,7 @@ class AndroidDesktopRemote(Gtk.Application):
 
 
 def main() -> int:
-    app = AndroidDesktopRemote()
+    app = AndroidDex()
     return app.run(sys.argv)
 
 

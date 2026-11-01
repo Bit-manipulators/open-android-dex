@@ -3,17 +3,25 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "android-desktop-remote"
+name = "android-dex"
 version = "0.1.0"
 description = "Original GTK4 desktop app to control Android devices via ADB/scrcpy"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-authors = [{ name = "Android Desktop Remote contributors" }]
+authors = [{ name = "Android Dex contributors" }]
 dependencies = []
 
 [project.scripts]
-android-desktop-remote = "app:main"
+android-dex = "app:main"
 
 [tool.setuptools]
-py-modules = ["app", "adb_client", "scrcpy_client", "input_controller", "volume_control", "url_launcher", "window_manager"]
+py-modules = [
+    "app",
+    "adb_client",
+    "scrcpy_client",
+    "input_controller",
+    "volume_control",
+    "url_launcher",
+    "window_manager",
+]

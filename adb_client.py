@@ -1,7 +1,7 @@
 """Original ADB client wrapper.
 
-Communicates with Android devices through the Android Debug Bridge (adb)
-using subprocess calls. No third-party ADB libraries are used.
+Talks to Android devices through the Android Debug Bridge (adb) using
+subprocess calls. No third-party ADB libraries are used.
 """
 
 from __future__ import annotations
@@ -32,12 +32,7 @@ class AdbClient:
         if serial:
             cmd.extend(["-s", serial])
         cmd.extend(args)
-        return subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        return subprocess.run(cmd, capture_output=True, text=True, check=False)
 
     def is_available(self) -> bool:
         """Return True if the adb executable can be found."""
@@ -64,18 +59,9 @@ class AdbClient:
             devices.append(Device(serial=serial, state=state, model=model))
         return devices
 
-    def get_property(self, serial: str, prop: str) -> str:
-        """Get a single system property from the device."""
-        result = self._run(["shell", "getprop", prop], serial=serial)
-        return result.stdout.strip()
-
     def shell(self, serial: str, command: str) -> subprocess.CompletedProcess:
         """Run an arbitrary shell command on the device."""
         return self._run(["shell", command], serial=serial)
-
-    def start_activity(self, serial: str, intent: str) -> subprocess.CompletedProcess:
-        """Start an Android activity via an intent string."""
-        return self._run(["shell", "am", "start", "-a", intent], serial=serial)
 
     def keyevent(self, serial: str, keycode: int) -> subprocess.CompletedProcess:
         """Send a keyevent to the device."""
@@ -85,9 +71,20 @@ class AdbClient:
         """Tap a screen coordinate."""
         return self._run(["shell", "input", "tap", str(x), str(y)], serial=serial)
 
-    def swipe(self, serial: str, x1: int, y1: int, x2: int, y2: int) -> subprocess.CompletedProcess:
+    def swipe(
+        self, serial: str, x1: int, y1: int, x2: int, y2: int
+    ) -> subprocess.CompletedProcess:
         """Swipe from one coordinate to another."""
         return self._run(
             ["shell", "input", "swipe", str(x1), str(y1), str(x2), str(y2)],
             serial=serial,
         )
+
+    def start_activity(self, serial: str, intent: str) -> subprocess.CompletedProcess:
+        """Start an Android activity via an intent string."""
+        return self._run(["shell", "am", "start", "-a", intent], serial=serial)
+
+    def get_property(self, serial: str, prop: str) -> str:
+        """Get a single system property from the device."""
+        result = self._run(["shell", "getprop", prop], serial=serial)
+        return result.stdout.strip()

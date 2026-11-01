@@ -31,7 +31,7 @@ class ScrcpyClient:
         bitrate: str = "8M",
         max_size: int = 1024,
         fullscreen: bool = False,
-        window_title: str = "Android Desktop Remote",
+        window_title: str = "Android Dex",
     ) -> subprocess.Popen:
         """Launch scrcpy and return the process handle."""
         if self.is_running():
@@ -52,9 +52,7 @@ class ScrcpyClient:
             args.extend(["--serial", serial])
 
         self._process = subprocess.Popen(
-            args,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
         )
         return self._process
 
