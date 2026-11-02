@@ -8,8 +8,8 @@ version = "0.2.0"
 description = "Open Android Dex — clean-room GTK4 desktop shell for Android phones via ADB/scrcpy"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
-authors = [{ name = "Open Android Dex contributors" }]
+license = { text = "GPL-3.0-or-later" }
+authors = [{ name = "Bit-manipulators", url = "https://github.com/Bit-manipulators/open-android-dex" }]
 dependencies = []
 
 [project.scripts]

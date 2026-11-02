@@ -11,7 +11,7 @@ affiliated with, endorsed by, sponsored by, or derived from any proprietary
 or closed-source product, including any application named "Android DEX" or
 similar.
 
-* All code in this repository is **original work**, licensed MIT — see
+* All code in this repository is **original work**, licensed under the GNU General Public License v3.0 (GPL-3.0) — see
   `LICENSE`.
 * **No** code, binaries, strings, configuration files, artwork, icons, sounds,
   or other assets from any third-party or closed-source application are used,
@@ -31,7 +31,7 @@ similar.
   licenses (Apache-2.0, etc.) and are not distributed by this repository.
 * If you redistribute or fork this project, keep this notice and the `LICENSE`
   file intact. If you add third-party assets or code, they must be
-  compatible with MIT and clearly attributed.
+  compatible with GPL-3.0 and clearly attributed.
 
 **Contribution policy:** patches that copy code or assets from closed-source
 applications will be rejected. Clean-room work only.
@@ -147,5 +147,4 @@ app.py ─────────────── DeX-style GTK4 shell, boot 
 
 ## License
 
-MIT License — see `LICENSE`. Copyright (c) 2026 Open Android Dex
-contributors.
+GNU General Public License v3.0 (GPL-3.0) — see [`LICENSE`](LICENSE). Copyright (c) 2026 [Bit-manipulators](https://github.com/Bit-manipulators/open-android-dex).
