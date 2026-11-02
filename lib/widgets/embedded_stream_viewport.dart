@@ -29,11 +29,10 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
   final _adb = AdbService();
   final _textController = TextEditingController();
 
-  ScrcpyDisplayMode _currentMode = ScrcpyDisplayMode.virtualDisplay;
+  final ScrcpyDisplayMode _currentMode = ScrcpyDisplayMode.virtualDisplay;
   bool _isStreaming = false;
   bool _isAdapting = false;
-  bool _cropStatusBar = true;
-  bool _preserveAspect = true;
+  static const bool _preserveAspect = true;
   double _streamAspect = 16 / 10;
   String _statusMessage = 'Connecting stream...';
   int? _textureId;
@@ -137,7 +136,7 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
       }
 
       final targetW = (widget.window.width.toInt() & ~1).clamp(360, 3840);
-      final targetH = ((widget.window.height - 40).toInt() & ~1).clamp(360, 3840);
+      final targetH = ((widget.window.height - 80).toInt() & ~1).clamp(360, 3840);
       _streamAspect = targetW / targetH;
 
       final oldTexId = _textureId;
@@ -170,7 +169,7 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
 
       if (mounted) {
         _lastAdaptedWidth = targetW.toDouble();
-        _lastAdaptedHeight = (targetH + 40).toDouble();
+        _lastAdaptedHeight = (targetH + 80).toDouble();
         setState(() {
           _textureId = texId;
           _isStreaming = session?.isRunning ?? false;
@@ -192,8 +191,7 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
 
   Offset _mapLocalToVideo(Offset local, BoxConstraints constraints) {
     if (!_preserveAspect) {
-      final adjY = _cropStatusBar ? (local.dy + 34.0) : local.dy;
-      return Offset(local.dx, adjY);
+      return local;
     }
 
     final boxW = constraints.maxWidth;
@@ -221,9 +219,8 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
 
     final targetW = constraints.maxWidth;
     final targetH = constraints.maxHeight;
-    final effY = _cropStatusBar ? (normY * targetH + 34.0) : (normY * targetH);
 
-    return Offset(normX * targetW, effY);
+    return Offset(normX * targetW, normY * targetH);
   }
 
   void _onPointerDown(PointerDownEvent e, BoxConstraints constraints) {
@@ -243,7 +240,6 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
   void _onPointerMove(PointerMoveEvent e, BoxConstraints constraints) {
     setState(() => _lastTouchPos = e.localPosition);
     final mapped = _mapLocalToVideo(e.localPosition, constraints);
-    final topCrop = _cropStatusBar ? 34.0 : 0.0;
     final session = _streamService.getSession(widget.window.id);
     final devW = session?.targetWidth ?? widget.window.width.toInt();
     final devH = session?.targetHeight ?? widget.window.height.toInt();
@@ -252,7 +248,7 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
       currentX: mapped.dx,
       currentY: mapped.dy,
       viewportWidth: constraints.maxWidth,
-      viewportHeight: constraints.maxHeight + topCrop,
+      viewportHeight: constraints.maxHeight,
       deviceWidth: devW,
       deviceHeight: devH,
     );
@@ -260,7 +256,6 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
 
   void _onPointerUp(PointerUpEvent e, BoxConstraints constraints) {
     final mapped = _mapLocalToVideo(e.localPosition, constraints);
-    final topCrop = _cropStatusBar ? 34.0 : 0.0;
     final session = _streamService.getSession(widget.window.id);
     final devW = session?.targetWidth ?? widget.window.width.toInt();
     final devH = session?.targetHeight ?? widget.window.height.toInt();
@@ -269,7 +264,7 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
       endX: mapped.dx,
       endY: mapped.dy,
       viewportWidth: constraints.maxWidth,
-      viewportHeight: constraints.maxHeight + topCrop,
+      viewportHeight: constraints.maxHeight,
       deviceWidth: devW,
       deviceHeight: devH,
     );
@@ -278,7 +273,6 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
   void _onPointerSignal(PointerSignalEvent e, BoxConstraints constraints) {
     if (e is PointerScrollEvent) {
       final mapped = _mapLocalToVideo(e.localPosition, constraints);
-      final topCrop = _cropStatusBar ? 34.0 : 0.0;
       final session = _streamService.getSession(widget.window.id);
       final devW = session?.targetWidth ?? widget.window.width.toInt();
       final devH = session?.targetHeight ?? widget.window.height.toInt();
@@ -288,7 +282,7 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
         localX: mapped.dx,
         localY: mapped.dy,
         viewportWidth: constraints.maxWidth,
-        viewportHeight: constraints.maxHeight + topCrop,
+        viewportHeight: constraints.maxHeight,
         deviceWidth: devW,
         deviceHeight: devH,
       );
@@ -296,21 +290,7 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
   }
 
   Widget _buildCroppedTexture() {
-    return ClipRect(
-      child: LayoutBuilder(
-        builder: (context, c) {
-          final topCrop = _cropStatusBar ? 34.0 : 0.0;
-          return OverflowBox(
-            alignment: Alignment.bottomCenter,
-            minWidth: c.maxWidth,
-            maxWidth: c.maxWidth,
-            minHeight: c.maxHeight + topCrop,
-            maxHeight: c.maxHeight + topCrop,
-            child: Texture(textureId: _textureId!),
-          );
-        },
-      ),
-    );
+    return Texture(textureId: _textureId!);
   }
 
   @override
@@ -321,9 +301,6 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
       color: const Color(0xFF090D14),
       child: Column(
         children: [
-          // Stream Management Sub-header
-          _buildToolbar(),
-
           // Main Interactive Surface Area
           Expanded(
             child: LayoutBuilder(
@@ -458,218 +435,6 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
           // Bottom Quick Navigation & Text Injection Bar
           _buildBottomControlBar(),
         ],
-      ),
-    );
-  }
-
-  Widget _buildToolbar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: const BoxDecoration(
-        color: Color(0xFF131A29),
-        border: Border(bottom: BorderSide(color: Color(0xFF1E293B), width: 1)),
-      ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            // Mode Selector Pill
-            Container(
-              height: 26,
-              padding: const EdgeInsets.symmetric(horizontal: 2),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0F172A),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: const Color(0xFF26334D)),
-              ),
-              child: Row(
-                children: [
-                  _buildModeTab('Virtual DeX', ScrcpyDisplayMode.virtualDisplay),
-                  _buildModeTab('Mirror (Screen Off)', ScrcpyDisplayMode.mirrorPrimary),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-
-            // Reconnect / Restart Stream
-            Tooltip(
-              message: 'Restart Video Stream',
-              child: InkWell(
-                onTap: _startStream,
-                borderRadius: BorderRadius.circular(6),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1E293B),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.refresh_rounded, size: 13, color: Color(0xFF93C5FD)),
-                      SizedBox(width: 4),
-                      Text('Restart', style: TextStyle(color: Color(0xFFCBD5E1), fontSize: 11)),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-
-            // Clean Status Bar Crop Toggle
-            Tooltip(
-              message: _cropStatusBar ? 'Status Bar Hidden (Click to show)' : 'Status Bar Visible (Click to hide)',
-              child: InkWell(
-                onTap: () => setState(() => _cropStatusBar = !_cropStatusBar),
-                borderRadius: BorderRadius.circular(6),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _cropStatusBar ? const Color(0xFF1E3A8A) : const Color(0xFF1E293B),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: _cropStatusBar ? const Color(0xFF3B82F6) : Colors.transparent),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        _cropStatusBar ? Icons.crop_free_rounded : Icons.crop_rounded,
-                        size: 13,
-                        color: _cropStatusBar ? const Color(0xFF93C5FD) : const Color(0xFF94A3B8),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        _cropStatusBar ? 'Clean View' : 'Phone Bar',
-                        style: TextStyle(
-                          color: _cropStatusBar ? Colors.white : const Color(0xFFCBD5E1),
-                          fontSize: 10,
-                          fontWeight: _cropStatusBar ? FontWeight.w600 : FontWeight.normal,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-
-            // Aspect Ratio Lock Toggle
-            Tooltip(
-              message: _preserveAspect ? 'Aspect Ratio Locked (No stretch)' : 'Stretched to Fit',
-              child: InkWell(
-                onTap: () => setState(() => _preserveAspect = !_preserveAspect),
-                borderRadius: BorderRadius.circular(6),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _preserveAspect ? const Color(0xFF065F46) : const Color(0xFF1E293B),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: _preserveAspect ? const Color(0xFF10B981) : Colors.transparent),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        _preserveAspect ? Icons.aspect_ratio_rounded : Icons.fit_screen_rounded,
-                        size: 13,
-                        color: _preserveAspect ? const Color(0xFF6EE7B7) : const Color(0xFF94A3B8),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        _preserveAspect ? 'Fit Ratio' : 'Stretch',
-                        style: TextStyle(
-                          color: _preserveAspect ? Colors.white : const Color(0xFFCBD5E1),
-                          fontSize: 10,
-                          fontWeight: _preserveAspect ? FontWeight.w600 : FontWeight.normal,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-
-            // Adapt Display Button (Re-renders Android UI into the new window shape)
-            Tooltip(
-              message: 'Adapt Android resolution to current window size',
-              child: InkWell(
-                onTap: _isAdapting ? null : () => _startStream(),
-                borderRadius: BorderRadius.circular(6),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1E293B),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Row(
-                    children: [
-                      _isAdapting
-                          ? const SizedBox(
-                              width: 13,
-                              height: 13,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Color(0xFFF59E0B),
-                              ),
-                            )
-                          : const Icon(Icons.transform_rounded, size: 13, color: Color(0xFFF59E0B)),
-                      const SizedBox(width: 4),
-                      Text(
-                        _isAdapting ? 'Adapting...' : 'Adapt Size',
-                        style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 10),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-
-            // Resolution Tag
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0F172A),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: const Color(0xFF1E293B)),
-              ),
-              child: Text(
-                '${widget.window.width.toInt()}×${widget.window.height.toInt()}',
-                style: const TextStyle(
-                  color: Color(0xFF94A3B8),
-                  fontSize: 10,
-                  fontFamily: 'monospace',
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildModeTab(String label, ScrcpyDisplayMode mode) {
-    final isSelected = _currentMode == mode;
-    return InkWell(
-      onTap: () {
-        if (_currentMode != mode) {
-          setState(() => _currentMode = mode);
-          _startStream();
-        }
-      },
-      borderRadius: BorderRadius.circular(4),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF2563EB) : Colors.transparent,
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : const Color(0xFF94A3B8),
-            fontSize: 10,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-          ),
-        ),
       ),
     );
   }
