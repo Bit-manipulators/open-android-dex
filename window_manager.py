@@ -26,3 +26,7 @@ class WindowManager:
     def lock(self, serial: str) -> None:
         """Lock the device screen."""
         self.adb.keyevent(serial, 26)  # KEYCODE_POWER
+
+    def notifications(self, serial: str) -> None:
+        """Expand the notification drawer."""
+        self.adb.expand_notifications(serial)

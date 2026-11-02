@@ -38,6 +38,10 @@ class AdbClient:
         """Return True if the adb executable can be found."""
         return shutil.which(self.adb_path) is not None
 
+    def start_server(self) -> subprocess.CompletedProcess:
+        """Ensure the local adb server is running."""
+        return self._run(["start-server"])
+
     def list_devices(self) -> List[Device]:
         """Return a list of currently connected devices."""
         result = self._run(["devices", "-l"])
@@ -83,6 +87,41 @@ class AdbClient:
     def start_activity(self, serial: str, intent: str) -> subprocess.CompletedProcess:
         """Start an Android activity via an intent string."""
         return self._run(["shell", "am", "start", "-a", intent], serial=serial)
+
+    def start_component(self, serial: str, component: str) -> subprocess.CompletedProcess:
+        """Start an Android component via package/activity (am start -n)."""
+        return self._run(["shell", "am", "start", "-n", component], serial=serial)
+
+    def expand_notifications(self, serial: str) -> subprocess.CompletedProcess:
+        """Expand the notification drawer."""
+        return self._run(["shell", "cmd", "statusbar", "expand-notifications"], serial=serial)
+
+    def take_screenshot(self, serial: str) -> Optional[bytes]:
+        """Capture a raw PNG screenshot from the device."""
+        cmd = [self.adb_path, "-s", serial, "exec-out", "screencap", "-p"]
+        try:
+            res = subprocess.run(cmd, capture_output=True, timeout=10)
+            if res.returncode == 0 and res.stdout.startswith(b"\x89PNG"):
+                return res.stdout
+        except Exception:
+            pass
+        return None
+
+    def get_launcher_activities(self, serial: str) -> List[tuple[str, str]]:
+        """Return list of (package, activity) for all launchable apps."""
+        res = self._run(
+            ["shell", "cmd", "package", "query-activities", "--brief", "-a", "android.intent.action.MAIN", "-c", "android.intent.category.LAUNCHER"],
+            serial=serial,
+        )
+        activities: List[tuple[str, str]] = []
+        for line in res.stdout.splitlines():
+            line = line.strip()
+            if "/" in line and not line.startswith("priority=") and not line.startswith("Activity"):
+                parts = line.split("/", 1)
+                pkg = parts[0].strip()
+                act = parts[1].strip()
+                activities.append((pkg, act))
+        return activities
 
     def get_property(self, serial: str, prop: str) -> str:
         """Get a single system property from the device."""

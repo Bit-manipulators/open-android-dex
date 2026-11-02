@@ -3,3 +3,16 @@
 /*.egg-info/
 /__pycache__/
 *.pyc
+
+# Flutter
+.dart_tool/
+.idea/
+.metadata
+build/
+*.iml
+
+# Gradle
+.gradle/
+android_companion/.gradle/
+
+

@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2560" height="1440" viewBox="0 0 2560 1440">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a0d16" />
+      <stop offset="45%" stop-color="#0f1526" />
+      <stop offset="100%" stop-color="#070a12" />
+    </linearGradient>
+
+    <!-- Ambient Glowing Orbs -->
+    <radialGradient id="glow-cyan" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00f2fe" stop-opacity="0.14" />
+      <stop offset="60%" stop-color="#4facfe" stop-opacity="0.04" />
+      <stop offset="100%" stop-color="#000000" stop-opacity="0" />
+    </radialGradient>
+
+    <radialGradient id="glow-violet" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#8a2387" stop-opacity="0.18" />
+      <stop offset="50%" stop-color="#e94057" stop-opacity="0.06" />
+      <stop offset="100%" stop-color="#000000" stop-opacity="0" />
+    </radialGradient>
+
+    <radialGradient id="glow-emerald" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#05d554" stop-opacity="0.12" />
+      <stop offset="60%" stop-color="#0052d4" stop-opacity="0.03" />
+      <stop offset="100%" stop-color="#000000" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Mesh Lines Gradient -->
+    <linearGradient id="line-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.03" />
+      <stop offset="50%" stop-color="#4facfe" stop-opacity="0.08" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.02" />
+    </linearGradient>
+  </defs>
+
+  <!-- Deep Base -->
+  <rect width="2560" height="1440" fill="url(#bg)" />
+
+  <!-- Ambient Light Fields -->
+  <circle cx="1900" cy="350" r="750" fill="url(#glow-cyan)" />
+  <circle cx="480" cy="980" r="850" fill="url(#glow-violet)" />
+  <circle cx="1280" cy="720" r="600" fill="url(#glow-emerald)" />
+
+  <!-- Subtle Modern Geometric Fluid Ribbons -->
+  <path d="M-200 900 Q 600 400 1280 800 T 2760 600" fill="none" stroke="url(#line-grad)" stroke-width="1.8" opacity="0.6" />
+  <path d="M-200 950 Q 640 450 1320 850 T 2760 650" fill="none" stroke="url(#line-grad)" stroke-width="1.2" opacity="0.4" />
+  <path d="M-200 1000 Q 680 500 1360 900 T 2760 700" fill="none" stroke="url(#line-grad)" stroke-width="0.8" opacity="0.3" />
+
+  <!-- Faint Radial Vignette -->
+  <rect width="2560" height="1440" fill="black" opacity="0.15" />
+</svg>

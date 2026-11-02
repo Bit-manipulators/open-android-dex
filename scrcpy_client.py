@@ -31,23 +31,38 @@ class ScrcpyClient:
         bitrate: str = "8M",
         max_size: int = 1024,
         fullscreen: bool = False,
-        window_title: str = "Android Dex",
+        window_title: str = "Open Android Dex",
+        always_on_top: bool = True,
+        start_app: Optional[str] = None,
+        stay_awake: bool = True,
+        turn_screen_off: bool = False,
+        new_display: Optional[str] = None,
     ) -> subprocess.Popen:
         """Launch scrcpy and return the process handle."""
         if self.is_running():
-            raise RuntimeError("scrcpy is already running")
+            return self._process
 
         args: List[str] = [
             self.scrcpy_path,
-            "--bit-rate",
+            "-b",
             bitrate,
             "--max-size",
             str(max_size),
             "--window-title",
             window_title,
         ]
+        if always_on_top:
+            args.append("--always-on-top")
+        if stay_awake:
+            args.append("--stay-awake")
         if fullscreen:
             args.append("--fullscreen")
+        if turn_screen_off:
+            args.append("--turn-screen-off")
+        if new_display:
+            args.append(f"--new-display={new_display}")
+        if start_app:
+            args.append(f"--start-app={start_app}")
         if serial:
             args.extend(["--serial", serial])
 

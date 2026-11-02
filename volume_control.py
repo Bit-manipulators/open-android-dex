@@ -21,3 +21,7 @@ class VolumeControl:
     def down(self, serial: str) -> None:
         """Lower the volume by one step."""
         self.adb.keyevent(serial, 25)  # KEYCODE_VOLUME_DOWN
+
+    def mute(self, serial: str) -> None:
+        """Toggle media volume mute."""
+        self.adb.keyevent(serial, 164)  # KEYCODE_VOLUME_MUTE

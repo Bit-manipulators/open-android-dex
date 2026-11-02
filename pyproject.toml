@@ -3,17 +3,18 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "android-dex"
-version = "0.1.0"
-description = "Original GTK4 desktop app to control Android devices via ADB/scrcpy"
+name = "open-android-dex"
+version = "0.2.0"
+description = "Open Android Dex — clean-room GTK4 desktop shell for Android phones via ADB/scrcpy"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-authors = [{ name = "Android Dex contributors" }]
+authors = [{ name = "Open Android Dex contributors" }]
 dependencies = []
 
 [project.scripts]
-android-dex = "app:main"
+open-android-dex = "app:main"
+openandroiddex = "app:main"
 
 [tool.setuptools]
 py-modules = [
@@ -24,4 +25,6 @@ py-modules = [
     "volume_control",
     "url_launcher",
     "window_manager",
+    "device_manager",
+    "boot_manager",
 ]
