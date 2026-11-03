@@ -84,9 +84,21 @@ class AdbClient:
             serial=serial,
         )
 
-    def start_activity(self, serial: str, intent: str) -> subprocess.CompletedProcess:
-        """Start an Android activity via an intent string."""
-        return self._run(["shell", "am", "start", "-a", intent], serial=serial)
+    def start_activity(
+        self, serial: str, intent: str, data_uri: Optional[str] = None
+    ) -> subprocess.CompletedProcess:
+        """Start an Android activity via an intent string or action with optional data URI."""
+        cmd = ["shell", "am", "start"]
+        parts = intent.split()
+        if len(parts) > 1 and "-d" in parts:
+            d_idx = parts.index("-d")
+            action = " ".join(parts[:d_idx])
+            cmd.extend(["-a", action, "-d"] + parts[d_idx + 1:])
+        else:
+            cmd.extend(["-a", intent])
+        if data_uri:
+            cmd.extend(["-d", data_uri])
+        return self._run(cmd, serial=serial)
 
     def start_component(self, serial: str, component: str) -> subprocess.CompletedProcess:
         """Start an Android component via package/activity (am start -n)."""

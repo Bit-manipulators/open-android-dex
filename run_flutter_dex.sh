@@ -4,10 +4,25 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-FLUTTER_BIN="/home/amit/development/flutter/bin/flutter"
+# Check standard Flutter locations if not already in PATH
+if ! command -v flutter >/dev/null 2>&1; then
+    for candidate in \
+        "/home/amit/development/flutter/bin/flutter" \
+        "$HOME/development/flutter/bin/flutter" \
+        "$HOME/flutter/bin/flutter" \
+        "/opt/flutter/bin/flutter" \
+        "/usr/local/flutter/bin/flutter"; do
+        if [ -x "$candidate" ]; then
+            export PATH="$(dirname "$candidate"):$PATH"
+            break
+        fi
+    done
+fi
 
-if [ -x "$FLUTTER_BIN" ]; then
-    export PATH="/home/amit/development/flutter/bin:$PATH"
+if ! command -v flutter >/dev/null 2>&1; then
+    echo "❌ Error: 'flutter' command not found in PATH or standard installation locations." >&2
+    echo "Please install Flutter SDK (version 3.24+ recommended) and add it to your PATH." >&2
+    exit 1
 fi
 
 # Ensure Skia backend is preferred for FlPixelBufferTexture stability under Wayland

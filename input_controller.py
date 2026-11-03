@@ -16,7 +16,9 @@ KEYCODE_VOLUME_UP = 24
 KEYCODE_VOLUME_DOWN = 25
 KEYCODE_POWER = 26
 KEYCODE_ENTER = 66
-KEYCODE_DEL = 111
+KEYCODE_DEL = 67
+KEYCODE_FORWARD_DEL = 112
+KEYCODE_ESCAPE = 111
 KEYCODE_SPACE = 62
 KEYCODE_APP_SWITCH = 187
 
@@ -62,6 +64,14 @@ class InputController:
     def delete(self, serial: str) -> None:
         """Press delete/backspace."""
         self.send_key(serial, KEYCODE_DEL)
+
+    def forward_delete(self, serial: str) -> None:
+        """Press forward delete."""
+        self.send_key(serial, KEYCODE_FORWARD_DEL)
+
+    def escape(self, serial: str) -> None:
+        """Press escape."""
+        self.send_key(serial, KEYCODE_ESCAPE)
 
     def space(self, serial: str) -> None:
         """Press space."""

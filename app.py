@@ -518,11 +518,16 @@ class OpenAndroidDex(Gtk.Application):
 
         self._clock_timer: Optional[int] = None
         self._status_timer: Optional[int] = None
+        self._icon_theme: Optional[Gtk.IconTheme] = None
 
     def do_activate(self) -> None:
         win = self.props.active_window
         if not win:
             win = self._build_window()
+        if win and hasattr(win, "get_display"):
+            display = win.get_display()
+            if display:
+                self._icon_theme = Gtk.IconTheme.get_for_display(display)
         win.present()
         self._refresh_devices()
 
@@ -1018,7 +1023,7 @@ class OpenAndroidDex(Gtk.Application):
         words = label.split()
         if len(words) >= 2:
             return (words[0][:1] + words[1][:1]).upper()
-        return (label[:2] if len(label) >= 2 else label[:1]).upper()
+        return (label[:2] if len(label) >= 2 else (label[:1] or "A")).upper()
 
     # ------------------------------------------------------------------
     # Boot Sequence & Device Discovery
@@ -1219,7 +1224,10 @@ class OpenAndroidDex(Gtk.Application):
 
         seen_packages = set()
         apps: List[AppInfo] = []
-        theme = Gtk.IconTheme.get_for_display(Gdk.Display.get_default())
+        theme = getattr(self, "_icon_theme", None)
+        if not theme:
+            display = Gdk.Display.get_default()
+            theme = Gtk.IconTheme.get_for_display(display) if display else None
 
         # First add launchable activities
         for pkg, act in activities:
@@ -1227,7 +1235,7 @@ class OpenAndroidDex(Gtk.Application):
                 continue
             seen_packages.add(pkg)
             label, sys_icon, color_idx = self._resolve_app_meta(pkg)
-            valid_icon = sys_icon if (sys_icon and theme.has_icon(sys_icon)) else None
+            valid_icon = sys_icon if (sys_icon and theme and theme.has_icon(sys_icon)) else None
             monogram = self._make_monogram(label)
             apps.append(
                 AppInfo(

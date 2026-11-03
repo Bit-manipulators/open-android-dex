@@ -16,5 +16,4 @@ class UrlLauncher:
 
     def open(self, serial: str, url: str) -> None:
         """Open the given URL in the device's default browser."""
-        intent = f"android.intent.action.VIEW -d {url}"
-        self.adb.start_activity(serial, intent)
+        self.adb.start_activity(serial, "android.intent.action.VIEW", data_uri=url)
