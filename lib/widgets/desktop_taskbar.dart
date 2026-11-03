@@ -636,10 +636,11 @@ class _Windows11TaskbarItemState extends State<_Windows11TaskbarItem> {
           setState(() => _isHovered = false);
           widget.onHoverExit();
         },
-        child: GestureDetector(
-          onSecondaryTap: widget.onSecondaryTap,
+        child: Material(
+          color: Colors.transparent,
           child: InkWell(
             onTap: widget.onTap,
+            onSecondaryTap: widget.onSecondaryTap,
             borderRadius: BorderRadius.circular(6),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
