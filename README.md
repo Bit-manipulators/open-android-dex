@@ -10,6 +10,10 @@
 An open-source desktop environment that transforms your Android smartphone or tablet into a multi-window workstation under **Linux** (Wayland and X11) — featuring resizable floating windows, an interactive DeX taskbar, app drawer, low-latency screen streaming, and keyboard/mouse input mapping.
 
 <p align="center">
+  <img src="video_and_screenshorts/open_android_dex_demo.gif" alt="Open Android DeX Live Demo" width="100%" style="border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);" />
+</p>
+
+<p align="center">
   <img src="video_and_screenshorts/open_android_dex_desktop.jpg" alt="Open Android DeX Clean Multi-Window Desktop Workspace" width="100%" style="border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);" />
 </p>
 <p align="center">
@@ -94,14 +98,6 @@ For full technical diagrams, data flows, and IPC details, refer to [`docs/ARCHIT
 * **Code Location:** [`lib/`](lib/) and [`linux/`](linux/)
 * **Window Engine:** Draggable and 8-direction resizable window frames with active focus management and minimize/maximize memory.
 * **Streaming Engine:** Headless `scrcpy` writes live H.264 video to a named pipe (`$XDG_RUNTIME_DIR/opendex/`), which [`stream_texture.cc`](linux/stream_texture.cc) decodes into an `FlPixelBufferTexture` rendered in real-time.
-
-<details>
-  <summary><b>🎬 Click to expand animated motion demo (.gif)</b></summary>
-  <br/>
-  <p align="center">
-    <img src="video_and_screenshorts/open_android_dex_demo.gif" alt="Open Android DeX Live Motion Demo" width="95%" style="border-radius: 8px;" />
-  </p>
-</details>
 
 ### 2. Python / GTK4 Shell (Lightweight Fallback)
 * **Code Location:** [`app.py`](app.py) and supporting Python modules
