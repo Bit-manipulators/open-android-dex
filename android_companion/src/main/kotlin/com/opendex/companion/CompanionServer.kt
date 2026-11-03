@@ -11,6 +11,7 @@ import kotlinx.coroutines.*
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.PrintWriter
+import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.util.concurrent.CopyOnWriteArrayList
@@ -25,7 +26,10 @@ object CompanionServer {
 
         serverJob = scope.launch(Dispatchers.IO) {
             try {
-                val serverSocket = ServerSocket(PORT)
+                // Bind exclusively to 127.0.0.1 loopback interface so the service is only
+                // accessible via authorized ADB port forwarding (adb forward tcp:8888 tcp:8888)
+                // and never exposed to untrusted local Wi-Fi or external networks.
+                val serverSocket = ServerSocket(PORT, 50, InetAddress.getByName("127.0.0.1"))
                 while (isActive) {
                     val socket = serverSocket.accept()
                     launch(Dispatchers.IO) {

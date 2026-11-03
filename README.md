@@ -1,150 +1,223 @@
-# Open Android Dex
+# Open Android DeX
 
-An original, from-scratch **open-source** GTK4 desktop shell that turns your
-Android phone into a desktop-style environment under **Linux** — wallpaper,
-status bar, app drawer, and dock, with screen mirroring via scrcpy.
+[![CI](https://github.com/Bit-manipulators/open-android-dex/actions/workflows/ci.yml/badge.svg)](https://github.com/Bit-manipulators/open-android-dex/actions)
+[![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE)
+[![Platform: Linux](https://img.shields.io/badge/Platform-Linux%20(X11%20%7C%20Wayland)-teal.svg)](#requirements)
+[![Android: 10 - 16](https://img.shields.io/badge/Android-API%2029--36-green.svg)](#android-device-support)
 
-## ⚖️ Legal & copyright notice
+An open-source desktop environment that transforms your Android smartphone or tablet into a multi-window workstation under **Linux** (Wayland and X11) — featuring resizable floating windows, an interactive DeX taskbar, app drawer, low-latency screen streaming, and keyboard/mouse input mapping.
 
-**Open Android Dex is an independent, clean-room project.** It is NOT
-affiliated with, endorsed by, sponsored by, or derived from any proprietary
-or closed-source product, including any application named "Android DEX" or
-similar.
+---
 
-* All code in this repository is **original work**, licensed under the GNU General Public License v3.0 (GPL-3.0) — see
-  `LICENSE`.
-* **No** code, binaries, strings, configuration files, artwork, icons, sounds,
-  or other assets from any third-party or closed-source application are used,
-  copied, embedded, bundled, or distributed in this repository or by this
-  software.
-* All assets shipped in `assets/` are original, generated from scratch
-  (simple SVG placeholders — replace them with your own art if you like; the
-  app works without assets at all).
-* Design model: where this project implements behavior similar to other
-  desktop-phone tools, it was built from *publicly published documentation
-  and descriptions of behavior only* — never from disassembly, ripping, or
-  extraction of any third-party binary.
-* "Android" is a trademark of Google LLC. This project is not affiliated
-  with, endorsed by, or sponsored by Google LLC. The name is used only to
-  describe factual compatibility with the Android platform.
-* scrcpy and ADB are third-party open-source tools, governed by their own
-  licenses (Apache-2.0, etc.) and are not distributed by this repository.
-* If you redistribute or fork this project, keep this notice and the `LICENSE`
-  file intact. If you add third-party assets or code, they must be
-  compatible with GPL-3.0 and clearly attributed.
+## 📑 Table of Contents
 
-**Contribution policy:** patches that copy code or assets from closed-source
-applications will be rejected. Clean-room work only.
+- [Overview & Goals](#overview--goals)
+- [Feature Status Matrix](#feature-status-matrix)
+- [Architecture & Shell Options](#architecture--shell-options)
+  - [1. Flutter Desktop Compositor (Primary)](#1-flutter-desktop-compositor-primary)
+  - [2. Python / GTK4 Shell (Lightweight Fallback)](#2-python--gtk4-shell-lightweight-fallback)
+  - [3. Android Companion App](#3-android-companion-app)
+- [System Requirements](#system-requirements)
+- [Quick Start Guide](#quick-start-guide)
+  - [Running the Flutter Desktop Shell](#running-the-flutter-desktop-shell)
+  - [Running the Python / GTK4 Shell](#running-the-python--gtk4-shell)
+- [Testing & Quality Assurance](#testing--quality-assurance)
+- [Provenance & Reverse-Engineering Transparency](#provenance--reverse-engineering-transparency)
+- [Documentation & Contributing](#documentation--contributing)
+- [License](#license)
 
-## Features
+---
 
-- **Desktop-style shell** — wallpaper, translucent glass top bar (device
-  name, live battery ⚡, volume, clock, device picker), bottom dock
-- **Boot sequence** with progress feedback: start ADB → detect/auto-select
-  device → verify shell link → confirm scrcpy availability → ready
-- **App drawer** — every user app on the phone appears as a tile; click a
-  tile to launch the app on the phone
-- **Screen mirroring** via scrcpy (`Mirror` in the dock)
-- **Phone control from the desktop** — Home, Back, Recent Apps, Lock,
-  Volume, DPAD navigation (`Ctrl+Shift+` arrow keys)
-- **URL launcher** — type a link, it opens in the phone's browser
+## Overview & Goals
 
-## Requirements
+**Open Android DeX** aims to deliver a modern, multi-window desktop computing experience powered directly by your personal Android phone connected to a Linux laptop or external monitor.
 
-- Python 3.10+
-- PyGObject / GTK4 (GTK >= 4.10)
-- `adb` — `sudo apt install adb`
-- `scrcpy` — `sudo apt install scrcpy`
-- A phone with **USB debugging** enabled
+### Key Project Objectives
+* **True Multi-Window Workspace**: Float, drag, resize, maximize, and minimize independent Android applications across an expansive desktop canvas.
+* **Low Latency & High Frame Rate**: Decode 60 FPS video streams in-process directly to GPU textures via hardware-accelerated pipelines.
+* **Clean-Room Open Source**: 100% original code licensed under GPL-3.0, without proprietary binaries, proprietary libraries, or vendor lock-in.
+* **Dual Architecture Flexibility**: A modern, feature-rich Flutter compositor alongside an ultra-lightweight GTK4 shell.
 
-## Run Flutter Desktop Application (DeX Mode with Resizable Windows)
+---
+
+## Feature Status Matrix
+
+| Feature | Status | Description |
+| :--- | :--- | :--- |
+| **8-Way Window Resizing** | ✅ **Implemented** | Smooth edge and corner dragging with geometry persistence |
+| **Z-Index Window Ordering** | ✅ **Implemented** | Active window elevation, focus switching, and drop shadows |
+| **In-Process Video Textures** | ✅ **Implemented** | Native C++ FFmpeg decoding from headless scrcpy pipes |
+| **DeX Bottom Taskbar** | ✅ **Implemented** | 9-dot launcher, Android navigation (Back, Home, Recents), clock |
+| **App Drawer & Search** | ✅ **Implemented** | Dynamic package querying with real-time text filtering |
+| **Staged Boot Sequencer** | ✅ **Implemented** | 5-step detection and health check (ADB → Device → Link → scrcpy) |
+| **Media Volume Control** | ✅ **Implemented** | Hardware volume stepping and mute toggles via ADB |
+| **Android Virtual Displays** | 🟡 **Partially Implemented** | Uses `--new-display` on Android 14+; auto-adapts on resize |
+| **Real-Time Notification Sync** | 🟡 **Partially Implemented** | `dumpsys` polling in desktop; Companion daemon in Kotlin |
+| **Audio Forwarding to Host** | 🔵 **Planned** | PipeWire / PulseAudio integration via scrcpy audio tunnel |
+| **Bidirectional Clipboard Sync** | 🔵 **Planned** | Automatic copy-paste synchronization between host and phone |
+| **Direct Control Socket Touch** | 🧪 **Experimental** | Direct binary touch packets over scrcpy control port |
+
+*Legend: ✅ Implemented | 🟡 Partially Implemented | 🔵 Planned | 🧪 Experimental*
+
+---
+
+## Architecture & Shell Options
+
+Open Android DeX provides two distinct desktop shells tailored for different use cases:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                 Open Android DeX Ecosystem                  │
+├──────────────────────────────┬──────────────────────────────┤
+│ Primary: Flutter Compositor  │ Fallback: Python GTK4 Shell  │
+│  - Rich multi-window canvas  │  - Low memory footprint      │
+│  - In-process FFmpeg decoder │  - Standalone scrcpy window  │
+│  - Samsung DeX glassmorphism │  - Fast zero-compile startup │
+├──────────────────────────────┴──────────────────────────────┤
+│               Shared ADB & Transport Protocols              │
+│       (ADB Daemon, Port Forwarding, Headless scrcpy)        │
+└─────────────────────────────────────────────────────────────┘
+```
+
+For full technical diagrams, data flows, and IPC details, refer to [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
+### 1. Flutter Desktop Compositor (Primary)
+* **Code Location:** [`lib/`](lib/) and [`linux/`](linux/)
+* **Window Engine:** Draggable and 8-direction resizable window frames with active focus management and minimize/maximize memory.
+* **Streaming Engine:** Headless `scrcpy` writes live H.264 video to a named pipe (`$XDG_RUNTIME_DIR/opendex/`), which [`stream_texture.cc`](linux/stream_texture.cc) decodes into an `FlPixelBufferTexture` rendered in real-time.
+
+### 2. Python / GTK4 Shell (Lightweight Fallback)
+* **Code Location:** [`app.py`](app.py) and supporting Python modules
+* **Model:** Pure PyGObject GTK4 desktop launcher with status bar, app drawer, and system dock.
+* **Streaming:** Launches `scrcpy` in an external standalone window matching host compositor conventions.
+
+### 3. Android Companion App
+* **Code Location:** [`android_companion/`](android_companion/)
+* **Model:** Clean-room Kotlin service featuring `NotificationListenerService` and a loopback-bound TCP daemon (`127.0.0.1:8888`) for event broadcasting.
+
+---
+
+## System Requirements
+
+### Host Linux PC
+* **Operating System:** Linux (Arch Linux, Ubuntu 22.04+, Debian 12+, Fedora 38+)
+* **Display Server:** Wayland (Hyprland, Sway, GNOME, KDE) or X11
+* **Tools:**
+  * `adb` (Android Debug Bridge, version 31+)
+  * `scrcpy` (version 2.0 - 5.0+)
+  * Python 3.10+ (for Python GTK shell and test suite)
+  * Flutter SDK 3.24+ (for building the Flutter shell from source)
+
+### Android Device Support
+* Any smartphone, tablet, or handheld running **Android 10 through Android 16**.
+* **USB Debugging** enabled in *Developer Options*.
+* (Optional) **Wireless Debugging** (Android 11+) supported via QR code pairing.
+
+---
+
+## Quick Start Guide
+
+### 1. Install Host Dependencies
+
+**Debian / Ubuntu:**
+```bash
+sudo apt update
+sudo apt install -y adb scrcpy libgtk-4-dev libgtk-3-dev python3-gi gir1.2-gtk-4.0 \
+    pkg-config cmake ninja-build clang libavcodec-dev libavformat-dev libswscale-dev libavutil-dev
+```
+
+**Arch Linux:**
+```bash
+sudo pacman -S android-tools scrcpy gtk4 gtk3 python-gobject cmake ninja clang ffmpeg
+```
+
+**Fedora:**
+```bash
+sudo dnf install -y android-tools scrcpy gtk4-devel gtk3-devel python3-gobject \
+    cmake ninja-build clang ffmpeg-free-devel
+```
+
+### 2. Connect Your Phone
+1. Connect your Android phone to your PC via a USB-C data cable.
+2. When prompted on your phone, tap **"Always allow from this computer"** to authorize USB debugging.
+3. Verify connection:
+   ```bash
+   adb devices
+   ```
+
+---
+
+### Running the Flutter Desktop Shell
 
 ```bash
-cd /path/to/open-android-dex
 ./run_flutter_dex.sh
 ```
 
-or directly:
-
+Or via Flutter CLI:
 ```bash
 flutter run -d linux
 ```
 
-### Features in Flutter GUI:
-- **Internal Resizable & Draggable Windows**:
-  - Drag from title bar across the desktop canvas.
-  - 8-direction smooth edge and corner resizing (Top, Bottom, Left, Right, Corners).
-  - Minimize (`_`), Maximize / Restore (`□`), Close (`✕`), and double-click to maximize/restore.
-  - Active window focus with z-index ordering and drop shadows.
-- **DeX Desktop Environment**:
-  - Ambient dark wallpaper with high-res graphics.
-  - Floating Device Capsule (`moto g54 5G • Desktop 0 • Connected via ADB`).
-  - Desktop quick-launch app grid.
-- **Interactive DeX Taskbar**:
-  - 9-dot App Drawer launcher grid with search and category filtering.
-  - Android Navigation Bar: Back (`<`), Home (`○`), Recents (`□`).
-  - Running app icons with active pill indicators (click to minimize/restore/bring to front).
-  - Live battery %, charging indicator, clock, and connected device pill.
-- **Per-App Device Control & Mirroring**:
-  - 1-click Screen Mirroring via scrcpy directly onto the laptop monitor.
-  - Instant text injection & physical hardware button shortcuts (Volume, Power, Enter).
-
----
-
-## Run Legacy Python / GTK4 Shell
+### Running the Python / GTK4 Shell
 
 ```bash
-cd /path/to/open-android-dex
 python3 app.py
 ```
 
-or, after `pip install .`:
-
+Or install as a local command:
 ```bash
+pip install -e .
 open-android-dex
 ```
 
-Flow: plug the phone in → press **Boot Sequence** → the boot card disappears
-and your app grid loads → press **Mirror** to open the scrcpy window (you
-can position it over the wallpaper like a DeX window).
+---
 
-## Boot flow
+## Testing & Quality Assurance
 
-| Step | Progress | What happens |
-| :--- | :--- | :--- |
-| 1 | 0.04 | `adb start-server` |
-| 2 | 0.15 | Device detection: 0 → prompt to connect; 1 → auto-select; 2+ → pick from list |
-| 3 | 0.40 | Shell link verification (`getprop` device identity) |
-| 4 | 0.70 | scrcpy availability check |
-| 5 | 1.00 | System ready — device connected |
+The repository includes an automated test suite executed in CI:
 
-Failing steps produce clear, actionable messages instead of raw errors
-(e.g. unauthorized devices prompt you to accept the debugging dialog on the
-phone).
+```bash
+# Run Python unit tests (21 tests covering adb, input, boot, window manager)
+PYTHONPATH=. pytest tests/ -v
 
-## Module map
+# Run Flutter static analysis
+flutter analyze
 
-```
-app.py ─────────────── DeX-style GTK4 shell, boot orchestration glue
-├── adb_client.py ──── adb subprocess wrapper (single source of truth)
-├── device_manager.py  target-device selection state machine
-├── boot_manager.py ── sequenced init steps + progress events (threaded)
-├── scrcpy_client.py ─ screen mirroring process management
-├── input_controller.py  key/tap/swipe → adb input events
-├── volume_control.py  media volume adjustment
-├── url_launcher.py ── android.intent.action.VIEW launcher
-└── window_manager.py  device window/task helpers (home, recents, lock)
+# Run Flutter tests
+flutter test
 ```
 
-## Roadmap
+---
 
-- Per-app desktop windows (decode scrcpy's video stream into native GTK
-  widgets instead of launching an external scrcpy window)
-- Own companion service for notifications/media-session telemetry
-  (original Kotlin module, written from scratch)
-- Gaming-mode key profiles
-- Wi-Fi (wireless debugging) pairing support
+## ⚖️ Provenance & Reverse-Engineering Transparency
+
+Open Android DeX is an **independent, clean-room, open-source project**.
+
+* **Reference Software Studied:** Earlier exploratory phases studied compiled reference binaries (`.AppImage`, `libapp.so`, and reference companion JARs) using public binary analysis to understand high-level architectural requirements (such as virtual display binding and video texture pipelines).
+* **Public Specifications Used:** All implementations in this repository are based exclusively on publicly documented open-source protocols, including the official [scrcpy protocol](https://github.com/Genymobile/scrcpy), Android Open Source Project (AOSP) documentation, and standard Linux/GTK APIs.
+* **Clean-Room Codebase:** No code, strings, proprietary assets, or binaries from any closed-source application are used or distributed in this repository.
+* **Third-Party Trademarks:** "Android" and "Samsung DeX" are trademarks of their respective owners. Their mention here is purely descriptive of factual technical compatibility.
+
+For detailed security review and threat models, see [`docs/SECURITY.md`](docs/SECURITY.md).
+
+---
+
+## Documentation & Contributing
+
+Comprehensive architectural and developer guides are available in `docs/`:
+
+* 📖 **[Architecture & Data Flow](docs/ARCHITECTURE.md)**: Video decoding, IPC, window management.
+* 🛡️ **[Security Policy & Threat Model](docs/SECURITY.md)**: Socket isolation, ADB authorization, and least-privilege review.
+* 🗺️ **[Development Roadmap & Issues](docs/ROADMAP.md)**: 6 strategic pillars and 12 actionable issue proposals.
+* 🔍 **[Comprehensive Project Audit](docs/PROJECT_AUDIT.md)**: Detailed audit report of all components and bugs.
+* 🤝 **[Contribution Guidelines](CONTRIBUTING.md)**: Setup, branch conventions, PR checklist.
+* 📜 **[Code of Conduct](CODE_OF_CONDUCT.md)**: Community standards and enforcement.
+
+We warmly welcome external contributors! Please check out [Good First Issues](docs/ROADMAP.md#2-actionable-github-issue-proposals) to get started.
+
+---
 
 ## License
 
-GNU General Public License v3.0 (GPL-3.0) — see [`LICENSE`](LICENSE). Copyright (c) 2026 [Bit-manipulators](https://github.com/Bit-manipulators/open-android-dex).
+This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)** — see the [`LICENSE`](LICENSE) file for details.  
+Copyright (c) 2026 [Bit-manipulators](https://github.com/Bit-manipulators/open-android-dex).

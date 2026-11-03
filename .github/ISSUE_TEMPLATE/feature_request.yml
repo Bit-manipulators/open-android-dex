@@ -1,0 +1,43 @@
+name: Feature Request
+description: Propose a new feature, enhancement, or hardware capability
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        We welcome ideas for improving Open Android DeX! Please check existing issues before proposing a new feature.
+  - type: dropdown
+    id: category
+    attributes:
+      label: Feature Category
+      options:
+        - Window Management & Resizing
+        - Audio Streaming & Forwarding
+        - Clipboard Synchronization
+        - Wireless Debugging & Pairing
+        - Android Companion Enhancements
+        - Desktop Theme & Customization
+        - Performance & Latency Optimization
+        - Documentation & Testing
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Is your feature request related to a problem?
+      description: A clear and concise description of what the limitation or pain point is.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed Solution / Enhancement
+      description: Detailed description of what you want to happen and how it could work.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Any alternative solutions or features you've considered.
