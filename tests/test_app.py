@@ -40,3 +40,25 @@ def test_app_config_load():
     # Check that known brand icons exist in assets
     assert "android" in cfg.brand_icons
     assert "samsung" in cfg.brand_icons
+
+
+def test_app_demo_mode():
+    app = OpenAndroidDex(demo_mode=True)
+    assert app.demo_mode is True
+    # Test entering demo mode
+    app._enter_demo_mode()
+    assert app._selected_device is not None
+    assert "Demo" in app._selected_device.model
+    assert len(app._all_apps) > 5
+    # Test demo tile launch without error
+    app._launch_tile(app._all_apps[0])
+    # Test demo mirror toggle
+    app._on_mirror_toggle(None)
+    assert app._demo_mirror_active is True
+    app._on_mirror_toggle(None)
+    assert app._demo_mirror_active is False
+    # Test volume / key in demo mode
+    app._volume_up()
+    app._volume_down()
+    app._send_key(3)
+

@@ -30,4 +30,8 @@ export FLUTTER_ENGINE_SWITCHES=1
 export FLUTTER_ENGINE_SWITCH_1="--no-enable-impeller"
 
 echo "🚀 Building & Launching Open Android Dex (Flutter Desktop)..."
-flutter run -d linux
+if [ $# -gt 0 ]; then
+    flutter run -d linux -- "$@"
+else
+    flutter run -d linux
+fi

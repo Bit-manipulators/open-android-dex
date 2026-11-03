@@ -3,6 +3,7 @@ import '../controllers/window_manager_controller.dart';
 import '../models/app_info.dart';
 import '../services/adb_service.dart';
 import '../widgets/app_drawer_dialog.dart';
+import '../widgets/app_icon_widget.dart';
 import '../widgets/connection_mode_dialog.dart';
 import '../widgets/desktop_taskbar.dart';
 import '../widgets/notification_center_dialog.dart';
@@ -349,25 +350,10 @@ class _DexDesktopScreenState extends State<DexDesktopScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 58,
-                height: 58,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: app.gradientColors,
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: app.gradientColors.first.withOpacity(0.4),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Icon(app.icon, size: 30, color: Colors.white),
+              AppIconWidget(
+                app: app,
+                size: 58,
+                borderRadius: 16,
               ),
               const SizedBox(height: 6),
               Text(

@@ -4,8 +4,14 @@
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE)
 [![Platform: Linux](https://img.shields.io/badge/Platform-Linux%20(X11%20%7C%20Wayland)-teal.svg)](#requirements)
 [![Android: 10 - 16](https://img.shields.io/badge/Android-API%2029--36-green.svg)](#android-device-support)
+[![Good First Issues](https://img.shields.io/badge/PRs-Welcome-brightgreen.svg)](docs/GOOD_FIRST_ISSUES.md)
+[![Dev Containers](https://img.shields.io/badge/Dev%20Containers-Ready-blue.svg)](.devcontainer)
 
 An open-source desktop environment that transforms your Android smartphone or tablet into a multi-window workstation under **Linux** (Wayland and X11) — featuring resizable floating windows, an interactive DeX taskbar, app drawer, low-latency screen streaming, and keyboard/mouse input mapping.
+
+<p align="center">
+  <img src="video_and_screenshorts/open_android_dex_demo.gif" alt="Open Android DeX Live Demo" width="100%" style="border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);" />
+</p>
 
 ---
 
@@ -117,7 +123,29 @@ For full technical diagrams, data flows, and IPC details, refer to [`docs/ARCHIT
 
 ## Quick Start Guide
 
-### 1. Install Host Dependencies
+### 🚀 Instant Demo Mode (No Android Phone Needed!)
+
+Want to test, explore, or build features without plugging in a physical phone? You can launch Open Android DeX immediately in simulated **Demo Mode**:
+
+```bash
+# Auto-detects Flutter or Python and launches instant Demo Mode:
+./scripts/run_demo.sh
+
+# Or run the Python/GTK4 shell directly in demo mode:
+python3 app.py --demo
+```
+
+---
+
+### 1. Automated Dependency Setup
+
+To automatically detect your Linux distribution and install all system development packages:
+
+```bash
+./scripts/dev_setup.sh
+```
+
+Or install manually:
 
 **Debian / Ubuntu:**
 ```bash
@@ -174,10 +202,13 @@ open-android-dex
 
 ## Testing & Quality Assurance
 
-The repository includes an automated test suite executed in CI:
+The repository includes a zero-dependency test runner and full CI integration:
 
 ```bash
-# Run Python unit tests (21 tests covering adb, input, boot, window manager)
+# Run all unit tests with zero third-party dependencies:
+python3 run_tests.py
+
+# Or via pytest:
 PYTHONPATH=. pytest tests/ -v
 
 # Run Flutter static analysis
@@ -206,6 +237,8 @@ For detailed security review and threat models, see [`docs/SECURITY.md`](docs/SE
 
 Comprehensive architectural and developer guides are available in `docs/`:
 
+* 🌟 **[Good First Issues for Contributors](docs/GOOD_FIRST_ISSUES.md)**: 5 bite-sized, ready-to-solve starter issues with code pointers.
+* 📢 **[Community Outreach & Launch Kit](docs/COMMUNITY_SUBMISSIONS.md)**: Ready-to-use posts for Reddit, Hacker News, and Awesome lists.
 * 📖 **[Architecture & Data Flow](docs/ARCHITECTURE.md)**: Video decoding, IPC, window management.
 * 🛡️ **[Security Policy & Threat Model](docs/SECURITY.md)**: Socket isolation, ADB authorization, and least-privilege review.
 * 🗺️ **[Development Roadmap & Issues](docs/ROADMAP.md)**: 6 strategic pillars and 12 actionable issue proposals.
@@ -213,7 +246,7 @@ Comprehensive architectural and developer guides are available in `docs/`:
 * 🤝 **[Contribution Guidelines](CONTRIBUTING.md)**: Setup, branch conventions, PR checklist.
 * 📜 **[Code of Conduct](CODE_OF_CONDUCT.md)**: Community standards and enforcement.
 
-We warmly welcome external contributors! Please check out [Good First Issues](docs/ROADMAP.md#2-actionable-github-issue-proposals) to get started.
+We warmly welcome external contributors! Check out **[`docs/GOOD_FIRST_ISSUES.md`](docs/GOOD_FIRST_ISSUES.md)** to grab an issue and submit your first PR!
 
 ---
 

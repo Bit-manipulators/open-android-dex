@@ -2,13 +2,40 @@ import 'dart:async';
 import 'dart:io';
 import '../models/app_info.dart';
 import '../models/notification_item.dart';
+import 'icon_extraction_service.dart';
+
+class MdnsServiceEntry {
+  final String name;
+  final String type;
+  final String ip;
+  final int port;
+
+  const MdnsServiceEntry({
+    required this.name,
+    required this.type,
+    required this.ip,
+    required this.port,
+  });
+}
 
 class AdbService {
   static final AdbService _instance = AdbService._internal();
   factory AdbService() => _instance;
-  AdbService._internal();
+  AdbService._internal() {
+    IconExtractionService().onIconExtracted.listen((serial) {
+      if (selectedDeviceSerial == serial && installedApps.isNotEmpty) {
+        final extractor = IconExtractionService();
+        installedApps = installedApps.map((app) {
+          final p = extractor.getCachedIconPath(app.packageName);
+          return (p != null) ? app.copyWith(iconPath: p) : app;
+        }).toList();
+        _deviceStateController.add(true);
+      }
+    });
+  }
 
   String? selectedDeviceSerial;
+  bool isDemoMode = false;
   String deviceModel = 'Searching Device...';
   String deviceBrand = '';
   int batteryLevel = 0;
@@ -52,6 +79,51 @@ class AdbService {
     return s.contains(':') || s.contains('._tcp') || s.startsWith('adb-');
   }
 
+  /// Enables simulated Demo Mode for open-source contributors without a physical Android device
+  void enableDemoMode() {
+    isDemoMode = true;
+    selectedDeviceSerial = 'demo-device-pixel8';
+    deviceModel = 'Pixel 8 Pro (Demo)';
+    deviceBrand = 'Google';
+    batteryLevel = 94;
+    isCharging = true;
+    currentVolume = 18;
+    maxVolume = 25;
+    isWifiEnabled = true;
+    isBluetoothEnabled = true;
+    currentMediaTitle = 'Open Android DeX Demo';
+    currentMediaArtist = 'Workstation Sound';
+    isMediaPlaying = true;
+    installedApps = [
+      AppInfo.fromPackage('com.android.chrome'),
+      AppInfo.fromPackage('com.google.android.calculator'),
+      AppInfo.fromPackage('com.android.settings'),
+      AppInfo.fromPackage('com.android.documentsui'),
+      AppInfo.fromPackage('com.android.messaging'),
+      AppInfo.fromPackage('com.android.vending'),
+      AppInfo.fromPackage('com.google.android.apps.photos'),
+      AppInfo.fromPackage('com.google.android.youtube'),
+      AppInfo.fromPackage('com.termux'),
+    ];
+    activeNotifications = [
+      NotificationItem(
+        id: 'demo-notif-1',
+        packageName: 'com.opendex.system',
+        title: 'Open Android DeX Demo Mode',
+        body: 'Simulated desktop environment ready! Try dragging and resizing windows.',
+        timestamp: DateTime.now(),
+      ),
+      NotificationItem(
+        id: 'demo-notif-2',
+        packageName: 'com.github.contributors',
+        title: 'Contributors Welcome!',
+        body: 'Check docs/GOOD_FIRST_ISSUES.md for issues you can solve today.',
+        timestamp: DateTime.now().subtract(const Duration(minutes: 5)),
+      ),
+    ];
+    _deviceStateController.add(true);
+  }
+
   /// Detects all wired devices currently connected via USB
   Future<List<String>> getWiredDevices() async {
     final all = await getConnectedDevices();
@@ -80,9 +152,37 @@ class AdbService {
   }
 
   /// Android 11+ AOSP Wireless Debugging QR code payload format
-  String generateQrPairingPayload([String? password]) {
-    final pass = password ?? 'dex${(DateTime.now().millisecondsSinceEpoch % 900000) + 100000}';
-    return 'WIFI:T:ADB;S:OpenAndroidDeX;P:$pass;;';
+  String generateQrPairingPayload([String? password, String? serviceName]) {
+    final pass = password ?? ((DateTime.now().millisecondsSinceEpoch % 900000) + 100000).toString();
+    final sName = serviceName ?? 'OpenAndroidDeX';
+    return 'WIFI:T:ADB;S:$sName;P:$pass;;';
+  }
+
+  /// Retrieves discovered mDNS wireless debugging services (_adb-tls-pairing and _adb-tls-connect)
+  Future<List<MdnsServiceEntry>> getMdnsServices() async {
+    final List<MdnsServiceEntry> entries = [];
+    try {
+      final res = await Process.run('adb', ['mdns', 'services']);
+      final lines = (res.stdout as String).split('\n');
+      for (var line in lines) {
+        line = line.trim();
+        if (line.isEmpty || line.startsWith('List of discovered') || line.startsWith('mdns daemon')) continue;
+        final parts = line.split(RegExp(r'\s+'));
+        if (parts.length >= 3) {
+          final hostPort = parts[2].split(':');
+          if (hostPort.length == 2) {
+            final port = int.tryParse(hostPort[1]) ?? 0;
+            entries.add(MdnsServiceEntry(
+              name: parts[0],
+              type: parts[1],
+              ip: hostPort[0],
+              port: port,
+            ));
+          }
+        }
+      }
+    } catch (_) {}
+    return entries;
   }
 
   /// Attempts to determine the device's local Wi-Fi IP address
@@ -211,6 +311,7 @@ class AdbService {
   }
 
   Future<void> _pollDevice() async {
+    if (isDemoMode) return;
     try {
       final devices = await getConnectedDevices();
       if (devices.isNotEmpty) {
@@ -239,6 +340,7 @@ class AdbService {
   }
 
   Future<List<String>> getConnectedDevices() async {
+    if (isDemoMode) return ['demo-device-pixel8'];
     try {
       final res = await Process.run('adb', ['devices']);
       if (res.exitCode != 0) return [];
@@ -474,9 +576,17 @@ class AdbService {
         }
       }
 
-      final apps = packages.map((pkg) => AppInfo.fromPackage(pkg)).toList();
+      final extractor = IconExtractionService();
+      final apps = packages.map((pkg) {
+        final cached = extractor.getCachedIconPath(pkg);
+        return AppInfo.fromPackage(pkg, cached);
+      }).toList();
       apps.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
       installedApps = apps;
+
+      // Extract real icons asynchronously in the background
+      extractor.extractIconsForDevice(selectedDeviceSerial!, packages.toList());
+
       return apps;
     } catch (_) {
       return [];
@@ -502,17 +612,22 @@ class AdbService {
     } catch (_) {}
   }
 
-  Future<void> sendKeyEvent(int keyCode) async {
+  Future<void> sendKeyEvent(int keyCode, {int? displayId}) async {
     if (selectedDeviceSerial == null) return;
     try {
-      await Process.run('adb', ['-s', selectedDeviceSerial!, 'shell', 'input', 'keyevent', '$keyCode']);
+      final args = ['-s', selectedDeviceSerial!, 'shell', 'input'];
+      if (displayId != null) {
+        args.addAll(['-d', displayId.toString()]);
+      }
+      args.addAll(['keyevent', '$keyCode']);
+      await Process.run('adb', args);
     } catch (_) {}
   }
 
-  Future<void> goBack() => sendKeyEvent(4);
-  Future<void> goHome() => sendKeyEvent(3);
-  Future<void> showRecents() => sendKeyEvent(187);
-  Future<void> volumeUp() => sendKeyEvent(24);
-  Future<void> volumeDown() => sendKeyEvent(25);
-  Future<void> powerButton() => sendKeyEvent(26);
+  Future<void> goBack({int? displayId}) => sendKeyEvent(4, displayId: displayId);
+  Future<void> goHome({int? displayId}) => sendKeyEvent(3, displayId: displayId);
+  Future<void> showRecents({int? displayId}) => sendKeyEvent(187, displayId: displayId);
+  Future<void> volumeUp({int? displayId}) => sendKeyEvent(24, displayId: displayId);
+  Future<void> volumeDown({int? displayId}) => sendKeyEvent(25, displayId: displayId);
+  Future<void> powerButton({int? displayId}) => sendKeyEvent(26, displayId: displayId);
 }

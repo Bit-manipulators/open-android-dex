@@ -1,6 +1,5 @@
 import subprocess
 from unittest.mock import MagicMock, patch
-import pytest
 
 from adb_client import AdbClient, Device
 

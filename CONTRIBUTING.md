@@ -39,6 +39,24 @@ All contributors and maintainers are expected to adhere to our [Code of Conduct]
 
 ## 2. Getting Started & Prerequisites
 
+### 🌟 Looking for a task to work on?
+Check out our curated **[Good First Issues Guide](docs/GOOD_FIRST_ISSUES.md)** for beginner-friendly, high-impact features and bug fixes with step-by-step pointers to code files.
+
+### 🚀 Instant Demo Mode (No Hardware Needed!)
+You do not need a physical Android device or active phone cable to contribute to the UI, window management, or layout features!
+```bash
+# Launch instant demo mode:
+./scripts/run_demo.sh
+```
+
+### 1-Click Dependency Setup
+Run the automated environment installer for your Linux distro:
+```bash
+./scripts/dev_setup.sh
+```
+
+Or install dependencies manually:
+
 ### Linux Host Dependencies
 Open Android DeX runs on Linux (X11 or Wayland). Ensure you have `adb` and `scrcpy` installed on your machine:
 
@@ -137,8 +155,14 @@ adb install -r build/outputs/apk/debug/android_companion-debug.apk
 
 ## 5. Running Tests
 
-### Python Tests
-Run the automated test suite using `pytest`:
+### Automated Zero-Dependency Test Runner
+Run the full unit test suite without needing third-party test harnesses:
+```bash
+python3 run_tests.py
+```
+
+### Python Tests with Pytest
+Run using `pytest`:
 ```bash
 PYTHONPATH=. pytest tests/
 ```

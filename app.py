@@ -468,8 +468,10 @@ class AppConfig:
 class OpenAndroidDex(Gtk.Application):
     """Clean-room GTK4 desktop application with modern DeX styling."""
 
-    def __init__(self) -> None:
+    def __init__(self, demo_mode: bool = False) -> None:
         super().__init__(application_id=APP_ID, flags=Gio.ApplicationFlags.NON_UNIQUE)
+        self.demo_mode = demo_mode
+        self._demo_mirror_active: bool = False
         self.adb = AdbClient()
         self.scrcpy = ScrcpyClient()
         self.input = InputController(self.adb)
@@ -536,8 +538,11 @@ class OpenAndroidDex(Gtk.Application):
         if self._status_timer is None:
             self._status_timer = GLib.timeout_add(2000, self._periodic_status_check)
 
-        # Automatic boot check on startup: if an authorized device is present, auto-boot!
-        GLib.timeout_add(300, self._auto_boot_if_available)
+        # Automatic boot check on startup: if demo mode, load demo; otherwise auto-boot if device present
+        if self.demo_mode:
+            GLib.timeout_add(150, self._enter_demo_mode)
+        else:
+            GLib.timeout_add(300, self._auto_boot_if_available)
 
     # ------------------------------------------------------------------
     # UI Construction
@@ -782,6 +787,14 @@ class OpenAndroidDex(Gtk.Application):
         self._boot_btn.set_halign(Gtk.Align.CENTER)
         self._boot_btn.connect("clicked", self._on_boot)
         card.append(self._boot_btn)
+
+        demo_btn = Gtk.Button(label="🧪 Explore Demo Mode (No Phone)")
+        demo_btn.add_css_class("flat")
+        demo_btn.add_css_class("desk-mirror-pill")
+        demo_btn.set_halign(Gtk.Align.CENTER)
+        demo_btn.set_margin_top(8)
+        demo_btn.connect("clicked", lambda _: self._enter_demo_mode())
+        card.append(demo_btn)
 
         wrapper.append(card)
         return wrapper
@@ -1029,6 +1042,49 @@ class OpenAndroidDex(Gtk.Application):
     # Boot Sequence & Device Discovery
     # ------------------------------------------------------------------
 
+    def _enter_demo_mode(self) -> bool:
+        """Simulate a fully functioning connected Android environment for contributors."""
+        self.demo_mode = True
+        self._selected_device = Device(
+            serial="demo-pixel8",
+            state="device",
+            model="Pixel 8 Pro (Demo Mode)",
+        )
+        self.devices.selected = self._selected_device
+
+        # Transition UI to Desktop workspace
+        if self._boot_card:
+            self._boot_card.set_visible(False)
+        if self._apps_scroll:
+            self._apps_scroll.set_visible(True)
+
+        self._update_device_ui({"brand": "Google", "model": "Pixel 8 Pro (Demo)"})
+        self._set_dock_enabled()
+        self._show_toast("🧪 Demo Mode active — exploring DeX UI without a phone")
+
+        demo_apps = [
+            AppInfo(package="com.android.chrome", label="Chrome", icon_name="google-chrome", color_index=0, monogram="C"),
+            AppInfo(package="com.android.messaging", label="Messages", icon_name="mail-unread-symbolic", color_index=2, monogram="M"),
+            AppInfo(package="com.android.settings", label="Settings", icon_name="preferences-system-symbolic", color_index=11, monogram="S"),
+            AppInfo(package="com.google.android.calculator", label="Calculator", icon_name="accessories-calculator-symbolic", color_index=3, monogram="C"),
+            AppInfo(package="com.android.vending", label="Play Store", icon_name="software-properties-symbolic", color_index=4, monogram="P"),
+            AppInfo(package="com.google.android.apps.photos", label="Photos", icon_name="image-x-generic", color_index=1, monogram="P"),
+            AppInfo(package="com.google.android.youtube", label="YouTube", icon_name="video-x-generic", color_index=0, monogram="Y"),
+            AppInfo(package="com.spotify.music", label="Spotify", icon_name="audio-x-generic", color_index=2, monogram="S"),
+            AppInfo(package="com.google.android.apps.maps", label="Maps", icon_name="mark-location-symbolic", color_index=1, monogram="M"),
+            AppInfo(package="com.google.android.calendar", label="Calendar", icon_name="x-office-calendar-symbolic", color_index=3, monogram="C"),
+            AppInfo(package="com.android.documentsui", label="Files", icon_name="folder-symbolic", color_index=8, monogram="F"),
+            AppInfo(package="com.google.android.deskclock", label="Clock", icon_name="alarm-symbolic", color_index=7, monogram="C"),
+            AppInfo(package="com.android.camera2", label="Camera", icon_name="camera-photo-symbolic", color_index=5, monogram="C"),
+            AppInfo(package="com.termux", label="Terminal", icon_name="utilities-terminal-symbolic", color_index=9, monogram="T"),
+        ]
+        self._all_apps = demo_apps
+        if self._apps_flowbox:
+            self._populate_flowbox(demo_apps)
+        if self._battery_label:
+            self._battery_label.set_text("⚡ 94%")
+        return GLib.SOURCE_REMOVE
+
     def _auto_boot_if_available(self) -> bool:
         if self.boot.running or self._selected_device:
             return GLib.SOURCE_REMOVE
@@ -1157,6 +1213,8 @@ class OpenAndroidDex(Gtk.Application):
         return GLib.SOURCE_CONTINUE
 
     def _periodic_status_check(self) -> bool:
+        if self.demo_mode:
+            return GLib.SOURCE_CONTINUE
         # Check scrcpy running state and update toggle buttons
         is_mirroring = self.scrcpy.is_running()
         if self._mirror_topbar_btn:
@@ -1307,6 +1365,9 @@ class OpenAndroidDex(Gtk.Application):
                 self._show_toast(f"Display launch error: {exc}")
 
     def _launch_tile(self, app: AppInfo) -> None:
+        if self.demo_mode:
+            self._show_toast(f"🚀 [Demo Mode] Opened {app.label}")
+            return
         if not self._selected_device:
             return
         serial = self._selected_device.serial
@@ -1332,6 +1393,25 @@ class OpenAndroidDex(Gtk.Application):
     # ------------------------------------------------------------------
 
     def _on_mirror_toggle(self, _button: Gtk.Button) -> None:
+        if self.demo_mode:
+            self._demo_mirror_active = not self._demo_mirror_active
+            if self._mirror_topbar_btn:
+                if self._demo_mirror_active:
+                    self._mirror_topbar_btn.set_label("🟢 Mirroring")
+                    self._mirror_topbar_btn.remove_css_class("desk-mirror-pill")
+                    self._mirror_topbar_btn.add_css_class("desk-mirror-pill-active")
+                else:
+                    self._mirror_topbar_btn.set_label("🪟 Mirror")
+                    self._mirror_topbar_btn.remove_css_class("desk-mirror-pill-active")
+                    self._mirror_topbar_btn.add_css_class("desk-mirror-pill")
+            if self._mirror_dock_btn:
+                if self._demo_mirror_active:
+                    self._mirror_dock_btn.add_css_class("desk-dock-active")
+                else:
+                    self._mirror_dock_btn.remove_css_class("desk-dock-active")
+            state_text = "active (simulated)" if self._demo_mirror_active else "stopped"
+            self._show_toast(f"🖥️ [Demo Mode] Display mirror {state_text}")
+            return
         if not self._selected_device:
             return
         if self.scrcpy.is_running():
@@ -1387,29 +1467,49 @@ class OpenAndroidDex(Gtk.Application):
         self._bg(task)
 
     def _toggle_notifications(self) -> None:
+        if self.demo_mode:
+            self._show_toast("🔔 [Demo Mode] Notifications shade toggled")
+            return
         if self._selected_device:
             self._bg(self.windows.notifications, self._selected_device.serial)
 
     def _volume_up(self) -> None:
+        if self.demo_mode:
+            self._show_toast("🔊 [Demo Mode] Volume Up")
+            return
         if self._selected_device:
             self.volume.up(self._selected_device.serial)
             self._show_toast("🔊 Volume Up")
 
     def _volume_down(self) -> None:
+        if self.demo_mode:
+            self._show_toast("🔉 [Demo Mode] Volume Down")
+            return
         if self._selected_device:
             self.volume.down(self._selected_device.serial)
             self._show_toast("🔉 Volume Down")
 
     def _send_key(self, keycode: int) -> None:
+        if self.demo_mode:
+            key_names = {3: "Home", 4: "Back", 187: "Recent Apps", 26: "Power/Lock"}
+            name = key_names.get(keycode, f"Keycode {keycode}")
+            self._show_toast(f"📱 [Demo Mode] Action: {name}")
+            return
         if self._selected_device:
             self.input.send_key(self._selected_device.serial, keycode)
 
     def _recent_apps(self) -> None:
+        if self.demo_mode:
+            self._show_toast("📱 [Demo Mode] Recent Apps overview")
+            return
         if self._selected_device:
             self._ensure_mirror()
             self.windows.recent_apps(self._selected_device.serial)
 
     def _lock(self) -> None:
+        if self.demo_mode:
+            self._show_toast("🔒 [Demo Mode] Screen Lock toggled")
+            return
         if self._selected_device:
             self.windows.lock(self._selected_device.serial)
             self._show_toast("🔒 Screen Lock toggled")
@@ -1477,8 +1577,10 @@ class OpenAndroidDex(Gtk.Application):
 
 
 def main() -> int:
-    app = OpenAndroidDex()
-    return app.run([])
+    import sys
+    demo = "--demo" in sys.argv or "--mock" in sys.argv
+    app = OpenAndroidDex(demo_mode=demo)
+    return app.run([sys.argv[0]])
 
 
 if __name__ == "__main__":

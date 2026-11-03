@@ -39,6 +39,7 @@ class TouchInputService {
   /// Sends a single tap event to the Android device.
   Future<void> sendTap({
     required String? serial,
+    int? displayId,
     required double localX,
     required double localY,
     required double viewportWidth,
@@ -58,12 +59,12 @@ class TouchInputService {
     );
 
     try {
-      await Process.run('adb', [
-        '-s', serial,
-        'shell', 'input', 'tap',
-        target.x.toString(),
-        target.y.toString(),
-      ]);
+      final args = ['-s', serial, 'shell', 'input'];
+      if (displayId != null) {
+        args.addAll(['-d', displayId.toString()]);
+      }
+      args.addAll(['tap', target.x.toString(), target.y.toString()]);
+      await Process.run('adb', args);
     } catch (e) {
       debugPrint('Error sending tap: $e');
     }
@@ -82,6 +83,7 @@ class TouchInputService {
   /// Handles drag / swipe movement with throttling to prevent ADB queue saturation.
   Future<void> onPointerMove({
     required String? serial,
+    int? displayId,
     required double currentX,
     required double currentY,
     required double viewportWidth,
@@ -121,15 +123,19 @@ class TouchInputService {
     _dragStartY = currentY;
 
     try {
-      await Process.run('adb', [
-        '-s', serial,
-        'shell', 'input', 'swipe',
+      final args = ['-s', serial, 'shell', 'input'];
+      if (displayId != null) {
+        args.addAll(['-d', displayId.toString()]);
+      }
+      args.addAll([
+        'swipe',
         start.x.toString(),
         start.y.toString(),
         end.x.toString(),
         end.y.toString(),
         '100', // swipe duration in ms
       ]);
+      await Process.run('adb', args);
     } catch (e) {
       debugPrint('Error sending drag/swipe: $e');
     }
@@ -138,6 +144,7 @@ class TouchInputService {
   /// Concludes a drag gesture.
   Future<void> onPointerUp({
     required String? serial,
+    int? displayId,
     required double endX,
     required double endY,
     required double viewportWidth,
@@ -155,6 +162,7 @@ class TouchInputService {
       // If minimal movement, register as a clean tap
       await sendTap(
         serial: serial,
+        displayId: displayId,
         localX: endX,
         localY: endY,
         viewportWidth: viewportWidth,
@@ -182,15 +190,19 @@ class TouchInputService {
       );
 
       try {
-        await Process.run('adb', [
-          '-s', serial!,
-          'shell', 'input', 'swipe',
+        final args = ['-s', serial!, 'shell', 'input'];
+        if (displayId != null) {
+          args.addAll(['-d', displayId.toString()]);
+        }
+        args.addAll([
+          'swipe',
           start.x.toString(),
           start.y.toString(),
           end.x.toString(),
           end.y.toString(),
           '150',
         ]);
+        await Process.run('adb', args);
       } catch (e) {
         debugPrint('Error sending final swipe: $e');
       }
@@ -200,6 +212,7 @@ class TouchInputService {
   /// Sends a scroll wheel event (page up / page down / roll).
   Future<void> sendScroll({
     required String? serial,
+    int? displayId,
     required double scrollDeltaY,
     required double localX,
     required double localY,
@@ -224,30 +237,67 @@ class TouchInputService {
     final int endY = (center.y - scrollDistance).clamp(50, deviceHeight - 50);
 
     try {
-      await Process.run('adb', [
-        '-s', serial,
-        'shell', 'input', 'swipe',
+      final args = ['-s', serial, 'shell', 'input'];
+      if (displayId != null) {
+        args.addAll(['-d', displayId.toString()]);
+      }
+      args.addAll([
+        'swipe',
         center.x.toString(),
         startY.toString(),
         center.x.toString(),
         endY.toString(),
         '100',
       ]);
+      await Process.run('adb', args);
     } catch (e) {
       debugPrint('Error sending scroll swipe: $e');
     }
   }
 
   /// Injects text into the focused Android text box.
-  Future<void> sendText(String? serial, String text) async {
+  Future<void> sendText(String? serial, String text, {int? displayId}) async {
     if (serial == null || text.isEmpty) return;
 
     // Replace whitespace and escape shell characters for adb input text
-    final escaped = text.replaceAll(' ', '%s');
+    final escaped = text
+        .replaceAll(r'\', r'\\')
+        .replaceAll(' ', '%s')
+        .replaceAll('"', r'\"')
+        .replaceAll("'", r"\'")
+        .replaceAll('&', r'\&')
+        .replaceAll('<', r'\<')
+        .replaceAll('>', r'\>')
+        .replaceAll('|', r'\|')
+        .replaceAll(';', r'\;')
+        .replaceAll('(', r'\(')
+        .replaceAll(')', r'\)')
+        .replaceAll(r'$', r'\$')
+        .replaceAll('`', r'\`');
     try {
-      await Process.run('adb', ['-s', serial, 'shell', 'input', 'text', escaped]);
+      final args = ['-s', serial, 'shell', 'input'];
+      if (displayId != null) {
+        args.addAll(['-d', displayId.toString()]);
+      }
+      args.addAll(['text', escaped]);
+      await Process.run('adb', args);
     } catch (e) {
       debugPrint('Error sending text: $e');
+    }
+  }
+
+  /// Sends a hardware key event (Enter, Backspace, Arrows, etc.) to the device/display.
+  Future<void> sendKeyEvent(String? serial, int keyCode, {int? displayId}) async {
+    if (serial == null) return;
+    try {
+      final args = ['-s', serial, 'shell', 'input'];
+      if (displayId != null) {
+        args.addAll(['-d', displayId.toString()]);
+      }
+      args.addAll(['keyevent', keyCode.toString()]);
+      await Process.run('adb', args);
+    } catch (e) {
+      debugPrint('Error sending keyevent: $e');
     }
   }
 }

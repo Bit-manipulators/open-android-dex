@@ -1,6 +1,5 @@
 import subprocess
 from unittest.mock import MagicMock, patch
-import pytest
 
 from scrcpy_client import ScrcpyClient
 

@@ -23,6 +23,7 @@ class ScrcpyStreamSession {
   int targetWidth;
   int targetHeight;
   int dpi;
+  int? displayId;
 
   ScrcpyStreamSession({
     required this.id,
@@ -35,6 +36,7 @@ class ScrcpyStreamSession {
     this.targetWidth = 720,
     this.targetHeight = 1280,
     this.dpi = 240,
+    this.displayId,
   });
 }
 
@@ -162,12 +164,30 @@ class ScrcpyStreamService {
       debugPrint('[ScrcpyStreamService] Starting headless scrcpy pipe stream (${width}x$height) to $pipePath');
       final proc = await Process.start('scrcpy', args);
 
+      void handleOutput(String line) {
+        final match = RegExp(r'New display:.*\(id=(\d+)\)').firstMatch(line);
+        if (match != null) {
+          final id = int.tryParse(match.group(1)!);
+          if (id != null) {
+            session.displayId = id;
+            debugPrint('[ScrcpyStreamService] Parsed virtual display id=$id for window $windowId');
+            _sessionStateController.add(session);
+          }
+        }
+      }
+
       proc.stdout.transform(utf8.decoder).transform(const LineSplitter()).listen((line) {
         debugPrint('[scrcpy stdout] $line');
+        handleOutput(line);
       });
       proc.stderr.transform(utf8.decoder).transform(const LineSplitter()).listen((line) {
         debugPrint('[scrcpy stderr] $line');
+        handleOutput(line);
       });
+
+      if (mode == ScrcpyDisplayMode.mirrorPrimary) {
+        session.displayId = 0;
+      }
 
       session.process = proc;
       session.isRunning = true;
@@ -183,6 +203,15 @@ class ScrcpyStreamService {
 
       // Brief delay to allow scrcpy to open the FIFO pipe for writing
       await Future.delayed(const Duration(milliseconds: 300));
+
+      if (session.displayId == null && mode == ScrcpyDisplayMode.virtualDisplay) {
+        final fallbackId = await getVirtualDisplayId(serial);
+        if (fallbackId != null) {
+          session.displayId = fallbackId;
+          debugPrint('[ScrcpyStreamService] Fallback resolved virtual display id=$fallbackId for window $windowId');
+          _sessionStateController.add(session);
+        }
+      }
 
       return session;
     } catch (e) {
@@ -247,6 +276,19 @@ class ScrcpyStreamService {
         pipeFile.deleteSync();
       }
     } catch (_) {}
+  }
+
+  /// Queries ADB for any active scrcpy virtual display ID
+  Future<int?> getVirtualDisplayId(String serial) async {
+    try {
+      final res = await Process.run('adb', ['-s', serial, 'shell', 'dumpsys', 'display']);
+      final out = res.stdout as String;
+      final matches = RegExp(r'displayId=(\d+)[^,\n]*uniqueId=[^,\n]*scrcpy').allMatches(out);
+      if (matches.isNotEmpty) {
+        return int.tryParse(matches.last.group(1)!);
+      }
+    } catch (_) {}
+    return null;
   }
 
   /// Stops all active sessions (e.g. when app closes).

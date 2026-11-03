@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/dex_window.dart';
 import '../services/adb_service.dart';
 import '../services/scrcpy_stream_service.dart';
 import '../services/texture_stream_channel.dart';
 import '../services/touch_input_service.dart';
+import 'app_icon_widget.dart';
 
 /// Embedded viewport widget that renders the live interactive screen area
 /// for an Android application inside a resizable desktop window.
@@ -28,6 +30,7 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
   final _streamService = ScrcpyStreamService();
   final _adb = AdbService();
   final _textController = TextEditingController();
+  final _focusNode = FocusNode();
 
   final ScrcpyDisplayMode _currentMode = ScrcpyDisplayMode.virtualDisplay;
   bool _isStreaming = false;
@@ -103,6 +106,7 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
     _sessionSub?.cancel();
     _deviceSub?.cancel();
     _textController.dispose();
+    _focusNode.dispose();
     if (_textureId != null) {
       TextureStreamChannel.stopStream(_textureId!);
     }
@@ -117,6 +121,17 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
     if (mounted) setState(() {});
 
     try {
+      if (_adb.isDemoMode) {
+        if (mounted) {
+          setState(() {
+            _isStreaming = true;
+            _statusMessage = 'Demo Simulation Active';
+            _isAdapting = false;
+          });
+        }
+        return;
+      }
+
       final serial = _adb.selectedDeviceSerial;
       if (serial == null) {
         if (mounted) {
@@ -224,6 +239,7 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
   }
 
   void _onPointerDown(PointerDownEvent e, BoxConstraints constraints) {
+    _focusNode.requestFocus();
     setState(() => _lastTouchPos = e.localPosition);
     _touchFadeTimer?.cancel();
     _touchFadeTimer = Timer(const Duration(milliseconds: 600), () {
@@ -231,6 +247,7 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
     });
 
     final mapped = _mapLocalToVideo(e.localPosition, constraints);
+    if (_adb.isDemoMode) return;
     _touchInput.onPointerDown(
       localX: mapped.dx,
       localY: mapped.dy,
@@ -239,12 +256,14 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
 
   void _onPointerMove(PointerMoveEvent e, BoxConstraints constraints) {
     setState(() => _lastTouchPos = e.localPosition);
+    if (_adb.isDemoMode) return;
     final mapped = _mapLocalToVideo(e.localPosition, constraints);
     final session = _streamService.getSession(widget.window.id);
     final devW = session?.targetWidth ?? widget.window.width.toInt();
     final devH = session?.targetHeight ?? widget.window.height.toInt();
     _touchInput.onPointerMove(
       serial: _adb.selectedDeviceSerial,
+      displayId: session?.displayId,
       currentX: mapped.dx,
       currentY: mapped.dy,
       viewportWidth: constraints.maxWidth,
@@ -255,12 +274,14 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
   }
 
   void _onPointerUp(PointerUpEvent e, BoxConstraints constraints) {
+    if (_adb.isDemoMode) return;
     final mapped = _mapLocalToVideo(e.localPosition, constraints);
     final session = _streamService.getSession(widget.window.id);
     final devW = session?.targetWidth ?? widget.window.width.toInt();
     final devH = session?.targetHeight ?? widget.window.height.toInt();
     _touchInput.onPointerUp(
       serial: _adb.selectedDeviceSerial,
+      displayId: session?.displayId,
       endX: mapped.dx,
       endY: mapped.dy,
       viewportWidth: constraints.maxWidth,
@@ -278,6 +299,7 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
       final devH = session?.targetHeight ?? widget.window.height.toInt();
       _touchInput.sendScroll(
         serial: _adb.selectedDeviceSerial,
+        displayId: session?.displayId,
         scrollDeltaY: e.scrollDelta.dy,
         localX: mapped.dx,
         localY: mapped.dy,
@@ -287,6 +309,69 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
         deviceHeight: devH,
       );
     }
+  }
+
+  KeyEventResult _handleKeyEvent(KeyEvent event) {
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+      return KeyEventResult.ignored;
+    }
+
+    if (_adb.isDemoMode) {
+      return KeyEventResult.handled;
+    }
+
+    final serial = _adb.selectedDeviceSerial;
+    if (serial == null) return KeyEventResult.ignored;
+
+    final session = _streamService.getSession(widget.window.id);
+    final displayId = session?.displayId;
+
+    final key = event.logicalKey;
+
+    // Check functional and navigation keys
+    int? keyCode;
+    if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.numpadEnter) {
+      keyCode = 66; // KEYCODE_ENTER
+    } else if (key == LogicalKeyboardKey.backspace) {
+      keyCode = 67; // KEYCODE_DEL
+    } else if (key == LogicalKeyboardKey.delete) {
+      keyCode = 112; // KEYCODE_FORWARD_DEL
+    } else if (key == LogicalKeyboardKey.tab) {
+      keyCode = 61; // KEYCODE_TAB
+    } else if (key == LogicalKeyboardKey.space) {
+      keyCode = 62; // KEYCODE_SPACE
+    } else if (key == LogicalKeyboardKey.escape) {
+      keyCode = 111; // KEYCODE_ESCAPE
+    } else if (key == LogicalKeyboardKey.arrowUp) {
+      keyCode = 19; // KEYCODE_DPAD_UP
+    } else if (key == LogicalKeyboardKey.arrowDown) {
+      keyCode = 20; // KEYCODE_DPAD_DOWN
+    } else if (key == LogicalKeyboardKey.arrowLeft) {
+      keyCode = 21; // KEYCODE_DPAD_LEFT
+    } else if (key == LogicalKeyboardKey.arrowRight) {
+      keyCode = 22; // KEYCODE_DPAD_RIGHT
+    } else if (key == LogicalKeyboardKey.pageUp) {
+      keyCode = 92; // KEYCODE_PAGE_UP
+    } else if (key == LogicalKeyboardKey.pageDown) {
+      keyCode = 93; // KEYCODE_PAGE_DOWN
+    } else if (key == LogicalKeyboardKey.home) {
+      keyCode = 122; // KEYCODE_MOVE_HOME
+    } else if (key == LogicalKeyboardKey.end) {
+      keyCode = 123; // KEYCODE_MOVE_END
+    }
+
+    if (keyCode != null) {
+      _touchInput.sendKeyEvent(serial, keyCode, displayId: displayId);
+      return KeyEventResult.handled;
+    }
+
+    // Direct printable character input
+    if (event.character != null && event.character!.isNotEmpty) {
+      _touchInput.sendText(serial, event.character!, displayId: displayId);
+      return KeyEventResult.handled;
+    }
+
+    return KeyEventResult.ignored;
   }
 
   Widget _buildCroppedTexture() {
@@ -305,127 +390,118 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
-                return Listener(
-                  onPointerDown: (e) => _onPointerDown(e, constraints),
-                  onPointerMove: (e) => _onPointerMove(e, constraints),
-                  onPointerUp: (e) => _onPointerUp(e, constraints),
-                  onPointerSignal: (e) => _onPointerSignal(e, constraints),
-                  child: Stack(
-                    children: [
-                      // Viewport Canvas: Clean Cropped Live Texture or Connecting Indicator
-                      if (_textureId != null)
-                        Positioned.fill(
-                          child: Center(
-                            child: _preserveAspect
-                                ? AspectRatio(
-                                    aspectRatio: _streamAspect,
-                                    child: _buildCroppedTexture(),
-                                  )
-                                : _buildCroppedTexture(),
-                          ),
-                        )
-                      else
-                        Container(
-                          width: double.infinity,
-                          height: double.infinity,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                const Color(0xFF0F172A),
-                                win.app.gradientColors.first.withOpacity(0.15),
-                                const Color(0xFF080C14),
-                              ],
+                return Focus(
+                  focusNode: _focusNode,
+                  autofocus: true,
+                  onKeyEvent: (node, event) => _handleKeyEvent(event),
+                  child: Listener(
+                    behavior: HitTestBehavior.opaque,
+                    onPointerDown: (e) => _onPointerDown(e, constraints),
+                    onPointerMove: (e) => _onPointerMove(e, constraints),
+                    onPointerUp: (e) => _onPointerUp(e, constraints),
+                    onPointerSignal: (e) => _onPointerSignal(e, constraints),
+                    child: Stack(
+                      children: [
+                        // Viewport Canvas: Clean Cropped Live Texture or Connecting Indicator
+                        if (_textureId != null)
+                          Positioned.fill(
+                            child: Center(
+                              child: _preserveAspect
+                                  ? AspectRatio(
+                                      aspectRatio: _streamAspect,
+                                      child: _buildCroppedTexture(),
+                                    )
+                                  : _buildCroppedTexture(),
                             ),
-                          ),
-                          child: Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Container(
-                                  width: 72,
-                                  height: 72,
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: win.app.gradientColors,
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
+                          )
+                        else
+                          Container(
+                            width: double.infinity,
+                            height: double.infinity,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  const Color(0xFF0F172A),
+                                  win.app.gradientColors.first.withOpacity(0.15),
+                                  const Color(0xFF080C14),
+                                ],
+                              ),
+                            ),
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  AppIconWidget(
+                                    app: win.app,
+                                    size: 72,
+                                    borderRadius: 18,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    win.app.name,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
                                     ),
-                                    borderRadius: BorderRadius.circular(18),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: win.app.gradientColors.first.withOpacity(0.35),
-                                        blurRadius: 16,
-                                        offset: const Offset(0, 4),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 8,
+                                        height: 8,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: _isStreaming ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        _statusMessage,
+                                        style: TextStyle(
+                                          color: _isStreaming ? const Color(0xFF6EE7B7) : const Color(0xFF94A3B8),
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                       ),
                                     ],
                                   ),
-                                  child: Icon(win.app.icon, size: 36, color: Colors.white),
-                                ),
-                                const SizedBox(height: 12),
-                                Text(
-                                  win.app.name,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      width: 8,
-                                      height: 8,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: _isStreaming ? const Color(0xFF10B981) : const Color(0xFFEF4444),
-                                      ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Connecting live screen engine...',
+                                    style: TextStyle(
+                                      color: Colors.white.withOpacity(0.4),
+                                      fontSize: 10,
                                     ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      _statusMessage,
-                                      style: TextStyle(
-                                        color: _isStreaming ? const Color(0xFF6EE7B7) : const Color(0xFF94A3B8),
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Connecting live screen engine...',
-                                  style: TextStyle(
-                                    color: Colors.white.withOpacity(0.4),
-                                    fontSize: 10,
                                   ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-
-                      // Touch feedback ripple visual
-                      if (_lastTouchPos != null)
-                        Positioned(
-                          left: _lastTouchPos!.dx - 18,
-                          top: _lastTouchPos!.dy - 18,
-                          child: IgnorePointer(
-                            child: Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: const Color(0xFF38BDF8).withOpacity(0.25),
-                                border: Border.all(color: const Color(0xFF38BDF8).withOpacity(0.6), width: 1.5),
+                                ],
                               ),
                             ),
                           ),
-                        ),
-                    ],
+
+                        // Touch feedback ripple visual
+                        if (_lastTouchPos != null)
+                          Positioned(
+                            left: _lastTouchPos!.dx - 18,
+                            top: _lastTouchPos!.dy - 18,
+                            child: IgnorePointer(
+                              child: Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: const Color(0xFF38BDF8).withOpacity(0.25),
+                                  border: Border.all(color: const Color(0xFF38BDF8).withOpacity(0.6), width: 1.5),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 );
               },
@@ -440,6 +516,9 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
   }
 
   Widget _buildBottomControlBar() {
+    final session = _streamService.getSession(widget.window.id);
+    final displayId = session?.displayId;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: const BoxDecoration(
@@ -449,9 +528,9 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
       child: Row(
         children: [
           // Android Nav Buttons
-          _buildNavIcon(Icons.arrow_back_ios_new_rounded, 'Back', () => _adb.goBack()),
-          _buildNavIcon(Icons.circle_outlined, 'Home', () => _adb.goHome()),
-          _buildNavIcon(Icons.crop_square_rounded, 'Recents', () => _adb.showRecents()),
+          _buildNavIcon(Icons.arrow_back_ios_new_rounded, 'Back', () => _adb.goBack(displayId: displayId)),
+          _buildNavIcon(Icons.circle_outlined, 'Home', () => _adb.goHome(displayId: displayId)),
+          _buildNavIcon(Icons.crop_square_rounded, 'Recents', () => _adb.showRecents(displayId: displayId)),
           const SizedBox(width: 8),
 
           // Text injection field
@@ -483,8 +562,8 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
                 ),
                 onSubmitted: (txt) {
                   if (txt.isNotEmpty) {
-                    _touchInput.sendText(_adb.selectedDeviceSerial, txt);
-                    _adb.sendKeyEvent(66); // Enter
+                    _touchInput.sendText(_adb.selectedDeviceSerial, txt, displayId: displayId);
+                    _touchInput.sendKeyEvent(_adb.selectedDeviceSerial, 66, displayId: displayId); // Enter
                     _textController.clear();
                   }
                 },
@@ -498,7 +577,7 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
             onTap: () {
               final txt = _textController.text.trim();
               if (txt.isNotEmpty) {
-                _touchInput.sendText(_adb.selectedDeviceSerial, txt);
+                _touchInput.sendText(_adb.selectedDeviceSerial, txt, displayId: displayId);
                 _textController.clear();
               }
             },

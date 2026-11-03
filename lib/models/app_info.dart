@@ -7,15 +7,36 @@ class AppInfo {
   final List<Color> gradientColors;
   final String category;
 
+  final String? iconPath;
+
   const AppInfo({
     required this.packageName,
     required this.name,
     required this.icon,
     required this.gradientColors,
     this.category = 'App',
+    this.iconPath,
   });
 
-  static AppInfo fromPackage(String pkg) {
+  AppInfo copyWith({
+    String? packageName,
+    String? name,
+    IconData? icon,
+    List<Color>? gradientColors,
+    String? category,
+    String? iconPath,
+  }) {
+    return AppInfo(
+      packageName: packageName ?? this.packageName,
+      name: name ?? this.name,
+      icon: icon ?? this.icon,
+      gradientColors: gradientColors ?? this.gradientColors,
+      category: category ?? this.category,
+      iconPath: iconPath ?? this.iconPath,
+    );
+  }
+
+  static AppInfo fromPackage(String pkg, [String? iconPath]) {
     final lower = pkg.toLowerCase();
     String name = _resolveName(pkg);
     IconData icon = _resolveIcon(lower, name.toLowerCase());
@@ -28,6 +49,7 @@ class AppInfo {
       icon: icon,
       gradientColors: colors,
       category: category,
+      iconPath: iconPath,
     );
   }
 

@@ -35,6 +35,7 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
   late String _pairingPassword;
 
   bool _isConnecting = false;
+  bool _isAutoPairing = false;
   bool _isSwitchingToWireless = false;
   bool _showPairing = false;
   String? _statusMessage;
@@ -47,7 +48,7 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _pairingPassword = 'dex${(DateTime.now().millisecondsSinceEpoch % 900000) + 100000}';
+    _pairingPassword = ((DateTime.now().millisecondsSinceEpoch % 900000) + 100000).toString();
     _qrPayload = _adb.generateQrPairingPayload(_pairingPassword);
     _refreshDevices();
     _detectTimer = Timer.periodic(const Duration(seconds: 2), (_) => _refreshDevices());
@@ -55,7 +56,7 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
 
   void _regenerateQr() {
     setState(() {
-      _pairingPassword = 'dex${(DateTime.now().millisecondsSinceEpoch % 900000) + 100000}';
+      _pairingPassword = ((DateTime.now().millisecondsSinceEpoch % 900000) + 100000).toString();
       _qrPayload = _adb.generateQrPairingPayload(_pairingPassword);
     });
   }
@@ -71,9 +72,61 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
     super.dispose();
   }
 
+  Future<void> _handleAutoPair(String ip, int port) async {
+    if (_isAutoPairing || _isConnecting) return;
+    _isAutoPairing = true;
+
+    if (mounted) {
+      setState(() {
+        _statusMessage = 'Phone detected via QR scan! Pairing with $ip:$port...';
+        _statusIsError = false;
+      });
+    }
+
+    final pairRes = await _adb.pairWireless(ip, port, _pairingPassword);
+    if (pairRes.toLowerCase().contains('success')) {
+      if (mounted) {
+        setState(() {
+          _statusMessage = 'Paired successfully! Connecting wireless session...';
+          _statusIsError = false;
+        });
+      }
+
+      await Future.delayed(const Duration(milliseconds: 1200));
+      await _refreshDevices();
+
+      final wireless = await _adb.getWirelessDevices();
+      if (wireless.isNotEmpty) {
+        final pref = _adb.getPreferredDevice(wireless);
+        _adb.selectedDeviceSerial = pref;
+        if (mounted) {
+          setState(() {
+            _statusMessage = 'SUCCESS: Wireless device connected!';
+            _statusIsError = false;
+          });
+          await Future.delayed(const Duration(milliseconds: 600));
+          if (mounted) {
+            Navigator.of(context).pop();
+            widget.onConnected?.call();
+          }
+        }
+      }
+    } else {
+      if (mounted) {
+        setState(() {
+          _statusMessage = pairRes.isNotEmpty ? pairRes : 'Pairing failed';
+          _statusIsError = true;
+        });
+      }
+    }
+
+    _isAutoPairing = false;
+  }
+
   Future<void> _refreshDevices() async {
     final wired = await _adb.getWiredDevices();
     final wireless = await _adb.getWirelessDevices();
+    final mdnsList = await _adb.getMdnsServices();
 
     if (mounted) {
       setState(() {
@@ -81,19 +134,37 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
         _wirelessDevices = wireless;
       });
 
-      // Auto fill IP from detected wireless device if present
-      if (wireless.isNotEmpty && _ipController.text == '192.168.1.') {
-        final pref = _adb.getPreferredDevice(wireless);
-        if (pref.contains(':') && !pref.contains('._tcp')) {
-          final parts = pref.split(':');
-          if (parts.length == 2) {
-            _ipController.text = parts[0];
-            _portController.text = parts[1];
+      // 1. Check for incoming QR pairing broadcast from phone
+      final pairingEntry = mdnsList.where((e) => e.type.contains('_adb-tls-pairing')).firstOrNull;
+      if (pairingEntry != null && !_isConnecting && !_isAutoPairing) {
+        _handleAutoPair(pairingEntry.ip, pairingEntry.port);
+      }
+
+      // 2. Auto fill IP and Port from discovered wireless connection or mDNS service
+      if (_ipController.text == '192.168.1.') {
+        final connectEntry = mdnsList.where((e) => e.type.contains('_adb-tls-connect')).firstOrNull;
+        if (connectEntry != null) {
+          _ipController.text = connectEntry.ip;
+          _portController.text = connectEntry.port.toString();
+        } else if (wireless.isNotEmpty) {
+          final pref = _adb.getPreferredDevice(wireless);
+          if (pref.contains(':') && !pref.contains('._tcp')) {
+            final parts = pref.split(':');
+            if (parts.length == 2) {
+              _ipController.text = parts[0];
+              _portController.text = parts[1];
+            }
           }
         }
       }
 
-      // Try pre-filling IP from connected wired device if available and input is incomplete
+      // 3. Pre-fill manual pairing port if advertised
+      if (pairingEntry != null && _pairPortController.text.isEmpty) {
+        _pairPortController.text = pairingEntry.port.toString();
+        _pairCodeController.text = _pairingPassword;
+      }
+
+      // 4. Try pre-filling IP from connected wired device if available and input is incomplete
       if (wired.isNotEmpty && _ipController.text == '192.168.1.') {
         _adb.getDeviceWifiIp(wired.first).then((detectedIp) {
           if (detectedIp != null && detectedIp.isNotEmpty && mounted) {
@@ -522,7 +593,25 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
                 ],
               ),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () {
+                _adb.enableDemoMode();
+                Navigator.of(context).pop();
+                widget.onConnected?.call();
+              },
+              icon: const Icon(Icons.science_rounded, size: 18, color: Color(0xFF38BDF8)),
+              label: const Text(
+                '🧪 Explore Demo Mode (No Phone Needed)',
+                style: TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.w600),
+              ),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Color(0xFF0284C7)),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+            const SizedBox(height: 12),
             TextButton.icon(
               onPressed: () => _tabController.animateTo(1),
               icon: const Icon(Icons.arrow_forward_rounded, size: 16),
@@ -672,9 +761,23 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
                           borderRadius: BorderRadius.circular(6),
                           border: Border.all(color: const Color(0xFF334155)),
                         ),
-                        child: Text(
-                          'Passcode: $_pairingPassword • Service: OpenAndroidDeX',
-                          style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 10, fontFamily: 'monospace'),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Color(0xFF10B981),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Code: $_pairingPassword • Auto-pairing listener active',
+                              style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 10, fontFamily: 'monospace'),
+                            ),
+                          ],
                         ),
                       ),
                     ],

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../controllers/window_manager_controller.dart';
 import '../services/adb_service.dart';
+import 'app_icon_widget.dart';
 import 'connection_mode_dialog.dart';
 
 class DesktopTaskbar extends StatefulWidget {
@@ -147,14 +148,11 @@ class _DesktopTaskbarState extends State<DesktopTaskbar> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Container(
-                              width: 18,
-                              height: 18,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(colors: win.app.gradientColors),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Icon(win.app.icon, size: 11, color: Colors.white),
+                            AppIconWidget(
+                              app: win.app,
+                              size: 18,
+                              borderRadius: 4,
+                              showShadow: false,
                             ),
                             const SizedBox(width: 7),
                             Text(

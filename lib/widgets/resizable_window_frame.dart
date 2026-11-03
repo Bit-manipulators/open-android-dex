@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../controllers/window_manager_controller.dart';
 import '../models/dex_window.dart';
 import '../services/adb_service.dart';
+import 'app_icon_widget.dart';
 import 'embedded_stream_viewport.dart';
 
 class ResizableWindowFrame extends StatefulWidget {
@@ -276,18 +277,11 @@ class _ResizableWindowFrameState extends State<ResizableWindowFrame> {
         child: Row(
           children: [
             // App Icon
-            Container(
-              width: 22,
-              height: 22,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: win.app.gradientColors,
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Icon(win.app.icon, size: 13, color: Colors.white),
+            AppIconWidget(
+              app: win.app,
+              size: 22,
+              borderRadius: 6,
+              showShadow: false,
             ),
             const SizedBox(width: 8),
 

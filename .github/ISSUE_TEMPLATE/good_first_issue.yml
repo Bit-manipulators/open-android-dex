@@ -1,0 +1,60 @@
+name: "Good First Issue"
+description: "Create a newcomer-friendly issue suitable for first-time open-source contributors"
+title: "[Good First Issue]: "
+labels: ["good first issue", "help wanted"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for creating a **Good First Issue**! Clearly describing the goal, target files, and verification steps helps new contributors make successful pull requests.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / Objective
+      description: What needs to be implemented, improved, or fixed?
+      placeholder: "e.g., Add keyboard shortcut (Super key) to toggle the app drawer."
+    validations:
+      required: true
+
+  - type: textarea
+    id: target_files
+    attributes:
+      label: Target Files / Modules
+      description: Which files or classes will the contributor need to touch?
+      placeholder: |
+        - `lib/views/dex_desktop_screen.dart`
+        - `app.py`
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps_to_implement
+    attributes:
+      label: Suggested Implementation Steps
+      description: Helpful hints or proposed architecture for solving this issue.
+    validations:
+      required: false
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance Criteria & Testing
+      description: How will the contributor and maintainer verify that the PR works?
+      placeholder: |
+        - [ ] Feature works in `./scripts/run_demo.sh`
+        - [ ] All unit tests pass with `python3 run_tests.py`
+    validations:
+      required: true
+
+  - type: dropdown
+    id: difficulty
+    attributes:
+      label: Difficulty Level
+      options:
+        - "🟢 Easy (1-2 hours, great for beginners)"
+        - "🟡 Medium (Half day, involves multiple components)"
+        - "🔵 Advanced (Core protocols / streaming / ADB)"
+    validations:
+      required: true
+

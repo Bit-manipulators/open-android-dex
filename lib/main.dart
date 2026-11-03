@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'services/adb_service.dart';
 import 'views/dex_desktop_screen.dart';
 
-void main() {
+void main(List<String> args) {
   WidgetsFlutterBinding.ensureInitialized();
+  if (args.contains('--demo') || args.contains('--mock')) {
+    AdbService().enableDemoMode();
+  }
   runApp(const OpenAndroidDexApp());
 }
 

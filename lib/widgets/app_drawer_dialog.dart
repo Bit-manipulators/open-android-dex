@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/app_info.dart';
 import '../services/adb_service.dart';
+import 'app_icon_widget.dart';
 
 class AppDrawerDialog extends StatefulWidget {
   final Function(AppInfo app) onSelectApp;
@@ -190,25 +191,10 @@ class _AppDrawerDialogState extends State<AppDrawerDialog> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: app.gradientColors,
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(15),
-                  boxShadow: [
-                    BoxShadow(
-                      color: app.gradientColors.first.withOpacity(0.35),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Icon(app.icon, size: 26, color: Colors.white),
+              AppIconWidget(
+                app: app,
+                size: 52,
+                borderRadius: 15,
               ),
               const SizedBox(height: 8),
               Text(
