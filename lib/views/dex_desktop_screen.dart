@@ -139,6 +139,7 @@ class _DexDesktopScreenState extends State<DexDesktopScreen> {
                     bottom: 0,
                     child: DesktopTaskbar(
                       controller: _windowManager,
+                      desktopSize: desktopSize,
                       isDrawerOpen: _isDrawerOpen,
                       onToggleDrawer: () => setState(() {
                         _isDrawerOpen = !_isDrawerOpen;
