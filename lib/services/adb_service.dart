@@ -45,8 +45,11 @@ class AdbService {
   // Extended DeX System States (Volume, Connectivity, Media, Notifications)
   int currentVolume = 14;
   int maxVolume = 25;
+  int screenBrightness = 180;
   bool isWifiEnabled = true;
   bool isBluetoothEnabled = false;
+  bool isAutoRotate = true;
+  bool isDndEnabled = false;
   String currentMediaTitle = 'No Active Track';
   String currentMediaArtist = 'Android Media';
   bool isMediaPlaying = false;
@@ -122,6 +125,24 @@ class AdbService {
       ),
     ];
     _deviceStateController.add(true);
+  }
+
+  /// Sets immersive status bar policy on Android so apps take up 100% of the window
+  Future<void> enableImmersiveStatusBar([String? serial]) async {
+    final s = serial ?? selectedDeviceSerial;
+    if (s == null || isDemoMode) return;
+    try {
+      await Process.run('adb', ['-s', s, 'shell', 'settings', 'put', 'global', 'policy_control', 'immersive.status=*']);
+    } catch (_) {}
+  }
+
+  /// Restores normal status bar policy on Android
+  Future<void> disableImmersiveStatusBar([String? serial]) async {
+    final s = serial ?? selectedDeviceSerial;
+    if (s == null || isDemoMode) return;
+    try {
+      await Process.run('adb', ['-s', s, 'shell', 'settings', 'delete', 'global', 'policy_control']);
+    } catch (_) {}
   }
 
   /// Detects all wired devices currently connected via USB
@@ -534,6 +555,40 @@ class AdbService {
   Future<void> lockScreen() => sendKeyEvent(26);
   Future<void> wakeUp() => sendKeyEvent(224);
   Future<void> takeScreenshot() => sendKeyEvent(120);
+
+  Future<void> setBrightness(int val) async {
+    screenBrightness = val.clamp(0, 255);
+    _deviceStateController.add(true);
+    if (selectedDeviceSerial == null || isDemoMode) return;
+    try {
+      await Process.run('adb', ['-s', selectedDeviceSerial!, 'shell', 'settings', 'put', 'system', 'screen_brightness', '$screenBrightness']);
+    } catch (_) {}
+  }
+
+  Future<void> toggleAutoRotate() async {
+    isAutoRotate = !isAutoRotate;
+    _deviceStateController.add(true);
+    if (selectedDeviceSerial == null || isDemoMode) return;
+    try {
+      await Process.run('adb', ['-s', selectedDeviceSerial!, 'shell', 'settings', 'put', 'system', 'accelerometer_rotation', isAutoRotate ? '1' : '0']);
+    } catch (_) {}
+  }
+
+  Future<void> toggleDnd() async {
+    isDndEnabled = !isDndEnabled;
+    _deviceStateController.add(true);
+    if (selectedDeviceSerial == null || isDemoMode) return;
+    try {
+      await Process.run('adb', ['-s', selectedDeviceSerial!, 'shell', 'cmd', 'notification', 'set_dnd_state', isDndEnabled ? 'priority' : 'off']);
+    } catch (_) {}
+  }
+
+  Future<void> openSettings() async {
+    if (selectedDeviceSerial == null || isDemoMode) return;
+    try {
+      await Process.run('adb', ['-s', selectedDeviceSerial!, 'shell', 'am', 'start', '-a', 'android.settings.SETTINGS']);
+    } catch (_) {}
+  }
 
 
   Future<List<AppInfo>> fetchInstalledApps() async {

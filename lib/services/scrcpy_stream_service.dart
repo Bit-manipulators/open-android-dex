@@ -150,14 +150,16 @@ class ScrcpyStreamService {
 
     if (mode == ScrcpyDisplayMode.virtualDisplay) {
       args.add('--new-display=${evenW}x$evenH/$dpi');
+      args.add('--no-vd-system-decorations');
     } else {
       args.add('--turn-screen-off');
     }
 
-    // Wake up device and dismiss keyguard so Android WindowManager allows the app to render on virtual display
+    // Wake up device, dismiss keyguard, and disable phone status bar in app windows
     try {
       await Process.run('adb', ['-s', serial, 'shell', 'input', 'keyevent', 'KEYCODE_WAKEUP']);
       await Process.run('adb', ['-s', serial, 'shell', 'wm', 'dismiss-keyguard']);
+      await Process.run('adb', ['-s', serial, 'shell', 'settings', 'put', 'global', 'policy_control', 'immersive.status=*']);
     } catch (_) {}
 
     try {
@@ -292,10 +294,15 @@ class ScrcpyStreamService {
   }
 
   /// Stops all active sessions (e.g. when app closes).
-  Future<void> stopAll() async {
+  Future<void> stopAll([String? serial]) async {
     for (final id in _activeSessions.keys.toList()) {
       await stopSession(id);
       cleanupPipe(id);
+    }
+    if (serial != null) {
+      try {
+        await Process.run('adb', ['-s', serial, 'shell', 'settings', 'delete', 'global', 'policy_control']);
+      } catch (_) {}
     }
   }
 }

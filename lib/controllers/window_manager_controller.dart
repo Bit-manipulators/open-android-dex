@@ -146,6 +146,63 @@ class WindowManagerController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void snapLeft(String id, Size desktopSize) {
+    final win = getWindow(id);
+    if (win == null) return;
+    if (win.isMaximized) win.isMaximized = false;
+    win.saveGeometry();
+    win.x = 0;
+    win.y = 0;
+    win.width = (desktopSize.width / 2).floorToDouble();
+    win.height = max(100.0, desktopSize.height - 52.0);
+    bringToFront(id);
+    notifyListeners();
+  }
+
+  void snapRight(String id, Size desktopSize) {
+    final win = getWindow(id);
+    if (win == null) return;
+    if (win.isMaximized) win.isMaximized = false;
+    win.saveGeometry();
+    final halfW = (desktopSize.width / 2).floorToDouble();
+    win.x = halfW;
+    win.y = 0;
+    win.width = desktopSize.width - halfW;
+    win.height = max(100.0, desktopSize.height - 52.0);
+    bringToFront(id);
+    notifyListeners();
+  }
+
+  void snapTopLeft(String id, Size desktopSize) {
+    final win = getWindow(id);
+    if (win == null) return;
+    if (win.isMaximized) win.isMaximized = false;
+    win.saveGeometry();
+    final halfW = (desktopSize.width / 2).floorToDouble();
+    final halfH = ((desktopSize.height - 52.0) / 2).floorToDouble();
+    win.x = 0;
+    win.y = 0;
+    win.width = halfW;
+    win.height = halfH;
+    bringToFront(id);
+    notifyListeners();
+  }
+
+  void snapTopRight(String id, Size desktopSize) {
+    final win = getWindow(id);
+    if (win == null) return;
+    if (win.isMaximized) win.isMaximized = false;
+    win.saveGeometry();
+    final halfW = (desktopSize.width / 2).floorToDouble();
+    final halfH = ((desktopSize.height - 52.0) / 2).floorToDouble();
+    win.x = halfW;
+    win.y = 0;
+    win.width = desktopSize.width - halfW;
+    win.height = halfH;
+    bringToFront(id);
+    notifyListeners();
+  }
+
   void updatePosition(String id, double dx, double dy, Size desktopSize) {
     final win = getWindow(id);
     if (win == null || win.isMaximized) return;

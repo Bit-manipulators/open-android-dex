@@ -37,6 +37,7 @@ class ScrcpyClient:
         stay_awake: bool = True,
         turn_screen_off: bool = False,
         new_display: Optional[str] = None,
+        no_vd_system_decorations: bool = True,
     ) -> subprocess.Popen:
         """Launch scrcpy and return the process handle."""
         if self.is_running():
@@ -61,6 +62,8 @@ class ScrcpyClient:
             args.append("--turn-screen-off")
         if new_display:
             args.append(f"--new-display={new_display}")
+            if no_vd_system_decorations:
+                args.append("--no-vd-system-decorations")
         if start_app:
             args.append(f"--start-app={start_app}")
         if serial:

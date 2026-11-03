@@ -50,6 +50,7 @@ def test_scrcpy_start_command_line():
             "--fullscreen",
             "--turn-screen-off",
             "--new-display=1920x1080/240",
+            "--no-vd-system-decorations",
             "--start-app=com.android.chrome",
             "--serial",
             "device123",
