@@ -38,7 +38,8 @@ class _ResizableWindowFrameState extends State<ResizableWindowFrame> {
         child: Container(
           decoration: BoxDecoration(
             color: const Color(0xFF14171F),
-            borderRadius: win.isMaximized ? BorderRadius.zero : BorderRadius.circular(10),
+            borderRadius:
+                win.isMaximized ? BorderRadius.zero : BorderRadius.circular(10),
             border: Border.all(
               color: isActive
                   ? const Color(0xFF60CDFF).withOpacity(0.45)
@@ -56,7 +57,8 @@ class _ResizableWindowFrameState extends State<ResizableWindowFrame> {
                   ],
           ),
           child: ClipRRect(
-            borderRadius: win.isMaximized ? BorderRadius.zero : BorderRadius.circular(9),
+            borderRadius:
+                win.isMaximized ? BorderRadius.zero : BorderRadius.circular(9),
             child: Stack(
               children: [
                 // Window Main Layout: Title bar + Content
@@ -275,9 +277,11 @@ class _ResizableWindowFrameState extends State<ResizableWindowFrame> {
           Expanded(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onDoubleTap: () => widget.controller.toggleMaximize(win.id, widget.desktopSize),
+              onDoubleTap: () =>
+                  widget.controller.toggleMaximize(win.id, widget.desktopSize),
               onPanUpdate: (details) {
-                widget.controller.updatePosition(win.id, details.delta.dx, details.delta.dy, widget.desktopSize);
+                widget.controller.updatePosition(win.id, details.delta.dx,
+                    details.delta.dy, widget.desktopSize);
               },
               child: Row(
                 children: [
@@ -292,9 +296,11 @@ class _ResizableWindowFrameState extends State<ResizableWindowFrame> {
                     child: Text(
                       win.app.name,
                       style: TextStyle(
-                        color: isActive ? Colors.white : const Color(0xFF94A3B8),
+                        color:
+                            isActive ? Colors.white : const Color(0xFF94A3B8),
                         fontSize: 12,
-                        fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                        fontWeight:
+                            isActive ? FontWeight.w600 : FontWeight.w400,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -306,9 +312,12 @@ class _ResizableWindowFrameState extends State<ResizableWindowFrame> {
 
           // Quick Nav Controls inside Title Bar (shown on widescreen)
           if (win.width >= 480) ...[
-            _buildNavButton(Icons.arrow_back_rounded, 'Back', () => AdbService().goBack()),
-            _buildNavButton(Icons.home_rounded, 'Home', () => AdbService().goHome()),
-            _buildNavButton(Icons.layers_rounded, 'Recents', () => AdbService().showRecents()),
+            _buildNavButton(
+                Icons.arrow_back_rounded, 'Back', () => AdbService().goBack()),
+            _buildNavButton(
+                Icons.home_rounded, 'Home', () => AdbService().goHome()),
+            _buildNavButton(Icons.layers_rounded, 'Recents',
+                () => AdbService().showRecents()),
             const SizedBox(width: 6),
             Container(width: 1, height: 16, color: const Color(0xFF333333)),
             const SizedBox(width: 4),
@@ -321,9 +330,12 @@ class _ResizableWindowFrameState extends State<ResizableWindowFrame> {
             onTap: () => widget.controller.minimizeWindow(win.id),
           ),
           _buildCaptionButton(
-            icon: win.isMaximized ? Icons.filter_none_rounded : Icons.crop_square_rounded,
+            icon: win.isMaximized
+                ? Icons.filter_none_rounded
+                : Icons.crop_square_rounded,
             tooltip: win.isMaximized ? 'Restore' : 'Maximize',
-            onTap: () => widget.controller.toggleMaximize(win.id, widget.desktopSize),
+            onTap: () =>
+                widget.controller.toggleMaximize(win.id, widget.desktopSize),
           ),
           _buildCaptionButton(
             icon: Icons.close_rounded,

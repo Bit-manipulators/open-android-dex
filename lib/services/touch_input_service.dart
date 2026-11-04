@@ -287,7 +287,8 @@ class TouchInputService {
   }
 
   /// Sends a hardware key event (Enter, Backspace, Arrows, etc.) to the device/display.
-  Future<void> sendKeyEvent(String? serial, int keyCode, {int? displayId}) async {
+  Future<void> sendKeyEvent(String? serial, int keyCode,
+      {int? displayId}) async {
     if (serial == null) return;
     try {
       final args = ['-s', serial, 'shell', 'input'];
@@ -307,4 +308,3 @@ class Point<T extends num> {
   final T y;
   const Point(this.x, this.y);
 }
-

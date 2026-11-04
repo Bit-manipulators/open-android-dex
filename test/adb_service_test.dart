@@ -6,13 +6,15 @@ void main() {
   group('AdbService Tests', () {
     final adb = AdbService();
 
-    test('generateQrPairingPayload generates 6-digit numeric password format', () {
+    test('generateQrPairingPayload generates 6-digit numeric password format',
+        () {
       final payload = adb.generateQrPairingPayload();
       expect(payload, startsWith('WIFI:T:ADB;S:OpenAndroidDeX;P:'));
       expect(payload, endsWith(';;'));
 
       final match = RegExp(r'P:(\d{6});').firstMatch(payload);
-      expect(match, isNotNull, reason: 'Pairing password in QR code must be a 6-digit number');
+      expect(match, isNotNull,
+          reason: 'Pairing password in QR code must be a 6-digit number');
     });
 
     test('generateQrPairingPayload with custom password preserves it', () {
@@ -24,10 +26,16 @@ void main() {
       expect(AdbService.isWiredSerial('emulator-5554'), isTrue);
       expect(AdbService.isWiredSerial('1234567890ABCDEF'), isTrue);
       expect(AdbService.isWiredSerial('192.168.1.100:5555'), isFalse);
-      expect(AdbService.isWiredSerial('adb-ZD222H7659-gUr5K7._adb-tls-connect._tcp'), isFalse);
+      expect(
+          AdbService.isWiredSerial(
+              'adb-ZD222H7659-gUr5K7._adb-tls-connect._tcp'),
+          isFalse);
 
       expect(AdbService.isWirelessSerial('192.168.1.100:5555'), isTrue);
-      expect(AdbService.isWirelessSerial('adb-ZD222H7659-gUr5K7._adb-tls-connect._tcp'), isTrue);
+      expect(
+          AdbService.isWirelessSerial(
+              'adb-ZD222H7659-gUr5K7._adb-tls-connect._tcp'),
+          isTrue);
       expect(AdbService.isWirelessSerial('1234567890ABCDEF'), isFalse);
     });
   });

@@ -31,7 +31,8 @@ void main() {
     });
 
     test('getCachedIconPath returns path when file exists with content', () {
-      final testFile = File('${service.iconCacheDirectory}/com.test.dummyapp.png');
+      final testFile =
+          File('${service.iconCacheDirectory}/com.test.dummyapp.png');
       testFile.writeAsBytesSync(List.filled(200, 1));
       try {
         final path = service.getCachedIconPath('com.test.dummyapp');

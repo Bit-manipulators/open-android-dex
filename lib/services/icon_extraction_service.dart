@@ -3,7 +3,8 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 class IconExtractionService {
-  static final IconExtractionService _instance = IconExtractionService._internal();
+  static final IconExtractionService _instance =
+      IconExtractionService._internal();
   factory IconExtractionService() => _instance;
   IconExtractionService._internal();
 
@@ -14,8 +15,11 @@ class IconExtractionService {
   /// Resolves the host system cache directory for app icons.
   String get iconCacheDirectory {
     final xdgCache = Platform.environment['XDG_CACHE_HOME'];
-    final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'] ?? '/tmp';
-    final base = (xdgCache != null && xdgCache.isNotEmpty) ? xdgCache : '$home/.cache';
+    final home = Platform.environment['HOME'] ??
+        Platform.environment['USERPROFILE'] ??
+        '/tmp';
+    final base =
+        (xdgCache != null && xdgCache.isNotEmpty) ? xdgCache : '$home/.cache';
     final dir = Directory('$base/open_android_dex/icons');
     if (!dir.existsSync()) {
       try {
@@ -52,18 +56,21 @@ class IconExtractionService {
   }
 
   /// Extracts real icons from the connected Android device in the background.
-  Future<void> extractIconsForDevice(String serial, List<String> packageNames) async {
+  Future<void> extractIconsForDevice(
+      String serial, List<String> packageNames) async {
     if (_isExtracting) return;
 
     // Check which packages actually need extraction
-    final missingPackages = packageNames.where((pkg) => getCachedIconPath(pkg) == null).toList();
+    final missingPackages =
+        packageNames.where((pkg) => getCachedIconPath(pkg) == null).toList();
     if (missingPackages.isEmpty) {
       return;
     }
 
     final localDex = _resolveLocalDexPath();
     if (localDex == null) {
-      debugPrint('[IconExtractionService] Could not locate local dex_icon_dumper.dex');
+      debugPrint(
+          '[IconExtractionService] Could not locate local dex_icon_dumper.dex');
       return;
     }
 
@@ -73,19 +80,23 @@ class IconExtractionService {
       const remoteOutputDir = '/data/local/tmp/opendex_icons';
 
       // 1. Push DEX helper to device
-      final pushRes = await Process.run('adb', ['-s', serial, 'push', localDex, remoteDex]);
+      final pushRes =
+          await Process.run('adb', ['-s', serial, 'push', localDex, remoteDex]);
       if (pushRes.exitCode != 0) {
-        debugPrint('[IconExtractionService] Failed to push helper dex: ${pushRes.stderr}');
+        debugPrint(
+            '[IconExtractionService] Failed to push helper dex: ${pushRes.stderr}');
         _isExtracting = false;
         return;
       }
 
       // 2. Prepare remote output directory
-      await Process.run('adb', ['-s', serial, 'shell', 'mkdir', '-p', remoteOutputDir]);
+      await Process.run(
+          'adb', ['-s', serial, 'shell', 'mkdir', '-p', remoteOutputDir]);
 
       // 3. Run the dumper on the device via app_process
       final runArgs = [
-        '-s', serial,
+        '-s',
+        serial,
         'shell',
         'CLASSPATH=$remoteDex',
         '/system/bin/app_process',
@@ -95,21 +106,25 @@ class IconExtractionService {
       ];
 
       final runRes = await Process.run('adb', runArgs);
-      debugPrint('[IconExtractionService] app_process output: ${runRes.stdout}');
+      debugPrint(
+          '[IconExtractionService] app_process output: ${runRes.stdout}');
 
       // 4. Pull all extracted icons from device into host cache
       final hostDir = iconCacheDirectory;
       final pullRes = await Process.run('adb', [
-        '-s', serial,
+        '-s',
+        serial,
         'pull',
         '$remoteOutputDir/.',
         hostDir,
       ]);
-      debugPrint('[IconExtractionService] Pulled icons to host: ${pullRes.stdout}');
+      debugPrint(
+          '[IconExtractionService] Pulled icons to host: ${pullRes.stdout}');
 
       // 5. Cleanup temporary device files in the background
       Process.run('adb', [
-        '-s', serial,
+        '-s',
+        serial,
         'shell',
         'rm -rf $remoteOutputDir $remoteDex',
       ]);

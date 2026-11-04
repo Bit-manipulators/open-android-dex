@@ -10,7 +10,8 @@ class WindowManagerController extends ChangeNotifier {
   String? _activeWindowId;
 
   List<DexWindow> get windows => List.unmodifiable(_windows);
-  List<DexWindow> get openWindows => _windows.where((w) => !w.isMinimized).toList();
+  List<DexWindow> get openWindows =>
+      _windows.where((w) => !w.isMinimized).toList();
   String? get activeWindowId => _activeWindowId;
 
   DexWindow? getWindow(String id) {
@@ -23,7 +24,8 @@ class WindowManagerController extends ChangeNotifier {
 
   void openApp(AppInfo app, Size desktopSize) {
     // If already open, unminimize and bring to front
-    final existing = _windows.where((w) => w.app.packageName == app.packageName).toList();
+    final existing =
+        _windows.where((w) => w.app.packageName == app.packageName).toList();
     if (existing.isNotEmpty) {
       final win = existing.first;
       win.isMinimized = false;
@@ -61,7 +63,7 @@ class WindowManagerController extends ChangeNotifier {
 
     _windows.add(newWin);
     _activeWindowId = newWin.id;
-    
+
     // Note: The app is launched directly onto the isolated virtual display via scrcpy --start-app
     notifyListeners();
   }
@@ -212,7 +214,8 @@ class WindowManagerController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void resize(String id, {
+  void resize(
+    String id, {
     double? left,
     double? top,
     double? width,

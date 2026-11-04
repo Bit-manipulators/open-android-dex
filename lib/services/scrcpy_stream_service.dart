@@ -49,8 +49,10 @@ class ScrcpyStreamService {
   final Map<String, Future<ScrcpyStreamSession?>> _inFlightStarts = {};
   static int _nextPort = 27183;
 
-  final _sessionStateController = StreamController<ScrcpyStreamSession>.broadcast();
-  Stream<ScrcpyStreamSession> get onSessionStateChanged => _sessionStateController.stream;
+  final _sessionStateController =
+      StreamController<ScrcpyStreamSession>.broadcast();
+  Stream<ScrcpyStreamSession> get onSessionStateChanged =>
+      _sessionStateController.stream;
 
   ScrcpyStreamSession? getSession(String windowId) => _activeSessions[windowId];
 
@@ -135,12 +137,15 @@ class ScrcpyStreamService {
 
     // Run scrcpy with --no-window so no separate SDL window is opened on Hyprland!
     final args = <String>[
-      '-s', serial,
-      '-p', '$portBase:${portBase + 3}',
+      '-s',
+      serial,
+      '-p',
+      '$portBase:${portBase + 3}',
       '--no-window',
       '--record=$pipePath',
       '--record-format=mkv',
-      '-b', '8M',
+      '-b',
+      '8M',
       '--max-fps=60',
       '--stay-awake',
       '--no-audio',
@@ -157,13 +162,25 @@ class ScrcpyStreamService {
 
     // Wake up device, dismiss keyguard, and disable phone status bar in app windows
     try {
-      await Process.run('adb', ['-s', serial, 'shell', 'input', 'keyevent', 'KEYCODE_WAKEUP']);
-      await Process.run('adb', ['-s', serial, 'shell', 'wm', 'dismiss-keyguard']);
-      await Process.run('adb', ['-s', serial, 'shell', 'settings', 'put', 'global', 'policy_control', 'immersive.status=*']);
+      await Process.run('adb',
+          ['-s', serial, 'shell', 'input', 'keyevent', 'KEYCODE_WAKEUP']);
+      await Process.run(
+          'adb', ['-s', serial, 'shell', 'wm', 'dismiss-keyguard']);
+      await Process.run('adb', [
+        '-s',
+        serial,
+        'shell',
+        'settings',
+        'put',
+        'global',
+        'policy_control',
+        'immersive.status=*'
+      ]);
     } catch (_) {}
 
     try {
-      debugPrint('[ScrcpyStreamService] Starting headless scrcpy pipe stream (${width}x$height) to $pipePath');
+      debugPrint(
+          '[ScrcpyStreamService] Starting headless scrcpy pipe stream (${width}x$height) to $pipePath');
       final proc = await Process.start('scrcpy', args);
 
       void handleOutput(String line) {
@@ -172,17 +189,24 @@ class ScrcpyStreamService {
           final id = int.tryParse(match.group(1)!);
           if (id != null) {
             session.displayId = id;
-            debugPrint('[ScrcpyStreamService] Parsed virtual display id=$id for window $windowId');
+            debugPrint(
+                '[ScrcpyStreamService] Parsed virtual display id=$id for window $windowId');
             _sessionStateController.add(session);
           }
         }
       }
 
-      proc.stdout.transform(utf8.decoder).transform(const LineSplitter()).listen((line) {
+      proc.stdout
+          .transform(utf8.decoder)
+          .transform(const LineSplitter())
+          .listen((line) {
         debugPrint('[scrcpy stdout] $line');
         handleOutput(line);
       });
-      proc.stderr.transform(utf8.decoder).transform(const LineSplitter()).listen((line) {
+      proc.stderr
+          .transform(utf8.decoder)
+          .transform(const LineSplitter())
+          .listen((line) {
         debugPrint('[scrcpy stderr] $line');
         handleOutput(line);
       });
@@ -197,7 +221,8 @@ class ScrcpyStreamService {
       _sessionStateController.add(session);
 
       proc.exitCode.then((code) {
-        debugPrint('[ScrcpyStreamService] scrcpy exited with code $code for $windowId');
+        debugPrint(
+            '[ScrcpyStreamService] scrcpy exited with code $code for $windowId');
         session.isRunning = false;
         _activeSessions.remove(windowId);
         _sessionStateController.add(session);
@@ -206,11 +231,13 @@ class ScrcpyStreamService {
       // Brief delay to allow scrcpy to open the FIFO pipe for writing
       await Future.delayed(const Duration(milliseconds: 300));
 
-      if (session.displayId == null && mode == ScrcpyDisplayMode.virtualDisplay) {
+      if (session.displayId == null &&
+          mode == ScrcpyDisplayMode.virtualDisplay) {
         final fallbackId = await getVirtualDisplayId(serial);
         if (fallbackId != null) {
           session.displayId = fallbackId;
-          debugPrint('[ScrcpyStreamService] Fallback resolved virtual display id=$fallbackId for window $windowId');
+          debugPrint(
+              '[ScrcpyStreamService] Fallback resolved virtual display id=$fallbackId for window $windowId');
           _sessionStateController.add(session);
         }
       }
@@ -240,7 +267,8 @@ class ScrcpyStreamService {
             },
           );
         } catch (e) {
-          debugPrint('[ScrcpyStreamService] Exception during process shutdown: $e');
+          debugPrint(
+              '[ScrcpyStreamService] Exception during process shutdown: $e');
         }
       }
 
@@ -283,9 +311,11 @@ class ScrcpyStreamService {
   /// Queries ADB for any active scrcpy virtual display ID
   Future<int?> getVirtualDisplayId(String serial) async {
     try {
-      final res = await Process.run('adb', ['-s', serial, 'shell', 'dumpsys', 'display']);
+      final res = await Process.run(
+          'adb', ['-s', serial, 'shell', 'dumpsys', 'display']);
       final out = res.stdout as String;
-      final matches = RegExp(r'displayId=(\d+)[^,\n]*uniqueId=[^,\n]*scrcpy').allMatches(out);
+      final matches = RegExp(r'displayId=(\d+)[^,\n]*uniqueId=[^,\n]*scrcpy')
+          .allMatches(out);
       if (matches.isNotEmpty) {
         return int.tryParse(matches.last.group(1)!);
       }
@@ -301,7 +331,15 @@ class ScrcpyStreamService {
     }
     if (serial != null) {
       try {
-        await Process.run('adb', ['-s', serial, 'shell', 'settings', 'delete', 'global', 'policy_control']);
+        await Process.run('adb', [
+          '-s',
+          serial,
+          'shell',
+          'settings',
+          'delete',
+          'global',
+          'policy_control'
+        ]);
       } catch (_) {}
     }
   }

@@ -34,9 +34,12 @@ class _AppDrawerDialogState extends State<AppDrawerDialog> {
     final allApps = adb.installedApps;
 
     final filtered = allApps.where((app) {
-      final matchesSearch = app.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+      final matchesSearch = app.name
+              .toLowerCase()
+              .contains(_searchQuery.toLowerCase()) ||
           app.packageName.toLowerCase().contains(_searchQuery.toLowerCase());
-      final matchesCat = _selectedCategory == 'All' || app.category == _selectedCategory;
+      final matchesCat =
+          _selectedCategory == 'All' || app.category == _selectedCategory;
       return matchesSearch && matchesCat;
     }).toList();
 
@@ -75,14 +78,18 @@ class _AppDrawerDialogState extends State<AppDrawerDialog> {
                       TextField(
                         controller: _searchController,
                         onChanged: (val) => setState(() => _searchQuery = val),
-                        style: const TextStyle(color: Colors.white, fontSize: 13),
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 13),
                         decoration: InputDecoration(
                           hintText: 'Search installed apps...',
-                          hintStyle: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
-                          prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF94A3B8), size: 18),
+                          hintStyle: const TextStyle(
+                              color: Color(0xFF64748B), fontSize: 13),
+                          prefixIcon: const Icon(Icons.search_rounded,
+                              color: Color(0xFF94A3B8), size: 18),
                           suffixIcon: _searchQuery.isNotEmpty
                               ? IconButton(
-                                  icon: const Icon(Icons.clear_rounded, size: 16, color: Color(0xFF94A3B8)),
+                                  icon: const Icon(Icons.clear_rounded,
+                                      size: 16, color: Color(0xFF94A3B8)),
                                   onPressed: () {
                                     _searchController.clear();
                                     setState(() => _searchQuery = '');
@@ -91,18 +98,22 @@ class _AppDrawerDialogState extends State<AppDrawerDialog> {
                               : null,
                           filled: true,
                           fillColor: const Color(0xFF1C2436),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 10),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(color: Color(0xFF334155)),
+                            borderSide:
+                                const BorderSide(color: Color(0xFF334155)),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(color: Color(0xFF2A374E)),
+                            borderSide:
+                                const BorderSide(color: Color(0xFF2A374E)),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 1.5),
+                            borderSide: const BorderSide(
+                                color: Color(0xFF3B82F6), width: 1.5),
                           ),
                         ),
                       ),
@@ -112,19 +123,32 @@ class _AppDrawerDialogState extends State<AppDrawerDialog> {
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: Row(
-                          children: ['All', 'Tools', 'Media', 'Social', 'System'].map((cat) {
+                          children: [
+                            'All',
+                            'Tools',
+                            'Media',
+                            'Social',
+                            'System'
+                          ].map((cat) {
                             final isSel = _selectedCategory == cat;
                             return Padding(
                               padding: const EdgeInsets.only(right: 6),
                               child: ChoiceChip(
-                                label: Text(cat, style: TextStyle(fontSize: 11, color: isSel ? Colors.white : const Color(0xFF94A3B8))),
+                                label: Text(cat,
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        color: isSel
+                                            ? Colors.white
+                                            : const Color(0xFF94A3B8))),
                                 selected: isSel,
                                 selectedColor: const Color(0xFF2563EB),
                                 backgroundColor: const Color(0xFF1B2335),
                                 visualDensity: VisualDensity.compact,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(6)),
                                 onSelected: (sel) {
-                                  if (sel) setState(() => _selectedCategory = cat);
+                                  if (sel)
+                                    setState(() => _selectedCategory = cat);
                                 },
                               ),
                             );
@@ -144,18 +168,23 @@ class _AppDrawerDialogState extends State<AppDrawerDialog> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.apps_outage_rounded, size: 36, color: Color(0xFF475569)),
+                              const Icon(Icons.apps_outage_rounded,
+                                  size: 36, color: Color(0xFF475569)),
                               const SizedBox(height: 8),
                               Text(
-                                allApps.isEmpty ? 'Loading apps from phone...' : 'No apps match "$_searchQuery"',
-                                style: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
+                                allApps.isEmpty
+                                    ? 'Loading apps from phone...'
+                                    : 'No apps match "$_searchQuery"',
+                                style: const TextStyle(
+                                    color: Color(0xFF64748B), fontSize: 13),
                               ),
                             ],
                           ),
                         )
                       : GridView.builder(
                           padding: const EdgeInsets.all(16),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 5,
                             childAspectRatio: 0.85,
                             crossAxisSpacing: 12,

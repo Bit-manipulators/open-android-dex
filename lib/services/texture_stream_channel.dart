@@ -1,7 +1,8 @@
 import 'package:flutter/services.dart';
 
 class TextureStreamChannel {
-  static const MethodChannel _channel = MethodChannel('open_android_dex/stream');
+  static const MethodChannel _channel =
+      MethodChannel('open_android_dex/stream');
 
   /// Starts listening to a native video stream from [path] and registers an OpenGL / Flutter Texture.
   /// Returns the registered [textureId], which can be passed directly to `Texture(textureId: id)`.

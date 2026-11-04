@@ -7,7 +7,8 @@ class NotificationCenterDialog extends StatefulWidget {
   const NotificationCenterDialog({super.key, required this.onClose});
 
   @override
-  State<NotificationCenterDialog> createState() => _NotificationCenterDialogState();
+  State<NotificationCenterDialog> createState() =>
+      _NotificationCenterDialogState();
 }
 
 class _NotificationCenterDialogState extends State<NotificationCenterDialog> {
@@ -56,23 +57,32 @@ class _NotificationCenterDialogState extends State<NotificationCenterDialog> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.notifications_active_rounded, size: 18, color: Color(0xFF60A5FA)),
+                  const Icon(Icons.notifications_active_rounded,
+                      size: 18, color: Color(0xFF60A5FA)),
                   const SizedBox(width: 8),
                   const Text(
                     'Notifications',
-                    style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(width: 6),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: const Color(0xFF1E293B),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFF3B82F6).withOpacity(0.4)),
+                      border: Border.all(
+                          color: const Color(0xFF3B82F6).withOpacity(0.4)),
                     ),
                     child: Text(
                       '${notifs.length}',
-                      style: const TextStyle(color: Color(0xFF93C5FD), fontSize: 10.5, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                          color: Color(0xFF93C5FD),
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
@@ -84,9 +94,11 @@ class _NotificationCenterDialogState extends State<NotificationCenterDialog> {
                         ? const SizedBox(
                             width: 14,
                             height: 14,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF60A5FA)),
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Color(0xFF60A5FA)),
                           )
-                        : const Icon(Icons.refresh_rounded, size: 16, color: Color(0xFF94A3B8)),
+                        : const Icon(Icons.refresh_rounded,
+                            size: 16, color: Color(0xFF94A3B8)),
                     onPressed: _isLoading ? null : _refresh,
                     splashRadius: 14,
                     padding: EdgeInsets.zero,
@@ -94,7 +106,8 @@ class _NotificationCenterDialogState extends State<NotificationCenterDialog> {
                   ),
                   const SizedBox(width: 12),
                   IconButton(
-                    icon: const Icon(Icons.close_rounded, size: 18, color: Color(0xFF94A3B8)),
+                    icon: const Icon(Icons.close_rounded,
+                        size: 18, color: Color(0xFF94A3B8)),
                     onPressed: widget.onClose,
                     splashRadius: 14,
                     padding: EdgeInsets.zero,
@@ -115,7 +128,8 @@ class _NotificationCenterDialogState extends State<NotificationCenterDialog> {
               child: Center(
                 child: Column(
                   children: [
-                    Icon(Icons.notifications_off_outlined, size: 40, color: Colors.grey.withOpacity(0.5)),
+                    Icon(Icons.notifications_off_outlined,
+                        size: 40, color: Colors.grey.withOpacity(0.5)),
                     const SizedBox(height: 12),
                     const Text(
                       'No new notifications',
@@ -157,7 +171,8 @@ class _NotificationCenterDialogState extends State<NotificationCenterDialog> {
                             ),
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: const Icon(Icons.notifications_rounded, size: 16, color: Colors.white),
+                          child: const Icon(Icons.notifications_rounded,
+                              size: 16, color: Colors.white),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
@@ -165,7 +180,8 @@ class _NotificationCenterDialogState extends State<NotificationCenterDialog> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
                                     item.appName,
@@ -177,14 +193,16 @@ class _NotificationCenterDialogState extends State<NotificationCenterDialog> {
                                   ),
                                   Text(
                                     _formatTime(item.timestamp),
-                                    style: const TextStyle(color: Color(0xFF64748B), fontSize: 10),
+                                    style: const TextStyle(
+                                        color: Color(0xFF64748B), fontSize: 10),
                                   ),
                                 ],
                               ),
                               const SizedBox(height: 3),
                               Text(
                                 item.body,
-                                style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 11.5),
+                                style: const TextStyle(
+                                    color: Color(0xFFCBD5E1), fontSize: 11.5),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),

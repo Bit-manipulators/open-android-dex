@@ -51,7 +51,8 @@ class _DexDesktopScreenState extends State<DexDesktopScreen> {
       final devices = await _adb.getConnectedDevices();
       if (devices.isNotEmpty) {
         // Device is already attached! Immediately launch default desktop app
-        if (_adb.selectedDeviceSerial == null || !devices.contains(_adb.selectedDeviceSerial)) {
+        if (_adb.selectedDeviceSerial == null ||
+            !devices.contains(_adb.selectedDeviceSerial)) {
           _adb.selectedDeviceSerial = _adb.getPreferredDevice(devices);
         }
         _openDefaultAppIfNone();
@@ -108,7 +109,8 @@ class _DexDesktopScreenState extends State<DexDesktopScreen> {
                   // 4. App Drawer Dialog (if open)
                   if (_isDrawerOpen)
                     AppDrawerDialog(
-                      onSelectApp: (app) => _windowManager.openApp(app, desktopSize),
+                      onSelectApp: (app) =>
+                          _windowManager.openApp(app, desktopSize),
                       onClose: () => setState(() => _isDrawerOpen = false),
                     ),
 
@@ -118,7 +120,8 @@ class _DexDesktopScreenState extends State<DexDesktopScreen> {
                       right: 16,
                       bottom: 58,
                       child: QuickSettingsPanel(
-                        onClose: () => setState(() => _isQuickSettingsOpen = false),
+                        onClose: () =>
+                            setState(() => _isQuickSettingsOpen = false),
                       ),
                     ),
 
@@ -128,7 +131,8 @@ class _DexDesktopScreenState extends State<DexDesktopScreen> {
                       right: 60,
                       bottom: 58,
                       child: NotificationCenterDialog(
-                        onClose: () => setState(() => _isNotificationsOpen = false),
+                        onClose: () =>
+                            setState(() => _isNotificationsOpen = false),
                       ),
                     ),
 
@@ -247,18 +251,24 @@ class _DexDesktopScreenState extends State<DexDesktopScreen> {
                 onTap: () => ConnectionModeDialog.show(context),
                 borderRadius: BorderRadius.circular(24),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                   decoration: BoxDecoration(
                     color: const Color(0xFF111827).withOpacity(0.85),
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
                       color: _adb.isWireless
                           ? const Color(0xFF3B82F6)
-                          : (_adb.isWired ? const Color(0xFF10B981) : const Color(0xFF374151)),
+                          : (_adb.isWired
+                              ? const Color(0xFF10B981)
+                              : const Color(0xFF374151)),
                       width: 1.2,
                     ),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 4)),
+                      BoxShadow(
+                          color: Colors.black.withOpacity(0.4),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4)),
                     ],
                   ),
                   child: Row(
@@ -275,11 +285,15 @@ class _DexDesktopScreenState extends State<DexDesktopScreen> {
                         child: Icon(
                           _adb.isWireless
                               ? Icons.wifi_rounded
-                              : (_adb.isWired ? Icons.usb_rounded : Icons.android_rounded),
+                              : (_adb.isWired
+                                  ? Icons.usb_rounded
+                                  : Icons.android_rounded),
                           size: 14,
                           color: _adb.isWireless
                               ? const Color(0xFF60A5FA)
-                              : (_adb.isWired ? const Color(0xFF10B981) : const Color(0xFF9CA3AF)),
+                              : (_adb.isWired
+                                  ? const Color(0xFF10B981)
+                                  : const Color(0xFF9CA3AF)),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -290,21 +304,31 @@ class _DexDesktopScreenState extends State<DexDesktopScreen> {
                           Row(
                             children: [
                               Text(
-                                _adb.deviceModel.isNotEmpty ? _adb.deviceModel : 'No Device',
-                                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                _adb.deviceModel.isNotEmpty
+                                    ? _adb.deviceModel
+                                    : 'No Device',
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold),
                               ),
                               const SizedBox(width: 4),
-                              const Icon(Icons.tune_rounded, size: 11, color: Color(0xFF94A3B8)),
+                              const Icon(Icons.tune_rounded,
+                                  size: 11, color: Color(0xFF94A3B8)),
                             ],
                           ),
                           Text(
                             _adb.isWireless
                                 ? 'Wireless Wi-Fi • Click to Switch'
-                                : (_adb.isWired ? 'Wired USB • Click to Switch' : 'Click to Setup Connection'),
+                                : (_adb.isWired
+                                    ? 'Wired USB • Click to Switch'
+                                    : 'Click to Setup Connection'),
                             style: TextStyle(
                               color: _adb.isWireless
                                   ? const Color(0xFF93C5FD)
-                                  : (_adb.isWired ? const Color(0xFFA7F3D0) : const Color(0xFF9CA3AF)),
+                                  : (_adb.isWired
+                                      ? const Color(0xFFA7F3D0)
+                                      : const Color(0xFF9CA3AF)),
                               fontSize: 9.5,
                             ),
                           ),
@@ -367,7 +391,10 @@ class _DexDesktopScreenState extends State<DexDesktopScreen> {
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                   shadows: [
-                    Shadow(color: Colors.black, blurRadius: 4, offset: Offset(0, 1)),
+                    Shadow(
+                        color: Colors.black,
+                        blurRadius: 4,
+                        offset: Offset(0, 1)),
                   ],
                 ),
               ),

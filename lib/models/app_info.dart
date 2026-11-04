@@ -57,7 +57,8 @@ class AppInfo {
     final lower = pkg.toLowerCase();
 
     // Well-known popular app mappings
-    if (lower == 'com.google.android.calculator' || lower == 'com.android.calculator2') return 'Calculator';
+    if (lower == 'com.google.android.calculator' ||
+        lower == 'com.android.calculator2') return 'Calculator';
     if (lower == 'com.android.chrome') return 'Chrome';
     if (lower == 'com.google.android.youtube') return 'YouTube';
     if (lower == 'com.openai.chatgpt') return 'ChatGPT';
@@ -73,7 +74,8 @@ class AppInfo {
     if (lower == 'com.google.android.gm') return 'Gmail';
     if (lower.contains('maps')) return 'Maps';
     if (lower.contains('photos')) return 'Photos';
-    if (lower.contains('nbu.files') || lower == 'com.android.filemanager') return 'Files';
+    if (lower.contains('nbu.files') || lower == 'com.android.filemanager')
+      return 'Files';
     if (lower.contains('camera')) return 'Camera';
     if (lower.contains('dialer') || lower.contains('phone')) return 'Phone';
     if (lower.contains('messaging')) return 'Messages';
@@ -104,7 +106,16 @@ class AppInfo {
     // Smart fallback: discard generic words like android, mobile, app, client
     final parts = pkg.split('.');
     String candidate = parts.last;
-    if (const {'android', 'app', 'client', 'mobile', 'frontend', 'ui', 'passenger', 'customer'}.contains(candidate.toLowerCase())) {
+    if (const {
+      'android',
+      'app',
+      'client',
+      'mobile',
+      'frontend',
+      'ui',
+      'passenger',
+      'customer'
+    }.contains(candidate.toLowerCase())) {
       if (parts.length >= 2) {
         candidate = parts[parts.length - 2];
       }
@@ -116,52 +127,95 @@ class AppInfo {
 
   static IconData _resolveIcon(String lower, String name) {
     if (name.contains('calculator')) return Icons.calculate_rounded;
-    if (name.contains('chrome') || name.contains('firefox') || name.contains('browser')) return Icons.language_rounded;
-    if (name.contains('youtube') || name.contains('vlc') || name.contains('video') || name.contains('media') || name.contains('hotstar')) {
+    if (name.contains('chrome') ||
+        name.contains('firefox') ||
+        name.contains('browser')) return Icons.language_rounded;
+    if (name.contains('youtube') ||
+        name.contains('vlc') ||
+        name.contains('video') ||
+        name.contains('media') ||
+        name.contains('hotstar')) {
       return Icons.play_circle_fill_rounded;
     }
-    if (name.contains('chatgpt') || name.contains('claude') || name.contains('perplexity')) return Icons.psychology_rounded;
+    if (name.contains('chatgpt') ||
+        name.contains('claude') ||
+        name.contains('perplexity')) return Icons.psychology_rounded;
     if (name.contains('camera')) return Icons.camera_alt_rounded;
     if (name.contains('settings')) return Icons.settings_rounded;
     if (name.contains('contacts')) return Icons.contacts_rounded;
-    if (name.contains('photos') || name.contains('gallery') || name.contains('canva') || name.contains('instagram')) {
+    if (name.contains('photos') ||
+        name.contains('gallery') ||
+        name.contains('canva') ||
+        name.contains('instagram')) {
       return Icons.photo_library_rounded;
     }
-    if (name.contains('files') || name.contains('drive') || name.contains('word') || name.contains('docs')) {
+    if (name.contains('files') ||
+        name.contains('drive') ||
+        name.contains('word') ||
+        name.contains('docs')) {
       return Icons.folder_rounded;
     }
     if (name.contains('clock')) return Icons.access_time_filled_rounded;
-    if (name.contains('mail') || name.contains('gmail')) return Icons.mail_rounded;
-    if (name.contains('maps') || name.contains('train') || name.contains('uber')) return Icons.map_rounded;
-    if (name.contains('messages') || name.contains('whatsapp') || name.contains('telegram') || name.contains('discord')) {
+    if (name.contains('mail') || name.contains('gmail'))
+      return Icons.mail_rounded;
+    if (name.contains('maps') ||
+        name.contains('train') ||
+        name.contains('uber')) return Icons.map_rounded;
+    if (name.contains('messages') ||
+        name.contains('whatsapp') ||
+        name.contains('telegram') ||
+        name.contains('discord')) {
       return Icons.chat_bubble_rounded;
     }
-    if (name.contains('phone') || name.contains('dialer')) return Icons.call_rounded;
-    if (name.contains('music') || name.contains('spotify')) return Icons.music_note_rounded;
-    if (name.contains('terminal') || name.contains('termux')) return Icons.terminal_rounded;
+    if (name.contains('phone') || name.contains('dialer'))
+      return Icons.call_rounded;
+    if (name.contains('music') || name.contains('spotify'))
+      return Icons.music_note_rounded;
+    if (name.contains('terminal') || name.contains('termux'))
+      return Icons.terminal_rounded;
     if (name.contains('github')) return Icons.code_rounded;
-    if (name.contains('steam') || name.contains('game') || name.contains('fire')) return Icons.sports_esports_rounded;
-    if (name.contains('pay') || name.contains('wallet') || name.contains('bank')) return Icons.account_balance_wallet_rounded;
+    if (name.contains('steam') ||
+        name.contains('game') ||
+        name.contains('fire')) return Icons.sports_esports_rounded;
+    if (name.contains('pay') ||
+        name.contains('wallet') ||
+        name.contains('bank')) return Icons.account_balance_wallet_rounded;
     return Icons.apps_rounded;
   }
 
   static List<Color> _resolveColors(String lower, String name) {
-    if (name.contains('calculator')) return const [Color(0xFF22C55E), Color(0xFF16A34A)];
-    if (name.contains('chrome')) return const [Color(0xFF3B82F6), Color(0xFF1D4ED8)];
-    if (name.contains('firefox')) return const [Color(0xFFFF7139), Color(0xFFFF4F00)];
-    if (name.contains('youtube')) return const [Color(0xFFEF4444), Color(0xFFDC2626)];
-    if (name.contains('chatgpt')) return const [Color(0xFF10A37F), Color(0xFF0D8265)];
-    if (name.contains('claude')) return const [Color(0xFFD97757), Color(0xFFB8593A)];
-    if (name.contains('whatsapp')) return const [Color(0xFF25D366), Color(0xFF128C7E)];
-    if (name.contains('telegram')) return const [Color(0xFF229ED9), Color(0xFF0088CC)];
-    if (name.contains('discord')) return const [Color(0xFF5865F2), Color(0xFF4752C4)];
-    if (name.contains('vlc')) return const [Color(0xFFFF8800), Color(0xFFFF5500)];
-    if (name.contains('github')) return const [Color(0xFF475569), Color(0xFF1E293B)];
-    if (name.contains('camera')) return const [Color(0xFFEC4899), Color(0xFFDB2777)];
-    if (name.contains('settings')) return const [Color(0xFF64748B), Color(0xFF475569)];
-    if (name.contains('gmail')) return const [Color(0xFFEA4335), Color(0xFFC5221F)];
-    if (name.contains('maps')) return const [Color(0xFF34A853), Color(0xFF1E8E3E)];
-    if (name.contains('spotify')) return const [Color(0xFF1DB954), Color(0xFF1AA34A)];
+    if (name.contains('calculator'))
+      return const [Color(0xFF22C55E), Color(0xFF16A34A)];
+    if (name.contains('chrome'))
+      return const [Color(0xFF3B82F6), Color(0xFF1D4ED8)];
+    if (name.contains('firefox'))
+      return const [Color(0xFFFF7139), Color(0xFFFF4F00)];
+    if (name.contains('youtube'))
+      return const [Color(0xFFEF4444), Color(0xFFDC2626)];
+    if (name.contains('chatgpt'))
+      return const [Color(0xFF10A37F), Color(0xFF0D8265)];
+    if (name.contains('claude'))
+      return const [Color(0xFFD97757), Color(0xFFB8593A)];
+    if (name.contains('whatsapp'))
+      return const [Color(0xFF25D366), Color(0xFF128C7E)];
+    if (name.contains('telegram'))
+      return const [Color(0xFF229ED9), Color(0xFF0088CC)];
+    if (name.contains('discord'))
+      return const [Color(0xFF5865F2), Color(0xFF4752C4)];
+    if (name.contains('vlc'))
+      return const [Color(0xFFFF8800), Color(0xFFFF5500)];
+    if (name.contains('github'))
+      return const [Color(0xFF475569), Color(0xFF1E293B)];
+    if (name.contains('camera'))
+      return const [Color(0xFFEC4899), Color(0xFFDB2777)];
+    if (name.contains('settings'))
+      return const [Color(0xFF64748B), Color(0xFF475569)];
+    if (name.contains('gmail'))
+      return const [Color(0xFFEA4335), Color(0xFFC5221F)];
+    if (name.contains('maps'))
+      return const [Color(0xFF34A853), Color(0xFF1E8E3E)];
+    if (name.contains('spotify'))
+      return const [Color(0xFF1DB954), Color(0xFF1AA34A)];
 
     final hash = name.codeUnits.fold<int>(0, (prev, elem) => prev + elem);
     const palettes = [
@@ -178,13 +232,24 @@ class AppInfo {
   }
 
   static String _resolveCategory(String lower, String name) {
-    if (name.contains('camera') || name.contains('photos') || name.contains('youtube') || name.contains('vlc') || name.contains('music')) {
+    if (name.contains('camera') ||
+        name.contains('photos') ||
+        name.contains('youtube') ||
+        name.contains('vlc') ||
+        name.contains('music')) {
       return 'Media';
     }
-    if (name.contains('messages') || name.contains('whatsapp') || name.contains('telegram') || name.contains('discord') || name.contains('phone')) {
+    if (name.contains('messages') ||
+        name.contains('whatsapp') ||
+        name.contains('telegram') ||
+        name.contains('discord') ||
+        name.contains('phone')) {
       return 'Social';
     }
-    if (name.contains('calculator') || name.contains('clock') || name.contains('files') || name.contains('termux')) {
+    if (name.contains('calculator') ||
+        name.contains('clock') ||
+        name.contains('files') ||
+        name.contains('termux')) {
       return 'Tools';
     }
     if (name.contains('settings') || name.contains('play')) {

@@ -29,7 +29,20 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
   String _formatCurrentDate() {
     final now = DateTime.now();
     const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
     return '${weekdays[now.weekday - 1]}, ${months[now.month - 1]} ${now.day}';
   }
 
@@ -45,7 +58,8 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
           decoration: BoxDecoration(
             color: const Color(0xFF141519).withOpacity(0.92),
             borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: Colors.white.withOpacity(0.09), width: 1.0),
+            border:
+                Border.all(color: Colors.white.withOpacity(0.09), width: 1.0),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.65),
@@ -68,8 +82,11 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
                   Expanded(
                     child: _buildPrimaryCapsule(
                       title: 'Internet',
-                      subtitle: _adb.isWifiEnabled ? 'Wi-Fi On' : 'Disconnected',
-                      icon: _adb.isWifiEnabled ? Icons.wifi_rounded : Icons.wifi_off_rounded,
+                      subtitle:
+                          _adb.isWifiEnabled ? 'Wi-Fi On' : 'Disconnected',
+                      icon: _adb.isWifiEnabled
+                          ? Icons.wifi_rounded
+                          : Icons.wifi_off_rounded,
                       isActive: _adb.isWifiEnabled,
                       onTap: () async {
                         await _adb.toggleWifi();
@@ -82,7 +99,9 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
                     child: _buildPrimaryCapsule(
                       title: 'Bluetooth',
                       subtitle: _adb.isBluetoothEnabled ? 'Active' : 'Off',
-                      icon: _adb.isBluetoothEnabled ? Icons.bluetooth_rounded : Icons.bluetooth_disabled_rounded,
+                      icon: _adb.isBluetoothEnabled
+                          ? Icons.bluetooth_rounded
+                          : Icons.bluetooth_disabled_rounded,
                       isActive: _adb.isBluetoothEnabled,
                       onTap: () async {
                         await _adb.toggleBluetooth();
@@ -168,7 +187,9 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
                 value: (_adb.currentVolume / _adb.maxVolume).clamp(0.0, 1.0),
                 icon: _adb.currentVolume == 0
                     ? Icons.volume_off_rounded
-                    : (_adb.currentVolume > 14 ? Icons.volume_up_rounded : Icons.volume_down_rounded),
+                    : (_adb.currentVolume > 14
+                        ? Icons.volume_up_rounded
+                        : Icons.volume_down_rounded),
                 label: 'Volume',
                 valueText: '${_adb.currentVolume}/${_adb.maxVolume}',
                 onChanged: (val) {
@@ -234,9 +255,13 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    _adb.isCharging ? Icons.battery_charging_full_rounded : Icons.battery_std_rounded,
+                    _adb.isCharging
+                        ? Icons.battery_charging_full_rounded
+                        : Icons.battery_std_rounded,
                     size: 14,
-                    color: _adb.isCharging ? const Color(0xFF34D399) : const Color(0xFFA8C7FA),
+                    color: _adb.isCharging
+                        ? const Color(0xFF34D399)
+                        : const Color(0xFFA8C7FA),
                   ),
                   const SizedBox(width: 5),
                   Text(
@@ -313,7 +338,9 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
           color: isActive ? const Color(0xFFA8C7FA) : const Color(0xFF282A30),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isActive ? const Color(0xFFD3E3FD) : Colors.white.withOpacity(0.06),
+            color: isActive
+                ? const Color(0xFFD3E3FD)
+                : Colors.white.withOpacity(0.06),
             width: 1,
           ),
         ),
@@ -322,13 +349,17 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
             Container(
               padding: const EdgeInsets.all(7),
               decoration: BoxDecoration(
-                color: isActive ? const Color(0xFF00325B).withOpacity(0.12) : const Color(0xFF1E1F24),
+                color: isActive
+                    ? const Color(0xFF00325B).withOpacity(0.12)
+                    : const Color(0xFF1E1F24),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 icon,
                 size: 18,
-                color: isActive ? const Color(0xFF00325B) : const Color(0xFFE2E2E6),
+                color: isActive
+                    ? const Color(0xFF00325B)
+                    : const Color(0xFFE2E2E6),
               ),
             ),
             const SizedBox(width: 10),
@@ -351,7 +382,9 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
                   Text(
                     subtitle,
                     style: TextStyle(
-                      color: isActive ? const Color(0xFF041E49).withOpacity(0.8) : const Color(0xFF94A3B8),
+                      color: isActive
+                          ? const Color(0xFF041E49).withOpacity(0.8)
+                          : const Color(0xFF94A3B8),
                       fontSize: 10.5,
                       fontWeight: FontWeight.w500,
                     ),
@@ -364,7 +397,9 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
             Icon(
               Icons.chevron_right_rounded,
               size: 16,
-              color: isActive ? const Color(0xFF00325B).withOpacity(0.6) : Colors.white38,
+              color: isActive
+                  ? const Color(0xFF00325B).withOpacity(0.6)
+                  : Colors.white38,
             ),
           ],
         ),
@@ -390,7 +425,9 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
           color: isActive ? const Color(0xFFA8C7FA) : const Color(0xFF282A30),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: isActive ? const Color(0xFFD3E3FD) : Colors.white.withOpacity(0.06),
+            color: isActive
+                ? const Color(0xFFD3E3FD)
+                : Colors.white.withOpacity(0.06),
             width: 1,
           ),
         ),
@@ -399,14 +436,17 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
             Icon(
               icon,
               size: 17,
-              color: isActive ? const Color(0xFF00325B) : const Color(0xFFE2E2E6),
+              color:
+                  isActive ? const Color(0xFF00325B) : const Color(0xFFE2E2E6),
             ),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 label,
                 style: TextStyle(
-                  color: isActive ? const Color(0xFF00325B) : const Color(0xFFE2E2E6),
+                  color: isActive
+                      ? const Color(0xFF00325B)
+                      : const Color(0xFFE2E2E6),
                   fontSize: 11.5,
                   fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
                 ),
@@ -437,15 +477,20 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.phone_android_rounded, size: 12, color: Color(0xFFA8C7FA)),
+                  const Icon(Icons.phone_android_rounded,
+                      size: 12, color: Color(0xFFA8C7FA)),
                   const SizedBox(width: 5),
                   Text(
                     '${_adb.deviceModel} Output',
-                    style: const TextStyle(color: Color(0xFFA8C7FA), fontSize: 10.5, fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                        color: Color(0xFFA8C7FA),
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w600),
                   ),
                 ],
               ),
-              const Icon(Icons.cast_connected_rounded, size: 13, color: Color(0xFFA8C7FA)),
+              const Icon(Icons.cast_connected_rounded,
+                  size: 13, color: Color(0xFFA8C7FA)),
             ],
           ),
           const SizedBox(height: 10),
@@ -465,7 +510,8 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
                   ),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.music_note_rounded, size: 22, color: Colors.white),
+                child: const Icon(Icons.music_note_rounded,
+                    size: 22, color: Colors.white),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -474,14 +520,18 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
                   children: [
                     Text(
                       _adb.currentMediaTitle,
-                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700),
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
                     Text(
                       _adb.currentMediaArtist,
-                      style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
+                      style: const TextStyle(
+                          color: Color(0xFF94A3B8), fontSize: 11),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -495,7 +545,8 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
           // Android 16 Squiggly / Expressive Progress Bar
           Row(
             children: [
-              const Text('0:45', style: TextStyle(color: Color(0xFF64748B), fontSize: 10)),
+              const Text('0:45',
+                  style: TextStyle(color: Color(0xFF64748B), fontSize: 10)),
               const SizedBox(width: 8),
               Expanded(
                 child: ClipRRect(
@@ -514,7 +565,8 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
                 ),
               ),
               const SizedBox(width: 8),
-              const Text('3:20', style: TextStyle(color: Color(0xFF64748B), fontSize: 10)),
+              const Text('3:20',
+                  style: TextStyle(color: Color(0xFF64748B), fontSize: 10)),
             ],
           ),
           const SizedBox(height: 10),
@@ -524,7 +576,8 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               IconButton(
-                icon: const Icon(Icons.skip_previous_rounded, size: 22, color: Colors.white70),
+                icon: const Icon(Icons.skip_previous_rounded,
+                    size: 22, color: Colors.white70),
                 onPressed: () => _adb.mediaPrevious(),
                 splashRadius: 18,
                 padding: EdgeInsets.zero,
@@ -546,7 +599,9 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Icon(
-                    _adb.isMediaPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                    _adb.isMediaPlaying
+                        ? Icons.pause_rounded
+                        : Icons.play_arrow_rounded,
                     size: 24,
                     color: const Color(0xFF00325B),
                   ),
@@ -554,7 +609,8 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
               ),
               const SizedBox(width: 20),
               IconButton(
-                icon: const Icon(Icons.skip_next_rounded, size: 22, color: Colors.white70),
+                icon: const Icon(Icons.skip_next_rounded,
+                    size: 22, color: Colors.white70),
                 onPressed: () => _adb.mediaNext(),
                 splashRadius: 18,
                 padding: EdgeInsets.zero,
@@ -632,14 +688,18 @@ class _Android16CapsuleSlider extends StatelessWidget {
                         Icon(
                           icon,
                           size: 19,
-                          color: clampedVal > 0.18 ? const Color(0xFF00325B) : Colors.white70,
+                          color: clampedVal > 0.18
+                              ? const Color(0xFF00325B)
+                              : Colors.white70,
                         ),
                         const SizedBox(width: 9),
                         Expanded(
                           child: Text(
                             label,
                             style: TextStyle(
-                              color: clampedVal > 0.45 ? const Color(0xFF00325B) : Colors.white,
+                              color: clampedVal > 0.45
+                                  ? const Color(0xFF00325B)
+                                  : Colors.white,
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                             ),
@@ -648,7 +708,9 @@ class _Android16CapsuleSlider extends StatelessWidget {
                         Text(
                           valueText,
                           style: TextStyle(
-                            color: clampedVal > 0.88 ? const Color(0xFF00325B) : const Color(0xFFCBD5E1),
+                            color: clampedVal > 0.88
+                                ? const Color(0xFF00325B)
+                                : const Color(0xFFCBD5E1),
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
                           ),

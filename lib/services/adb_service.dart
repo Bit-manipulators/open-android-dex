@@ -63,7 +63,8 @@ class AdbService {
   void startPolling() {
     _pollDevice();
     _pollingTimer?.cancel();
-    _pollingTimer = Timer.periodic(const Duration(seconds: 4), (_) => _pollDevice());
+    _pollingTimer =
+        Timer.periodic(const Duration(seconds: 4), (_) => _pollDevice());
   }
 
   void stopPolling() {
@@ -71,8 +72,10 @@ class AdbService {
   }
 
   bool get isConnected => selectedDeviceSerial != null;
-  bool get isWired => selectedDeviceSerial != null && isWiredSerial(selectedDeviceSerial!);
-  bool get isWireless => selectedDeviceSerial != null && isWirelessSerial(selectedDeviceSerial!);
+  bool get isWired =>
+      selectedDeviceSerial != null && isWiredSerial(selectedDeviceSerial!);
+  bool get isWireless =>
+      selectedDeviceSerial != null && isWirelessSerial(selectedDeviceSerial!);
 
   static bool isWiredSerial(String s) {
     return !s.contains(':') && !s.contains('._tcp') && !s.startsWith('adb-');
@@ -113,7 +116,8 @@ class AdbService {
         id: 'demo-notif-1',
         packageName: 'com.opendex.system',
         title: 'Open Android DeX Demo Mode',
-        body: 'Simulated desktop environment ready! Try dragging and resizing windows.',
+        body:
+            'Simulated desktop environment ready! Try dragging and resizing windows.',
         timestamp: DateTime.now(),
       ),
       NotificationItem(
@@ -132,7 +136,16 @@ class AdbService {
     final s = serial ?? selectedDeviceSerial;
     if (s == null || isDemoMode) return;
     try {
-      await Process.run('adb', ['-s', s, 'shell', 'settings', 'put', 'global', 'policy_control', 'immersive.status=*']);
+      await Process.run('adb', [
+        '-s',
+        s,
+        'shell',
+        'settings',
+        'put',
+        'global',
+        'policy_control',
+        'immersive.status=*'
+      ]);
     } catch (_) {}
   }
 
@@ -141,7 +154,8 @@ class AdbService {
     final s = serial ?? selectedDeviceSerial;
     if (s == null || isDemoMode) return;
     try {
-      await Process.run('adb', ['-s', s, 'shell', 'settings', 'delete', 'global', 'policy_control']);
+      await Process.run('adb',
+          ['-s', s, 'shell', 'settings', 'delete', 'global', 'policy_control']);
     } catch (_) {}
   }
 
@@ -165,7 +179,8 @@ class AdbService {
     if (wired.isNotEmpty) return wired.first;
 
     // 2. Second priority: Direct IP:port wireless connection (fastest for scrcpy)
-    final ipPorts = devices.where((s) => s.contains(':') && !s.contains('._tcp')).toList();
+    final ipPorts =
+        devices.where((s) => s.contains(':') && !s.contains('._tcp')).toList();
     if (ipPorts.isNotEmpty) return ipPorts.first;
 
     // 3. Third priority: mDNS entry
@@ -174,7 +189,8 @@ class AdbService {
 
   /// Android 11+ AOSP Wireless Debugging QR code payload format
   String generateQrPairingPayload([String? password, String? serviceName]) {
-    final pass = password ?? ((DateTime.now().millisecondsSinceEpoch % 900000) + 100000).toString();
+    final pass = password ??
+        ((DateTime.now().millisecondsSinceEpoch % 900000) + 100000).toString();
     final sName = serviceName ?? 'OpenAndroidDeX';
     return 'WIFI:T:ADB;S:$sName;P:$pass;;';
   }
@@ -187,7 +203,9 @@ class AdbService {
       final lines = (res.stdout as String).split('\n');
       for (var line in lines) {
         line = line.trim();
-        if (line.isEmpty || line.startsWith('List of discovered') || line.startsWith('mdns daemon')) continue;
+        if (line.isEmpty ||
+            line.startsWith('List of discovered') ||
+            line.startsWith('mdns daemon')) continue;
         final parts = line.split(RegExp(r'\s+'));
         if (parts.length >= 3) {
           final hostPort = parts[2].split(':');
@@ -213,14 +231,16 @@ class AdbService {
 
     // 1. Try getprop dhcp.wlan0.ipaddress
     try {
-      final res = await Process.run('adb', ['-s', target, 'shell', 'getprop', 'dhcp.wlan0.ipaddress']);
+      final res = await Process.run(
+          'adb', ['-s', target, 'shell', 'getprop', 'dhcp.wlan0.ipaddress']);
       final ip = (res.stdout as String).trim();
       if (_isValidIp(ip)) return ip;
     } catch (_) {}
 
     // 2. Try ip route
     try {
-      final res = await Process.run('adb', ['-s', target, 'shell', 'ip', 'route']);
+      final res =
+          await Process.run('adb', ['-s', target, 'shell', 'ip', 'route']);
       final out = res.stdout as String;
       final match = RegExp(r'src\s+(\d+\.\d+\.\d+\.\d+)').firstMatch(out);
       if (match != null && _isValidIp(match.group(1)!)) {
@@ -230,7 +250,8 @@ class AdbService {
 
     // 3. Try ip -f inet addr show wlan0
     try {
-      final res = await Process.run('adb', ['-s', target, 'shell', 'ip', '-f', 'inet', 'addr', 'show', 'wlan0']);
+      final res = await Process.run('adb',
+          ['-s', target, 'shell', 'ip', '-f', 'inet', 'addr', 'show', 'wlan0']);
       final out = res.stdout as String;
       final match = RegExp(r'inet\s+(\d+\.\d+\.\d+\.\d+)').firstMatch(out);
       if (match != null && _isValidIp(match.group(1)!)) {
@@ -311,7 +332,8 @@ class AdbService {
     final cleanIp = ip.trim();
     final cleanCode = code.trim();
     try {
-      final res = await Process.run('adb', ['pair', '$cleanIp:$port', cleanCode]);
+      final res =
+          await Process.run('adb', ['pair', '$cleanIp:$port', cleanCode]);
       final out = '${res.stdout}\n${res.stderr}'.trim();
       return out;
     } catch (e) {
@@ -385,9 +407,21 @@ class AdbService {
   Future<void> _updateDeviceInfo() async {
     if (selectedDeviceSerial == null) return;
     try {
-      final modelRes = await Process.run('adb', ['-s', selectedDeviceSerial!, 'shell', 'getprop', 'ro.product.model']);
-      final brandRes = await Process.run('adb', ['-s', selectedDeviceSerial!, 'shell', 'getprop', 'ro.product.brand']);
-      
+      final modelRes = await Process.run('adb', [
+        '-s',
+        selectedDeviceSerial!,
+        'shell',
+        'getprop',
+        'ro.product.model'
+      ]);
+      final brandRes = await Process.run('adb', [
+        '-s',
+        selectedDeviceSerial!,
+        'shell',
+        'getprop',
+        'ro.product.brand'
+      ]);
+
       final m = (modelRes.stdout as String).trim();
       final b = (brandRes.stdout as String).trim();
 
@@ -399,12 +433,14 @@ class AdbService {
   Future<void> _updateBattery() async {
     if (selectedDeviceSerial == null) return;
     try {
-      final res = await Process.run('adb', ['-s', selectedDeviceSerial!, 'shell', 'dumpsys', 'battery']);
+      final res = await Process.run(
+          'adb', ['-s', selectedDeviceSerial!, 'shell', 'dumpsys', 'battery']);
       final output = (res.stdout as String);
       for (var line in output.split('\n')) {
         line = line.trim();
         if (line.startsWith('level:')) {
-          batteryLevel = int.tryParse(line.split(':')[1].trim()) ?? batteryLevel;
+          batteryLevel =
+              int.tryParse(line.split(':')[1].trim()) ?? batteryLevel;
         } else if (line.startsWith('status:')) {
           // status 2 is charging
           final statusVal = int.tryParse(line.split(':')[1].trim()) ?? 0;
@@ -418,11 +454,19 @@ class AdbService {
     if (selectedDeviceSerial == null) return;
     try {
       final res = await Process.run('adb', [
-        '-s', selectedDeviceSerial!,
-        'shell', 'cmd', 'media_session', 'volume', '--stream', '3', '--get'
+        '-s',
+        selectedDeviceSerial!,
+        'shell',
+        'cmd',
+        'media_session',
+        'volume',
+        '--stream',
+        '3',
+        '--get'
       ]);
       final out = res.stdout as String;
-      final m = RegExp(r'volume is (\d+) in range \[(\d+)\.\.(\d+)\]').firstMatch(out);
+      final m = RegExp(r'volume is (\d+) in range \[(\d+)\.\.(\d+)\]')
+          .firstMatch(out);
       if (m != null) {
         currentVolume = int.tryParse(m.group(1)!) ?? currentVolume;
         maxVolume = int.tryParse(m.group(3)!) ?? maxVolume;
@@ -434,14 +478,24 @@ class AdbService {
     if (selectedDeviceSerial == null) return;
     try {
       final wifiRes = await Process.run('adb', [
-        '-s', selectedDeviceSerial!,
-        'shell', 'settings', 'get', 'global', 'wifi_on'
+        '-s',
+        selectedDeviceSerial!,
+        'shell',
+        'settings',
+        'get',
+        'global',
+        'wifi_on'
       ]);
       isWifiEnabled = (wifiRes.stdout as String).trim() == '1';
 
       final btRes = await Process.run('adb', [
-        '-s', selectedDeviceSerial!,
-        'shell', 'settings', 'get', 'global', 'bluetooth_on'
+        '-s',
+        selectedDeviceSerial!,
+        'shell',
+        'settings',
+        'get',
+        'global',
+        'bluetooth_on'
       ]);
       isBluetoothEnabled = (btRes.stdout as String).trim() == '1';
     } catch (_) {}
@@ -451,19 +505,27 @@ class AdbService {
     if (selectedDeviceSerial == null) return;
     try {
       final res = await Process.run('adb', [
-        '-s', selectedDeviceSerial!,
-        'shell', 'dumpsys', 'notification', '--noredact'
+        '-s',
+        selectedDeviceSerial!,
+        'shell',
+        'dumpsys',
+        'notification',
+        '--noredact'
       ]);
       final lines = (res.stdout as String).split('\n');
       final notifs = <NotificationItem>[];
       final seenPackages = <String>{};
 
       for (var line in lines) {
-        final m = RegExp(r'(?:StatusBarNotification|NotificationRecord)\([^:]*:\s*pkg=([^\s]+).*key=([^\s:]+)').firstMatch(line);
+        final m = RegExp(
+                r'(?:StatusBarNotification|NotificationRecord)\([^:]*:\s*pkg=([^\s]+).*key=([^\s:]+)')
+            .firstMatch(line);
         if (m != null) {
           final pkg = m.group(1)!;
           final key = m.group(2)!;
-          if (pkg != 'android' && pkg != 'com.android.systemui' && !seenPackages.contains(pkg)) {
+          if (pkg != 'android' &&
+              pkg != 'com.android.systemui' &&
+              !seenPackages.contains(pkg)) {
             seenPackages.add(pkg);
             notifs.add(NotificationItem(
               id: key,
@@ -488,8 +550,16 @@ class AdbService {
     _deviceStateController.add(true);
     try {
       await Process.run('adb', [
-        '-s', selectedDeviceSerial!,
-        'shell', 'cmd', 'media_session', 'volume', '--stream', '3', '--set', '$clamped'
+        '-s',
+        selectedDeviceSerial!,
+        'shell',
+        'cmd',
+        'media_session',
+        'volume',
+        '--stream',
+        '3',
+        '--set',
+        '$clamped'
       ]);
     } catch (_) {}
   }
@@ -501,8 +571,13 @@ class AdbService {
     _deviceStateController.add(true);
     try {
       await Process.run('adb', [
-        '-s', selectedDeviceSerial!,
-        'shell', 'cmd', 'wifi', 'set-wifi-enabled', targetState ? 'enabled' : 'disabled'
+        '-s',
+        selectedDeviceSerial!,
+        'shell',
+        'cmd',
+        'wifi',
+        'set-wifi-enabled',
+        targetState ? 'enabled' : 'disabled'
       ]);
     } catch (_) {}
   }
@@ -514,8 +589,12 @@ class AdbService {
     _deviceStateController.add(true);
     try {
       await Process.run('adb', [
-        '-s', selectedDeviceSerial!,
-        'shell', 'cmd', 'bluetooth', targetState ? 'enable' : 'disable'
+        '-s',
+        selectedDeviceSerial!,
+        'shell',
+        'cmd',
+        'bluetooth',
+        targetState ? 'enable' : 'disable'
       ]);
     } catch (_) {}
   }
@@ -526,8 +605,13 @@ class AdbService {
     _deviceStateController.add(true);
     try {
       await Process.run('adb', [
-        '-s', selectedDeviceSerial!,
-        'shell', 'cmd', 'media_session', 'dispatch', 'play-pause'
+        '-s',
+        selectedDeviceSerial!,
+        'shell',
+        'cmd',
+        'media_session',
+        'dispatch',
+        'play-pause'
       ]);
     } catch (_) {}
   }
@@ -536,8 +620,13 @@ class AdbService {
     if (selectedDeviceSerial == null) return;
     try {
       await Process.run('adb', [
-        '-s', selectedDeviceSerial!,
-        'shell', 'cmd', 'media_session', 'dispatch', 'next'
+        '-s',
+        selectedDeviceSerial!,
+        'shell',
+        'cmd',
+        'media_session',
+        'dispatch',
+        'next'
       ]);
     } catch (_) {}
   }
@@ -546,8 +635,13 @@ class AdbService {
     if (selectedDeviceSerial == null) return;
     try {
       await Process.run('adb', [
-        '-s', selectedDeviceSerial!,
-        'shell', 'cmd', 'media_session', 'dispatch', 'previous'
+        '-s',
+        selectedDeviceSerial!,
+        'shell',
+        'cmd',
+        'media_session',
+        'dispatch',
+        'previous'
       ]);
     } catch (_) {}
   }
@@ -561,7 +655,16 @@ class AdbService {
     _deviceStateController.add(true);
     if (selectedDeviceSerial == null || isDemoMode) return;
     try {
-      await Process.run('adb', ['-s', selectedDeviceSerial!, 'shell', 'settings', 'put', 'system', 'screen_brightness', '$screenBrightness']);
+      await Process.run('adb', [
+        '-s',
+        selectedDeviceSerial!,
+        'shell',
+        'settings',
+        'put',
+        'system',
+        'screen_brightness',
+        '$screenBrightness'
+      ]);
     } catch (_) {}
   }
 
@@ -570,7 +673,16 @@ class AdbService {
     _deviceStateController.add(true);
     if (selectedDeviceSerial == null || isDemoMode) return;
     try {
-      await Process.run('adb', ['-s', selectedDeviceSerial!, 'shell', 'settings', 'put', 'system', 'accelerometer_rotation', isAutoRotate ? '1' : '0']);
+      await Process.run('adb', [
+        '-s',
+        selectedDeviceSerial!,
+        'shell',
+        'settings',
+        'put',
+        'system',
+        'accelerometer_rotation',
+        isAutoRotate ? '1' : '0'
+      ]);
     } catch (_) {}
   }
 
@@ -579,23 +691,46 @@ class AdbService {
     _deviceStateController.add(true);
     if (selectedDeviceSerial == null || isDemoMode) return;
     try {
-      await Process.run('adb', ['-s', selectedDeviceSerial!, 'shell', 'cmd', 'notification', 'set_dnd_state', isDndEnabled ? 'priority' : 'off']);
+      await Process.run('adb', [
+        '-s',
+        selectedDeviceSerial!,
+        'shell',
+        'cmd',
+        'notification',
+        'set_dnd_state',
+        isDndEnabled ? 'priority' : 'off'
+      ]);
     } catch (_) {}
   }
 
   Future<void> openSettings() async {
     if (selectedDeviceSerial == null || isDemoMode) return;
     try {
-      await Process.run('adb', ['-s', selectedDeviceSerial!, 'shell', 'am', 'start', '-a', 'android.settings.SETTINGS']);
+      await Process.run('adb', [
+        '-s',
+        selectedDeviceSerial!,
+        'shell',
+        'am',
+        'start',
+        '-a',
+        'android.settings.SETTINGS'
+      ]);
     } catch (_) {}
   }
-
 
   Future<List<AppInfo>> fetchInstalledApps() async {
     if (selectedDeviceSerial == null) return [];
     try {
       // Get 3rd-party packages
-      final res3 = await Process.run('adb', ['-s', selectedDeviceSerial!, 'shell', 'pm', 'list', 'packages', '-3']);
+      final res3 = await Process.run('adb', [
+        '-s',
+        selectedDeviceSerial!,
+        'shell',
+        'pm',
+        'list',
+        'packages',
+        '-3'
+      ]);
       final packages = <String>{};
 
       if (res3.exitCode == 0) {
@@ -625,7 +760,8 @@ class AdbService {
       ];
 
       for (var sys in commonSysApps) {
-        final check = await Process.run('adb', ['-s', selectedDeviceSerial!, 'shell', 'pm', 'path', sys]);
+        final check = await Process.run(
+            'adb', ['-s', selectedDeviceSerial!, 'shell', 'pm', 'path', sys]);
         if (check.exitCode == 0 && (check.stdout as String).trim().isNotEmpty) {
           packages.add(sys);
         }
@@ -659,10 +795,15 @@ class AdbService {
     }
     try {
       await Process.run('adb', [
-        '-s', selectedDeviceSerial!,
-        'shell', 'monkey',
-        '-p', packageName,
-        '-c', 'android.intent.category.LAUNCHER', '1'
+        '-s',
+        selectedDeviceSerial!,
+        'shell',
+        'monkey',
+        '-p',
+        packageName,
+        '-c',
+        'android.intent.category.LAUNCHER',
+        '1'
       ]);
     } catch (_) {}
   }
@@ -679,10 +820,16 @@ class AdbService {
     } catch (_) {}
   }
 
-  Future<void> goBack({int? displayId}) => sendKeyEvent(4, displayId: displayId);
-  Future<void> goHome({int? displayId}) => sendKeyEvent(3, displayId: displayId);
-  Future<void> showRecents({int? displayId}) => sendKeyEvent(187, displayId: displayId);
-  Future<void> volumeUp({int? displayId}) => sendKeyEvent(24, displayId: displayId);
-  Future<void> volumeDown({int? displayId}) => sendKeyEvent(25, displayId: displayId);
-  Future<void> powerButton({int? displayId}) => sendKeyEvent(26, displayId: displayId);
+  Future<void> goBack({int? displayId}) =>
+      sendKeyEvent(4, displayId: displayId);
+  Future<void> goHome({int? displayId}) =>
+      sendKeyEvent(3, displayId: displayId);
+  Future<void> showRecents({int? displayId}) =>
+      sendKeyEvent(187, displayId: displayId);
+  Future<void> volumeUp({int? displayId}) =>
+      sendKeyEvent(24, displayId: displayId);
+  Future<void> volumeDown({int? displayId}) =>
+      sendKeyEvent(25, displayId: displayId);
+  Future<void> powerButton({int? displayId}) =>
+      sendKeyEvent(26, displayId: displayId);
 }

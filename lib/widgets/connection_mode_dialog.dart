@@ -20,7 +20,8 @@ class ConnectionModeDialog extends StatefulWidget {
   State<ConnectionModeDialog> createState() => _ConnectionModeDialogState();
 }
 
-class _ConnectionModeDialogState extends State<ConnectionModeDialog> with SingleTickerProviderStateMixin {
+class _ConnectionModeDialogState extends State<ConnectionModeDialog>
+    with SingleTickerProviderStateMixin {
   final _adb = AdbService();
 
   final _ipController = TextEditingController(text: '192.168.1.');
@@ -48,15 +49,19 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _pairingPassword = ((DateTime.now().millisecondsSinceEpoch % 900000) + 100000).toString();
+    _pairingPassword =
+        ((DateTime.now().millisecondsSinceEpoch % 900000) + 100000).toString();
     _qrPayload = _adb.generateQrPairingPayload(_pairingPassword);
     _refreshDevices();
-    _detectTimer = Timer.periodic(const Duration(seconds: 2), (_) => _refreshDevices());
+    _detectTimer =
+        Timer.periodic(const Duration(seconds: 2), (_) => _refreshDevices());
   }
 
   void _regenerateQr() {
     setState(() {
-      _pairingPassword = ((DateTime.now().millisecondsSinceEpoch % 900000) + 100000).toString();
+      _pairingPassword =
+          ((DateTime.now().millisecondsSinceEpoch % 900000) + 100000)
+              .toString();
       _qrPayload = _adb.generateQrPairingPayload(_pairingPassword);
     });
   }
@@ -78,7 +83,8 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
 
     if (mounted) {
       setState(() {
-        _statusMessage = 'Phone detected via QR scan! Pairing with $ip:$port...';
+        _statusMessage =
+            'Phone detected via QR scan! Pairing with $ip:$port...';
         _statusIsError = false;
       });
     }
@@ -87,7 +93,8 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
     if (pairRes.toLowerCase().contains('success')) {
       if (mounted) {
         setState(() {
-          _statusMessage = 'Paired successfully! Connecting wireless session...';
+          _statusMessage =
+              'Paired successfully! Connecting wireless session...';
           _statusIsError = false;
         });
       }
@@ -135,14 +142,18 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
       });
 
       // 1. Check for incoming QR pairing broadcast from phone
-      final pairingEntry = mdnsList.where((e) => e.type.contains('_adb-tls-pairing')).firstOrNull;
+      final pairingEntry = mdnsList
+          .where((e) => e.type.contains('_adb-tls-pairing'))
+          .firstOrNull;
       if (pairingEntry != null && !_isConnecting && !_isAutoPairing) {
         _handleAutoPair(pairingEntry.ip, pairingEntry.port);
       }
 
       // 2. Auto fill IP and Port from discovered wireless connection or mDNS service
       if (_ipController.text == '192.168.1.') {
-        final connectEntry = mdnsList.where((e) => e.type.contains('_adb-tls-connect')).firstOrNull;
+        final connectEntry = mdnsList
+            .where((e) => e.type.contains('_adb-tls-connect'))
+            .firstOrNull;
         if (connectEntry != null) {
           _ipController.text = connectEntry.ip;
           _portController.text = connectEntry.port.toString();
@@ -326,9 +337,11 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
                     decoration: BoxDecoration(
                       color: const Color(0xFF2563EB).withOpacity(0.2),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFF3B82F6).withOpacity(0.4)),
+                      border: Border.all(
+                          color: const Color(0xFF3B82F6).withOpacity(0.4)),
                     ),
-                    child: const Icon(Icons.settings_input_antenna_rounded, size: 20, color: Color(0xFF60A5FA)),
+                    child: const Icon(Icons.settings_input_antenna_rounded,
+                        size: 20, color: Color(0xFF60A5FA)),
                   ),
                   const SizedBox(width: 12),
                   const Column(
@@ -336,11 +349,15 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
                     children: [
                       Text(
                         'Select Connection Mode',
-                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold),
                       ),
                       Text(
                         'Connect via USB Cable or Wireless Wi-Fi Debugging',
-                        style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11.5),
+                        style:
+                            TextStyle(color: Color(0xFF94A3B8), fontSize: 11.5),
                       ),
                     ],
                   ),
@@ -348,27 +365,38 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
 
                   // Live Cable Status Pill
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: hasWired ? const Color(0xFF064E3B) : const Color(0xFF1E293B),
+                      color: hasWired
+                          ? const Color(0xFF064E3B)
+                          : const Color(0xFF1E293B),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: hasWired ? const Color(0xFF10B981) : const Color(0xFF475569),
+                        color: hasWired
+                            ? const Color(0xFF10B981)
+                            : const Color(0xFF475569),
                       ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          hasWired ? Icons.cable_rounded : Icons.usb_off_rounded,
+                          hasWired
+                              ? Icons.cable_rounded
+                              : Icons.usb_off_rounded,
                           size: 13,
-                          color: hasWired ? const Color(0xFF34D399) : const Color(0xFF94A3B8),
+                          color: hasWired
+                              ? const Color(0xFF34D399)
+                              : const Color(0xFF94A3B8),
                         ),
                         const SizedBox(width: 6),
                         Text(
                           hasWired ? 'USB Cable Detected' : 'No Cable Detected',
                           style: TextStyle(
-                            color: hasWired ? Colors.white : const Color(0xFF94A3B8),
+                            color: hasWired
+                                ? Colors.white
+                                : const Color(0xFF94A3B8),
                             fontSize: 10.5,
                             fontWeight: FontWeight.w600,
                           ),
@@ -379,7 +407,8 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
                   const SizedBox(width: 10),
 
                   IconButton(
-                    icon: const Icon(Icons.close_rounded, size: 19, color: Color(0xFF94A3B8)),
+                    icon: const Icon(Icons.close_rounded,
+                        size: 19, color: Color(0xFF94A3B8)),
                     onPressed: () => Navigator.of(context).pop(),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
@@ -460,12 +489,17 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
             // Status message footer (if any)
             if (_statusMessage != null)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                color: _statusIsError ? const Color(0xFF7F1D1D) : const Color(0xFF064E3B),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                color: _statusIsError
+                    ? const Color(0xFF7F1D1D)
+                    : const Color(0xFF064E3B),
                 child: Row(
                   children: [
                     Icon(
-                      _statusIsError ? Icons.error_outline_rounded : Icons.check_circle_outline_rounded,
+                      _statusIsError
+                          ? Icons.error_outline_rounded
+                          : Icons.check_circle_outline_rounded,
                       size: 15,
                       color: Colors.white,
                     ),
@@ -473,7 +507,8 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
                     Expanded(
                       child: Text(
                         _statusMessage!,
-                        style: const TextStyle(color: Colors.white, fontSize: 11),
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 11),
                       ),
                     ),
                   ],
@@ -509,7 +544,8 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
                       shape: BoxShape.circle,
                       color: const Color(0xFF059669).withOpacity(0.3),
                     ),
-                    child: const Icon(Icons.check_circle_rounded, size: 28, color: Color(0xFF34D399)),
+                    child: const Icon(Icons.check_circle_rounded,
+                        size: 28, color: Color(0xFF34D399)),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -517,13 +553,19 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _adb.deviceModel.isNotEmpty ? _adb.deviceModel : 'Android Device',
-                          style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                          _adb.deviceModel.isNotEmpty
+                              ? _adb.deviceModel
+                              : 'Android Device',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 3),
                         Text(
                           'USB Serial: ${_wiredDevices.first} • Ready for 60 FPS DeX',
-                          style: const TextStyle(color: Color(0xFFA7F3D0), fontSize: 11.5),
+                          style: const TextStyle(
+                              color: Color(0xFFA7F3D0), fontSize: 11.5),
                         ),
                       ],
                     ),
@@ -542,7 +584,8 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
                 backgroundColor: const Color(0xFF2563EB),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
               ),
             ),
             const SizedBox(height: 12),
@@ -551,17 +594,25 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
             OutlinedButton.icon(
               onPressed: _isSwitchingToWireless ? null : _handle1ClickWireless,
               icon: _isSwitchingToWireless
-                  ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Icon(Icons.wifi_tethering_rounded, size: 16, color: Color(0xFFFBBF24)),
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white))
+                  : const Icon(Icons.wifi_tethering_rounded,
+                      size: 16, color: Color(0xFFFBBF24)),
               label: Text(
-                _isSwitchingToWireless ? 'Configuring Wireless...' : '⚡ Switch to Wireless Mode (Unplug Cable After)',
+                _isSwitchingToWireless
+                    ? 'Configuring Wireless...'
+                    : '⚡ Switch to Wireless Mode (Unplug Cable After)',
                 style: const TextStyle(color: Color(0xFFFDE68A)),
               ),
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: Color(0xFFD97706)),
                 backgroundColor: const Color(0xFF78350F).withOpacity(0.2),
                 padding: const EdgeInsets.symmetric(vertical: 13),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
               ),
             ),
           ] else ...[
@@ -577,18 +628,23 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
                   SizedBox(
                     width: 32,
                     height: 32,
-                    child: CircularProgressIndicator(strokeWidth: 2.5, color: Color(0xFF38BDF8)),
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2.5, color: Color(0xFF38BDF8)),
                   ),
                   SizedBox(height: 16),
                   Text(
                     'Waiting for USB cable to be plugged in...',
-                    style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600),
                   ),
                   SizedBox(height: 6),
                   Text(
                     '1. Connect your phone via USB cable.\n2. Ensure "USB Debugging" is enabled in Developer Options.\n3. The app will automatically detect it instantly.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11.5, height: 1.4),
+                    style: TextStyle(
+                        color: Color(0xFF94A3B8), fontSize: 11.5, height: 1.4),
                   ),
                 ],
               ),
@@ -600,15 +656,18 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
                 Navigator.of(context).pop();
                 widget.onConnected?.call();
               },
-              icon: const Icon(Icons.science_rounded, size: 18, color: Color(0xFF38BDF8)),
+              icon: const Icon(Icons.science_rounded,
+                  size: 18, color: Color(0xFF38BDF8)),
               label: const Text(
                 '🧪 Explore Demo Mode (No Phone Needed)',
-                style: TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.w600),
+                style: TextStyle(
+                    color: Color(0xFF38BDF8), fontWeight: FontWeight.w600),
               ),
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: Color(0xFF0284C7)),
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
               ),
             ),
             const SizedBox(height: 12),
@@ -616,7 +675,8 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
               onPressed: () => _tabController.animateTo(1),
               icon: const Icon(Icons.arrow_forward_rounded, size: 16),
               label: const Text('Switch to Wireless (Wi-Fi) Debugging instead'),
-              style: TextButton.styleFrom(foregroundColor: const Color(0xFF60A5FA)),
+              style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFF60A5FA)),
             ),
           ],
         ],
@@ -648,7 +708,8 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
                       color: const Color(0xFF10B981).withOpacity(0.2),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.wifi_rounded, size: 20, color: Color(0xFF34D399)),
+                    child: const Icon(Icons.wifi_rounded,
+                        size: 20, color: Color(0xFF34D399)),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -656,26 +717,35 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _adb.deviceModel.isNotEmpty ? _adb.deviceModel : 'Wireless Android Device',
-                          style: const TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.bold),
+                          _adb.deviceModel.isNotEmpty
+                              ? _adb.deviceModel
+                              : 'Wireless Android Device',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           'Wi-Fi Serial: ${_adb.getPreferredDevice(_wirelessDevices)} • Ready to Launch',
-                          style: const TextStyle(color: Color(0xFFA7F3D0), fontSize: 11),
+                          style: const TextStyle(
+                              color: Color(0xFFA7F3D0), fontSize: 11),
                         ),
                       ],
                     ),
                   ),
                   ElevatedButton.icon(
-                    onPressed: () => _handleWiredSelect(_adb.getPreferredDevice(_wirelessDevices)),
+                    onPressed: () => _handleWiredSelect(
+                        _adb.getPreferredDevice(_wirelessDevices)),
                     icon: const Icon(Icons.rocket_launch_rounded, size: 15),
                     label: const Text('Start DeX'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF10B981),
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 8),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
                     ),
                   ),
                 ],
@@ -689,7 +759,8 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
             decoration: BoxDecoration(
               color: const Color(0xFF131E33),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF2563EB).withOpacity(0.4)),
+              border:
+                  Border.all(color: const Color(0xFF2563EB).withOpacity(0.4)),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -708,12 +779,16 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
                       onTap: _regenerateQr,
                       borderRadius: BorderRadius.circular(4),
                       child: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         child: Row(
                           children: [
-                            Icon(Icons.refresh_rounded, size: 12, color: Color(0xFF60A5FA)),
+                            Icon(Icons.refresh_rounded,
+                                size: 12, color: Color(0xFF60A5FA)),
                             SizedBox(width: 4),
-                            Text('New Code', style: TextStyle(color: Color(0xFF60A5FA), fontSize: 10)),
+                            Text('New Code',
+                                style: TextStyle(
+                                    color: Color(0xFF60A5FA), fontSize: 10)),
                           ],
                         ),
                       ),
@@ -729,33 +804,45 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.qr_code_scanner_rounded, size: 16, color: Color(0xFF38BDF8)),
+                          const Icon(Icons.qr_code_scanner_rounded,
+                              size: 16, color: Color(0xFF38BDF8)),
                           const SizedBox(width: 6),
                           const Text(
                             'Pair with QR Code',
-                            style: TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.bold),
                           ),
                           const Spacer(),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
                               color: const Color(0xFF0369A1).withOpacity(0.3),
                               borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: const Color(0xFF0284C7).withOpacity(0.5)),
+                              border: Border.all(
+                                  color:
+                                      const Color(0xFF0284C7).withOpacity(0.5)),
                             ),
-                            child: const Text('Android 11-16', style: TextStyle(color: Color(0xFF7DD3FC), fontSize: 9.5)),
+                            child: const Text('Android 11-16',
+                                style: TextStyle(
+                                    color: Color(0xFF7DD3FC), fontSize: 9.5)),
                           ),
                         ],
                       ),
                       const SizedBox(height: 8),
-                      _buildStep(1, 'Open Settings > Developer options > Wireless debugging'),
+                      _buildStep(1,
+                          'Open Settings > Developer options > Wireless debugging'),
                       const SizedBox(height: 4),
-                      _buildStep(2, 'Turn on Wireless debugging & tap "Pair device with QR code"'),
+                      _buildStep(2,
+                          'Turn on Wireless debugging & tap "Pair device with QR code"'),
                       const SizedBox(height: 4),
                       _buildStep(3, 'Scan this QR code with your phone camera'),
                       const SizedBox(height: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: const Color(0xFF0F172A),
                           borderRadius: BorderRadius.circular(6),
@@ -775,7 +862,10 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
                             const SizedBox(width: 6),
                             Text(
                               'Code: $_pairingPassword • Auto-pairing listener active',
-                              style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 10, fontFamily: 'monospace'),
+                              style: const TextStyle(
+                                  color: Color(0xFF94A3B8),
+                                  fontSize: 10,
+                                  fontFamily: 'monospace'),
                             ),
                           ],
                         ),
@@ -798,14 +888,18 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
                   style: const TextStyle(color: Colors.white, fontSize: 12),
                   decoration: InputDecoration(
                     labelText: 'Phone Wi-Fi IP',
-                    labelStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
+                    labelStyle:
+                        const TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
                     filled: true,
                     fillColor: const Color(0xFF1E293B),
                     hintText: 'e.g. 192.168.1.42',
                     hintStyle: const TextStyle(color: Color(0xFF64748B)),
                     isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide.none),
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        borderSide: BorderSide.none),
                   ),
                 ),
               ),
@@ -817,14 +911,18 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
                   style: const TextStyle(color: Colors.white, fontSize: 12),
                   decoration: InputDecoration(
                     labelText: 'Port',
-                    labelStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
+                    labelStyle:
+                        const TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
                     filled: true,
                     fillColor: const Color(0xFF1E293B),
                     hintText: '5555',
                     hintStyle: const TextStyle(color: Color(0xFF64748B)),
                     isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide.none),
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        borderSide: BorderSide.none),
                   ),
                 ),
               ),
@@ -834,8 +932,10 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF2563EB),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6)),
                 ),
                 child: Text(_isConnecting ? '...' : 'Connect IP'),
               ),
@@ -852,8 +952,11 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    _showPairing ? '▲ Hide 6-digit code pairing' : '▼ Pair with 6-digit code manually',
-                    style: const TextStyle(color: Color(0xFF60A5FA), fontSize: 11),
+                    _showPairing
+                        ? '▲ Hide 6-digit code pairing'
+                        : '▼ Pair with 6-digit code manually',
+                    style:
+                        const TextStyle(color: Color(0xFF60A5FA), fontSize: 11),
                   ),
                 ],
               ),
@@ -878,9 +981,12 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
                       decoration: InputDecoration(
                         isDense: true,
                         hintText: 'Pairing Port (e.g. 39215)',
-                        hintStyle: const TextStyle(color: Color(0xFF64748B), fontSize: 11),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+                        hintStyle: const TextStyle(
+                            color: Color(0xFF64748B), fontSize: 11),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(6)),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 7),
                       ),
                     ),
                   ),
@@ -892,9 +998,12 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
                       decoration: InputDecoration(
                         isDense: true,
                         hintText: '6-digit code',
-                        hintStyle: const TextStyle(color: Color(0xFF64748B), fontSize: 11),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+                        hintStyle: const TextStyle(
+                            color: Color(0xFF64748B), fontSize: 11),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(6)),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 7),
                       ),
                     ),
                   ),
@@ -904,8 +1013,10 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF0D9488),
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 9),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6)),
                     ),
                     child: const Text('Pair', style: TextStyle(fontSize: 11)),
                   ),
@@ -934,17 +1045,20 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog> with Single
           ),
           child: Text(
             '$number',
-            style: const TextStyle(color: Color(0xFF93C5FD), fontSize: 9, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+                color: Color(0xFF93C5FD),
+                fontSize: 9,
+                fontWeight: FontWeight.bold),
           ),
         ),
         Expanded(
           child: Text(
             text,
-            style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 11, height: 1.3),
+            style: const TextStyle(
+                color: Color(0xFFCBD5E1), fontSize: 11, height: 1.3),
           ),
         ),
       ],
     );
   }
 }
-

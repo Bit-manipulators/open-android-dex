@@ -23,7 +23,8 @@ class AppIconWidget extends StatelessWidget {
     final effectiveIconSize = iconSize ?? (size * 0.52);
 
     final path = app.iconPath;
-    final hasRealIcon = path != null && path.isNotEmpty && File(path).existsSync();
+    final hasRealIcon =
+        path != null && path.isNotEmpty && File(path).existsSync();
 
     if (hasRealIcon) {
       return Container(

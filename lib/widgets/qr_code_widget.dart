@@ -80,7 +80,8 @@ class _QrPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _QrPainter oldDelegate) =>
-      oldDelegate.matrix != matrix || oldDelegate.foregroundColor != foregroundColor;
+      oldDelegate.matrix != matrix ||
+      oldDelegate.foregroundColor != foregroundColor;
 }
 
 class _QrEncoder {
@@ -224,8 +225,10 @@ class _QrEncoder {
     }
 
     // 3. Matrix Setup
-    final matrix = List.generate(matrixSize, (_) => List<bool?>.filled(matrixSize, null));
-    final reserved = List.generate(matrixSize, (_) => List<bool>.filled(matrixSize, false));
+    final matrix =
+        List.generate(matrixSize, (_) => List<bool?>.filled(matrixSize, null));
+    final reserved =
+        List.generate(matrixSize, (_) => List<bool>.filled(matrixSize, false));
 
     // Finder patterns
     void setFinder(int row, int col) {
@@ -341,6 +344,7 @@ class _QrEncoder {
       matrix[8][matrixSize - 8 + i] = (formatBits[7 + i] == 1);
     }
 
-    return List.generate(matrixSize, (r) => List.generate(matrixSize, (c) => matrix[r][c] ?? false));
+    return List.generate(matrixSize,
+        (r) => List.generate(matrixSize, (c) => matrix[r][c] ?? false));
   }
 }

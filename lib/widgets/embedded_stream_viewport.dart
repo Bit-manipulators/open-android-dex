@@ -81,9 +81,14 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
   void didUpdateWidget(covariant EmbeddedStreamViewport oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    final widthDiff = ((widget.window.width) - (_lastAdaptedWidth ?? widget.window.width)).abs();
-    final heightDiff = ((widget.window.height) - (_lastAdaptedHeight ?? widget.window.height)).abs();
-    final maximizeChanged = widget.window.isMaximized != oldWidget.window.isMaximized;
+    final widthDiff =
+        ((widget.window.width) - (_lastAdaptedWidth ?? widget.window.width))
+            .abs();
+    final heightDiff =
+        ((widget.window.height) - (_lastAdaptedHeight ?? widget.window.height))
+            .abs();
+    final maximizeChanged =
+        widget.window.isMaximized != oldWidget.window.isMaximized;
 
     if (maximizeChanged || widthDiff > 20 || heightDiff > 20) {
       // Automatically adapt Android virtual display resolution to the new window shape.
@@ -151,7 +156,8 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
       }
 
       final targetW = (widget.window.width.toInt() & ~1).clamp(360, 3840);
-      final targetH = ((widget.window.height - 80).toInt() & ~1).clamp(360, 3840);
+      final targetH =
+          ((widget.window.height - 80).toInt() & ~1).clamp(360, 3840);
       _streamAspect = targetW / targetH;
 
       final oldTexId = _textureId;
@@ -330,7 +336,8 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
 
     // Check functional and navigation keys
     int? keyCode;
-    if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.numpadEnter) {
+    if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter) {
       keyCode = 66; // KEYCODE_ENTER
     } else if (key == LogicalKeyboardKey.backspace) {
       keyCode = 67; // KEYCODE_DEL
@@ -424,7 +431,8 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
                                 end: Alignment.bottomCenter,
                                 colors: [
                                   const Color(0xFF0F172A),
-                                  win.app.gradientColors.first.withOpacity(0.15),
+                                  win.app.gradientColors.first
+                                      .withOpacity(0.15),
                                   const Color(0xFF080C14),
                                 ],
                               ),
@@ -456,14 +464,18 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
                                         height: 8,
                                         decoration: BoxDecoration(
                                           shape: BoxShape.circle,
-                                          color: _isStreaming ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                                          color: _isStreaming
+                                              ? const Color(0xFF10B981)
+                                              : const Color(0xFFEF4444),
                                         ),
                                       ),
                                       const SizedBox(width: 6),
                                       Text(
                                         _statusMessage,
                                         style: TextStyle(
-                                          color: _isStreaming ? const Color(0xFF6EE7B7) : const Color(0xFF94A3B8),
+                                          color: _isStreaming
+                                              ? const Color(0xFF6EE7B7)
+                                              : const Color(0xFF94A3B8),
                                           fontSize: 11,
                                           fontWeight: FontWeight.w500,
                                         ),
@@ -494,8 +506,12 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
                                 height: 36,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: const Color(0xFF38BDF8).withOpacity(0.25),
-                                  border: Border.all(color: const Color(0xFF38BDF8).withOpacity(0.6), width: 1.5),
+                                  color:
+                                      const Color(0xFF38BDF8).withOpacity(0.25),
+                                  border: Border.all(
+                                      color: const Color(0xFF38BDF8)
+                                          .withOpacity(0.6),
+                                      width: 1.5),
                                 ),
                               ),
                             ),
@@ -528,9 +544,12 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
       child: Row(
         children: [
           // Android Nav Buttons
-          _buildNavIcon(Icons.arrow_back_ios_new_rounded, 'Back', () => _adb.goBack(displayId: displayId)),
-          _buildNavIcon(Icons.circle_outlined, 'Home', () => _adb.goHome(displayId: displayId)),
-          _buildNavIcon(Icons.crop_square_rounded, 'Recents', () => _adb.showRecents(displayId: displayId)),
+          _buildNavIcon(Icons.arrow_back_ios_new_rounded, 'Back',
+              () => _adb.goBack(displayId: displayId)),
+          _buildNavIcon(Icons.circle_outlined, 'Home',
+              () => _adb.goHome(displayId: displayId)),
+          _buildNavIcon(Icons.crop_square_rounded, 'Recents',
+              () => _adb.showRecents(displayId: displayId)),
           const SizedBox(width: 8),
 
           // Text injection field
@@ -542,9 +561,11 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
                 style: const TextStyle(color: Colors.white, fontSize: 11),
                 decoration: InputDecoration(
                   hintText: 'Type text onto device...',
-                  hintStyle: const TextStyle(color: Color(0xFF64748B), fontSize: 10),
+                  hintStyle:
+                      const TextStyle(color: Color(0xFF64748B), fontSize: 10),
                   isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                   filled: true,
                   fillColor: const Color(0xFF0B111E),
                   border: OutlineInputBorder(
@@ -562,8 +583,10 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
                 ),
                 onSubmitted: (txt) {
                   if (txt.isNotEmpty) {
-                    _touchInput.sendText(_adb.selectedDeviceSerial, txt, displayId: displayId);
-                    _touchInput.sendKeyEvent(_adb.selectedDeviceSerial, 66, displayId: displayId); // Enter
+                    _touchInput.sendText(_adb.selectedDeviceSerial, txt,
+                        displayId: displayId);
+                    _touchInput.sendKeyEvent(_adb.selectedDeviceSerial, 66,
+                        displayId: displayId); // Enter
                     _textController.clear();
                   }
                 },
@@ -577,7 +600,8 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
             onTap: () {
               final txt = _textController.text.trim();
               if (txt.isNotEmpty) {
-                _touchInput.sendText(_adb.selectedDeviceSerial, txt, displayId: displayId);
+                _touchInput.sendText(_adb.selectedDeviceSerial, txt,
+                    displayId: displayId);
                 _textController.clear();
               }
             },
@@ -588,7 +612,8 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
                 color: const Color(0xFF2563EB),
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: const Icon(Icons.send_rounded, size: 12, color: Colors.white),
+              child:
+                  const Icon(Icons.send_rounded, size: 12, color: Colors.white),
             ),
           ),
         ],
@@ -610,4 +635,3 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
     );
   }
 }
-

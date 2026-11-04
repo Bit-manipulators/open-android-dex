@@ -18,25 +18,21 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            python3-gi gir1.2-gtk-4.0 adb scrcpy
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
+            python3-gi gir1.2-gtk-4.0 python3-pip python3-venv adb scrcpy
 
       - name: Install Test Dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install pytest flake8
+          python3 -m venv --system-site-packages "$RUNNER_TEMP/open-android-dex-venv"
+          "$RUNNER_TEMP/open-android-dex-venv/bin/python" -m pip install --upgrade pip
+          "$RUNNER_TEMP/open-android-dex-venv/bin/python" -m pip install pytest flake8
 
       - name: Lint with Flake8
         run: |
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics || true
+          "$RUNNER_TEMP/open-android-dex-venv/bin/flake8" . --count --select=E9,F63,F7,F82 --show-source --statistics
 
       - name: Run Pytest Suite
         run: |
-          PYTHONPATH=. pytest tests/ -v
+          PYTHONPATH=. "$RUNNER_TEMP/open-android-dex-venv/bin/python" -m pytest tests/ -v
 
   flutter-analyze-test:
     name: Flutter Lint & Tests
@@ -66,3 +62,6 @@ jobs:
 
       - name: Run Static Analysis
         run: flutter analyze
+
+      - name: Run Flutter Tests
+        run: flutter test

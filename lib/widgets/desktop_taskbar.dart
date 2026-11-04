@@ -69,7 +69,20 @@ class _DesktopTaskbarState extends State<DesktopTaskbar> {
   }
 
   String _formatDate(DateTime dt) {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
     const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     return '${weekdays[dt.weekday - 1]}, ${months[dt.month - 1]} ${dt.day}';
   }
@@ -108,7 +121,8 @@ class _DesktopTaskbarState extends State<DesktopTaskbar> {
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
             color: const Color(0xFF0F131D).withOpacity(0.92),
-            border: const Border(top: BorderSide(color: Color(0xFF232D3F), width: 1)),
+            border: const Border(
+                top: BorderSide(color: Color(0xFF232D3F), width: 1)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.4),
@@ -126,10 +140,13 @@ class _DesktopTaskbarState extends State<DesktopTaskbar> {
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: widget.isDrawerOpen ? const Color(0xFF2563EB) : const Color(0xFF1E2638),
+                    color: widget.isDrawerOpen
+                        ? const Color(0xFF2563EB)
+                        : const Color(0xFF1E2638),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.grid_view_rounded, size: 20, color: Colors.white),
+                  child: const Icon(Icons.grid_view_rounded,
+                      size: 20, color: Colors.white),
                 ),
               ),
               const SizedBox(width: 8),
@@ -144,9 +161,12 @@ class _DesktopTaskbarState extends State<DesktopTaskbar> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _buildTaskbarIcon(Icons.arrow_back_ios_new_rounded, 'Back', () => adb.goBack()),
-                    _buildTaskbarIcon(Icons.circle_outlined, 'Home', () => adb.goHome()),
-                    _buildTaskbarIcon(Icons.crop_square_rounded, 'Recent Apps', () => adb.showRecents()),
+                    _buildTaskbarIcon(Icons.arrow_back_ios_new_rounded, 'Back',
+                        () => adb.goBack()),
+                    _buildTaskbarIcon(
+                        Icons.circle_outlined, 'Home', () => adb.goHome()),
+                    _buildTaskbarIcon(Icons.crop_square_rounded, 'Recent Apps',
+                        () => adb.showRecents()),
                   ],
                 ),
               ),
@@ -172,10 +192,12 @@ class _DesktopTaskbarState extends State<DesktopTaskbar> {
                         },
                         onSecondaryTap: () {
                           setState(() {
-                            _previewWindowId = (_previewWindowId == win.id) ? null : win.id;
+                            _previewWindowId =
+                                (_previewWindowId == win.id) ? null : win.id;
                           });
                         },
-                        onHoverEnter: (globalX) => _showPreview(win.id, globalX),
+                        onHoverEnter: (globalX) =>
+                            _showPreview(win.id, globalX),
                         onHoverExit: () => _hidePreview(),
                       );
                     }).toList(),
@@ -195,10 +217,14 @@ class _DesktopTaskbarState extends State<DesktopTaskbar> {
                   child: Container(
                     padding: const EdgeInsets.all(7),
                     decoration: BoxDecoration(
-                      color: widget.isNotificationsOpen ? const Color(0xFF2563EB) : const Color(0xFF172033),
+                      color: widget.isNotificationsOpen
+                          ? const Color(0xFF2563EB)
+                          : const Color(0xFF172033),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: widget.isNotificationsOpen ? const Color(0xFF60A5FA) : const Color(0xFF2D3C5C),
+                        color: widget.isNotificationsOpen
+                            ? const Color(0xFF60A5FA)
+                            : const Color(0xFF2D3C5C),
                       ),
                     ),
                     child: Stack(
@@ -211,7 +237,9 @@ class _DesktopTaskbarState extends State<DesktopTaskbar> {
                           size: 16,
                           color: widget.isNotificationsOpen
                               ? Colors.white
-                              : (adb.activeNotifications.isNotEmpty ? const Color(0xFF60A5FA) : const Color(0xFF94A3B8)),
+                              : (adb.activeNotifications.isNotEmpty
+                                  ? const Color(0xFF60A5FA)
+                                  : const Color(0xFF94A3B8)),
                         ),
                         if (adb.activeNotifications.isNotEmpty)
                           Positioned(
@@ -240,12 +268,17 @@ class _DesktopTaskbarState extends State<DesktopTaskbar> {
                   onTap: widget.onToggleQuickSettings,
                   borderRadius: BorderRadius.circular(20),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                     decoration: BoxDecoration(
-                      color: widget.isQuickSettingsOpen ? const Color(0xFF2563EB) : const Color(0xFF172033),
+                      color: widget.isQuickSettingsOpen
+                          ? const Color(0xFF2563EB)
+                          : const Color(0xFF172033),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: widget.isQuickSettingsOpen ? const Color(0xFF60A5FA) : const Color(0xFF2D3C5C),
+                        color: widget.isQuickSettingsOpen
+                            ? const Color(0xFF60A5FA)
+                            : const Color(0xFF2D3C5C),
                       ),
                     ),
                     child: Row(
@@ -254,15 +287,23 @@ class _DesktopTaskbarState extends State<DesktopTaskbar> {
                         Icon(
                           adb.currentVolume == 0
                               ? Icons.volume_off_rounded
-                              : (adb.currentVolume > 15 ? Icons.volume_up_rounded : Icons.volume_down_rounded),
+                              : (adb.currentVolume > 15
+                                  ? Icons.volume_up_rounded
+                                  : Icons.volume_down_rounded),
                           size: 14,
-                          color: widget.isQuickSettingsOpen ? Colors.white : const Color(0xFF60A5FA),
+                          color: widget.isQuickSettingsOpen
+                              ? Colors.white
+                              : const Color(0xFF60A5FA),
                         ),
                         const SizedBox(width: 4),
                         Icon(
-                          adb.isWifiEnabled ? Icons.wifi_rounded : Icons.wifi_off_rounded,
+                          adb.isWifiEnabled
+                              ? Icons.wifi_rounded
+                              : Icons.wifi_off_rounded,
                           size: 14,
-                          color: widget.isQuickSettingsOpen ? Colors.white : const Color(0xFF34D399),
+                          color: widget.isQuickSettingsOpen
+                              ? Colors.white
+                              : const Color(0xFF34D399),
                         ),
                       ],
                     ),
@@ -273,19 +314,23 @@ class _DesktopTaskbarState extends State<DesktopTaskbar> {
 
               // Device Capsule
               Tooltip(
-                message: 'Connection Mode: ${adb.isWireless ? "Wireless Wi-Fi" : (adb.isWired ? "Wired USB" : "Disconnected")} (Click to change)',
+                message:
+                    'Connection Mode: ${adb.isWireless ? "Wireless Wi-Fi" : (adb.isWired ? "Wired USB" : "Disconnected")} (Click to change)',
                 child: InkWell(
                   onTap: () => ConnectionModeDialog.show(context),
                   borderRadius: BorderRadius.circular(20),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
                       color: const Color(0xFF172033),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
                         color: adb.isWireless
                             ? const Color(0xFF3B82F6)
-                            : (adb.isWired ? const Color(0xFF10B981) : const Color(0xFF2D3C5C)),
+                            : (adb.isWired
+                                ? const Color(0xFF10B981)
+                                : const Color(0xFF2D3C5C)),
                       ),
                     ),
                     child: Row(
@@ -294,16 +339,23 @@ class _DesktopTaskbarState extends State<DesktopTaskbar> {
                         Icon(
                           adb.isWireless
                               ? Icons.wifi_rounded
-                              : (adb.isWired ? Icons.usb_rounded : Icons.phone_android_rounded),
+                              : (adb.isWired
+                                  ? Icons.usb_rounded
+                                  : Icons.phone_android_rounded),
                           size: 14,
                           color: adb.isWireless
                               ? const Color(0xFF60A5FA)
-                              : (adb.isWired ? const Color(0xFF34D399) : const Color(0xFF64748B)),
+                              : (adb.isWired
+                                  ? const Color(0xFF34D399)
+                                  : const Color(0xFF64748B)),
                         ),
                         const SizedBox(width: 6),
                         Text(
                           adb.deviceModel,
-                          style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 11.5, fontWeight: FontWeight.w500),
+                          style: const TextStyle(
+                              color: Color(0xFFCBD5E1),
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w500),
                         ),
                       ],
                     ),
@@ -326,16 +378,23 @@ class _DesktopTaskbarState extends State<DesktopTaskbar> {
                     Icon(
                       adb.isCharging
                           ? Icons.battery_charging_full_rounded
-                          : (adb.batteryLevel > 20 ? Icons.battery_full_rounded : Icons.battery_alert_rounded),
+                          : (adb.batteryLevel > 20
+                              ? Icons.battery_full_rounded
+                              : Icons.battery_alert_rounded),
                       size: 14,
                       color: adb.isCharging
                           ? const Color(0xFFFBBF24)
-                          : (adb.batteryLevel > 20 ? const Color(0xFF34D399) : const Color(0xFFF87171)),
+                          : (adb.batteryLevel > 20
+                              ? const Color(0xFF34D399)
+                              : const Color(0xFFF87171)),
                     ),
                     const SizedBox(width: 4),
                     Text(
                       '${adb.batteryLevel}%',
-                      style: const TextStyle(color: Color(0xFFE2E8F0), fontSize: 11.5, fontWeight: FontWeight.w600),
+                      style: const TextStyle(
+                          color: Color(0xFFE2E8F0),
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
@@ -344,7 +403,8 @@ class _DesktopTaskbarState extends State<DesktopTaskbar> {
 
               // Clock & Date
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: const Color(0xFF131A29),
                   borderRadius: BorderRadius.circular(8),
@@ -355,11 +415,15 @@ class _DesktopTaskbarState extends State<DesktopTaskbar> {
                   children: [
                     Text(
                       _formatTime(_now),
-                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold),
                     ),
                     Text(
                       _formatDate(_now),
-                      style: const TextStyle(color: Color(0xFF64748B), fontSize: 9.5),
+                      style: const TextStyle(
+                          color: Color(0xFF64748B), fontSize: 9.5),
                     ),
                   ],
                 ),
@@ -383,7 +447,8 @@ class _DesktopTaskbarState extends State<DesktopTaskbar> {
     if (win == null) return const SizedBox.shrink();
 
     // Clamp preview horizontal position so it stays cleanly on screen
-    final clampX = (_previewGlobalX - 110).clamp(16.0, widget.desktopSize.width - 250);
+    final clampX =
+        (_previewGlobalX - 110).clamp(16.0, widget.desktopSize.width - 250);
 
     return Positioned(
       left: clampX,
@@ -401,7 +466,8 @@ class _DesktopTaskbarState extends State<DesktopTaskbar> {
               decoration: BoxDecoration(
                 color: const Color(0xFF1F1F1F).withOpacity(0.95),
                 borderRadius: BorderRadius.circular(9),
-                border: Border.all(color: Colors.white.withOpacity(0.14), width: 1.0),
+                border: Border.all(
+                    color: Colors.white.withOpacity(0.14), width: 1.0),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.55),
@@ -460,7 +526,8 @@ class _DesktopTaskbarState extends State<DesktopTaskbar> {
                       decoration: BoxDecoration(
                         color: const Color(0xFF141414),
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: Colors.white.withOpacity(0.08)),
+                        border:
+                            Border.all(color: Colors.white.withOpacity(0.08)),
                       ),
                       child: Stack(
                         alignment: Alignment.center,
@@ -473,15 +540,18 @@ class _DesktopTaskbarState extends State<DesktopTaskbar> {
                             height: 16,
                             child: Container(
                               color: const Color(0xFF222222),
-                              padding: const EdgeInsets.symmetric(horizontal: 6),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 6),
                               alignment: Alignment.centerLeft,
                               child: Row(
                                 children: [
-                                  AppIconWidget(app: win.app, size: 9, borderRadius: 2),
+                                  AppIconWidget(
+                                      app: win.app, size: 9, borderRadius: 2),
                                   const SizedBox(width: 4),
                                   Text(
                                     win.app.name,
-                                    style: const TextStyle(color: Colors.white70, fontSize: 8),
+                                    style: const TextStyle(
+                                        color: Colors.white70, fontSize: 8),
                                   ),
                                 ],
                               ),
@@ -491,12 +561,17 @@ class _DesktopTaskbarState extends State<DesktopTaskbar> {
                           Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              AppIconWidget(app: win.app, size: 32, borderRadius: 6),
+                              AppIconWidget(
+                                  app: win.app, size: 32, borderRadius: 6),
                               const SizedBox(height: 6),
                               Text(
-                                win.isMinimized ? 'Minimized' : 'Active Workspace',
+                                win.isMinimized
+                                    ? 'Minimized'
+                                    : 'Active Workspace',
                                 style: TextStyle(
-                                  color: win.isMinimized ? const Color(0xFF94A3B8) : const Color(0xFF60CDFF),
+                                  color: win.isMinimized
+                                      ? const Color(0xFF94A3B8)
+                                      : const Color(0xFF60CDFF),
                                   fontSize: 10,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -518,7 +593,8 @@ class _DesktopTaskbarState extends State<DesktopTaskbar> {
                         tooltip: 'Snap Left (50%)',
                         onTap: () {
                           _hidePreview();
-                          widget.controller.snapLeft(win.id, widget.desktopSize);
+                          widget.controller
+                              .snapLeft(win.id, widget.desktopSize);
                         },
                       ),
                       _buildWin11ActionTile(
@@ -526,15 +602,19 @@ class _DesktopTaskbarState extends State<DesktopTaskbar> {
                         tooltip: 'Snap Right (50%)',
                         onTap: () {
                           _hidePreview();
-                          widget.controller.snapRight(win.id, widget.desktopSize);
+                          widget.controller
+                              .snapRight(win.id, widget.desktopSize);
                         },
                       ),
                       _buildWin11ActionTile(
-                        icon: win.isMaximized ? Icons.filter_none_rounded : Icons.crop_square_rounded,
+                        icon: win.isMaximized
+                            ? Icons.filter_none_rounded
+                            : Icons.crop_square_rounded,
                         tooltip: win.isMaximized ? 'Restore' : 'Maximize',
                         onTap: () {
                           _hidePreview();
-                          widget.controller.toggleMaximize(win.id, widget.desktopSize);
+                          widget.controller
+                              .toggleMaximize(win.id, widget.desktopSize);
                         },
                       ),
                       _buildWin11ActionTile(
@@ -649,12 +729,16 @@ class _Windows11TaskbarItemState extends State<_Windows11TaskbarItem> {
               decoration: BoxDecoration(
                 color: isActive
                     ? Colors.white.withOpacity(0.12)
-                    : (_isHovered ? Colors.white.withOpacity(0.08) : Colors.transparent),
+                    : (_isHovered
+                        ? Colors.white.withOpacity(0.08)
+                        : Colors.transparent),
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(
                   color: isActive
                       ? Colors.white.withOpacity(0.14)
-                      : (_isHovered ? Colors.white.withOpacity(0.06) : Colors.transparent),
+                      : (_isHovered
+                          ? Colors.white.withOpacity(0.06)
+                          : Colors.transparent),
                   width: 0.8,
                 ),
               ),
@@ -677,9 +761,12 @@ class _Windows11TaskbarItemState extends State<_Windows11TaskbarItem> {
                         style: TextStyle(
                           color: isActive
                               ? Colors.white
-                              : (_isHovered ? Colors.white70 : const Color(0xFFCBD5E1)),
+                              : (_isHovered
+                                  ? Colors.white70
+                                  : const Color(0xFFCBD5E1)),
                           fontSize: 12,
-                          fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                          fontWeight:
+                              isActive ? FontWeight.w600 : FontWeight.w400,
                           letterSpacing: 0.2,
                         ),
                       ),
@@ -697,13 +784,17 @@ class _Windows11TaskbarItemState extends State<_Windows11TaskbarItem> {
                       height: 3.0,
                       decoration: BoxDecoration(
                         color: isActive
-                            ? const Color(0xFF60CDFF) // Signature Windows 11 Cyan Accent
-                            : (win.isMinimized ? Colors.white24 : Colors.white60),
+                            ? const Color(
+                                0xFF60CDFF) // Signature Windows 11 Cyan Accent
+                            : (win.isMinimized
+                                ? Colors.white24
+                                : Colors.white60),
                         borderRadius: BorderRadius.circular(2),
                         boxShadow: isActive
                             ? [
                                 BoxShadow(
-                                  color: const Color(0xFF60CDFF).withOpacity(0.7),
+                                  color:
+                                      const Color(0xFF60CDFF).withOpacity(0.7),
                                   blurRadius: 4,
                                 ),
                               ]
