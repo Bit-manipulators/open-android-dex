@@ -29,7 +29,6 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
   final _touchInput = TouchInputService();
   final _streamService = ScrcpyStreamService();
   final _adb = AdbService();
-  final _textController = TextEditingController();
   final _focusNode = FocusNode();
 
   final ScrcpyDisplayMode _currentMode = ScrcpyDisplayMode.virtualDisplay;
@@ -40,9 +39,6 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
   String _statusMessage = 'Connecting stream...';
   int? _textureId;
 
-  // Pointer touch feedback animation
-  Offset? _lastTouchPos;
-  Timer? _touchFadeTimer;
   Timer? _resizeDebounceTimer;
   double? _lastAdaptedWidth;
   double? _lastAdaptedHeight;
@@ -106,11 +102,9 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
 
   @override
   void dispose() {
-    _touchFadeTimer?.cancel();
     _resizeDebounceTimer?.cancel();
     _sessionSub?.cancel();
     _deviceSub?.cancel();
-    _textController.dispose();
     _focusNode.dispose();
     if (_textureId != null) {
       TextureStreamChannel.stopStream(_textureId!);
@@ -157,7 +151,7 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
 
       final targetW = (widget.window.width.toInt() & ~1).clamp(360, 3840);
       final targetH =
-          ((widget.window.height - 80).toInt() & ~1).clamp(360, 3840);
+          ((widget.window.height - 36).toInt() & ~1).clamp(360, 3840);
       _streamAspect = targetW / targetH;
 
       final oldTexId = _textureId;
@@ -183,14 +177,9 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
         );
       }
 
-      // 3. Stop old texture stream after new texture is created
-      if (oldTexId != null && oldTexId != texId) {
-        TextureStreamChannel.stopStream(oldTexId);
-      }
-
       if (mounted) {
         _lastAdaptedWidth = targetW.toDouble();
-        _lastAdaptedHeight = (targetH + 80).toDouble();
+        _lastAdaptedHeight = (targetH + 36).toDouble();
         setState(() {
           _textureId = texId;
           _isStreaming = session?.isRunning ?? false;
@@ -200,6 +189,11 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
                   : 'Phone Screen Mirrored')
               : 'Connecting stream...';
         });
+      }
+
+      // 3. Safely stop old texture stream after Flutter widget has adopted new textureId
+      if (oldTexId != null && oldTexId != texId) {
+        TextureStreamChannel.stopStream(oldTexId);
       }
     } finally {
       if (mounted) {
@@ -246,12 +240,6 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
 
   void _onPointerDown(PointerDownEvent e, BoxConstraints constraints) {
     _focusNode.requestFocus();
-    setState(() => _lastTouchPos = e.localPosition);
-    _touchFadeTimer?.cancel();
-    _touchFadeTimer = Timer(const Duration(milliseconds: 600), () {
-      if (mounted) setState(() => _lastTouchPos = null);
-    });
-
     final mapped = _mapLocalToVideo(e.localPosition, constraints);
     if (_adb.isDemoMode) return;
     _touchInput.onPointerDown(
@@ -261,7 +249,6 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
   }
 
   void _onPointerMove(PointerMoveEvent e, BoxConstraints constraints) {
-    setState(() => _lastTouchPos = e.localPosition);
     if (_adb.isDemoMode) return;
     final mapped = _mapLocalToVideo(e.localPosition, constraints);
     final session = _streamService.getSession(widget.window.id);
@@ -391,246 +378,110 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
 
     return Container(
       color: const Color(0xFF090D14),
-      child: Column(
-        children: [
-          // Main Interactive Surface Area
-          Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return Focus(
-                  focusNode: _focusNode,
-                  autofocus: true,
-                  onKeyEvent: (node, event) => _handleKeyEvent(event),
-                  child: Listener(
-                    behavior: HitTestBehavior.opaque,
-                    onPointerDown: (e) => _onPointerDown(e, constraints),
-                    onPointerMove: (e) => _onPointerMove(e, constraints),
-                    onPointerUp: (e) => _onPointerUp(e, constraints),
-                    onPointerSignal: (e) => _onPointerSignal(e, constraints),
-                    child: Stack(
-                      children: [
-                        // Viewport Canvas: Clean Cropped Live Texture or Connecting Indicator
-                        if (_textureId != null)
-                          Positioned.fill(
-                            child: Center(
-                              child: _preserveAspect
-                                  ? AspectRatio(
-                                      aspectRatio: _streamAspect,
-                                      child: _buildCroppedTexture(),
-                                    )
-                                  : _buildCroppedTexture(),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return Focus(
+            focusNode: _focusNode,
+            autofocus: true,
+            onKeyEvent: (node, event) => _handleKeyEvent(event),
+            child: Listener(
+              behavior: HitTestBehavior.opaque,
+              onPointerDown: (e) => _onPointerDown(e, constraints),
+              onPointerMove: (e) => _onPointerMove(e, constraints),
+              onPointerUp: (e) => _onPointerUp(e, constraints),
+              onPointerSignal: (e) => _onPointerSignal(e, constraints),
+              child: Stack(
+                children: [
+                  // Viewport Canvas: Clean Cropped Live Texture or Connecting Indicator
+                  if (_textureId != null)
+                    Positioned.fill(
+                      child: Center(
+                        child: _preserveAspect
+                            ? AspectRatio(
+                                aspectRatio: _streamAspect,
+                                child: _buildCroppedTexture(),
+                              )
+                            : _buildCroppedTexture(),
+                      ),
+                    )
+                  else
+                    Container(
+                      width: double.infinity,
+                      height: double.infinity,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            const Color(0xFF0F172A),
+                            win.app.gradientColors.first
+                                .withOpacity(0.15),
+                            const Color(0xFF080C14),
+                          ],
+                        ),
+                      ),
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            AppIconWidget(
+                              app: win.app,
+                              size: 72,
+                              borderRadius: 18,
                             ),
-                          )
-                        else
-                          Container(
-                            width: double.infinity,
-                            height: double.infinity,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  const Color(0xFF0F172A),
-                                  win.app.gradientColors.first
-                                      .withOpacity(0.15),
-                                  const Color(0xFF080C14),
-                                ],
+                            const SizedBox(height: 12),
+                            Text(
+                              win.app.name,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                            child: Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  AppIconWidget(
-                                    app: win.app,
-                                    size: 72,
-                                    borderRadius: 18,
+                            const SizedBox(height: 4),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: _isStreaming
+                                        ? const Color(0xFF10B981)
+                                        : const Color(0xFFEF4444),
                                   ),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    win.app.name,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Container(
-                                        width: 8,
-                                        height: 8,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: _isStreaming
-                                              ? const Color(0xFF10B981)
-                                              : const Color(0xFFEF4444),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        _statusMessage,
-                                        style: TextStyle(
-                                          color: _isStreaming
-                                              ? const Color(0xFF6EE7B7)
-                                              : const Color(0xFF94A3B8),
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Connecting live screen engine...',
-                                    style: TextStyle(
-                                      color: Colors.white.withOpacity(0.4),
-                                      fontSize: 10,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-
-                        // Touch feedback ripple visual
-                        if (_lastTouchPos != null)
-                          Positioned(
-                            left: _lastTouchPos!.dx - 18,
-                            top: _lastTouchPos!.dy - 18,
-                            child: IgnorePointer(
-                              child: Container(
-                                width: 36,
-                                height: 36,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color:
-                                      const Color(0xFF38BDF8).withOpacity(0.25),
-                                  border: Border.all(
-                                      color: const Color(0xFF38BDF8)
-                                          .withOpacity(0.6),
-                                      width: 1.5),
                                 ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  _statusMessage,
+                                  style: TextStyle(
+                                    color: _isStreaming
+                                        ? const Color(0xFF6EE7B7)
+                                        : const Color(0xFF94A3B8),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Connecting live screen engine...',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.4),
+                                fontSize: 10,
                               ),
                             ),
-                          ),
-                      ],
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                );
-              },
-            ),
-          ),
-
-          // Bottom Quick Navigation & Text Injection Bar
-          _buildBottomControlBar(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomControlBar() {
-    final session = _streamService.getSession(widget.window.id);
-    final displayId = session?.displayId;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: const BoxDecoration(
-        color: Color(0xFF131A29),
-        border: Border(top: BorderSide(color: Color(0xFF1E293B), width: 1)),
-      ),
-      child: Row(
-        children: [
-          // Android Nav Buttons
-          _buildNavIcon(Icons.arrow_back_ios_new_rounded, 'Back',
-              () => _adb.goBack(displayId: displayId)),
-          _buildNavIcon(Icons.circle_outlined, 'Home',
-              () => _adb.goHome(displayId: displayId)),
-          _buildNavIcon(Icons.crop_square_rounded, 'Recents',
-              () => _adb.showRecents(displayId: displayId)),
-          const SizedBox(width: 8),
-
-          // Text injection field
-          Expanded(
-            child: SizedBox(
-              height: 28,
-              child: TextField(
-                controller: _textController,
-                style: const TextStyle(color: Colors.white, fontSize: 11),
-                decoration: InputDecoration(
-                  hintText: 'Type text onto device...',
-                  hintStyle:
-                      const TextStyle(color: Color(0xFF64748B), fontSize: 10),
-                  isDense: true,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                  filled: true,
-                  fillColor: const Color(0xFF0B111E),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
-                    borderSide: const BorderSide(color: Color(0xFF1E293B)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
-                    borderSide: const BorderSide(color: Color(0xFF1E293B)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
-                    borderSide: const BorderSide(color: Color(0xFF3B82F6)),
-                  ),
-                ),
-                onSubmitted: (txt) {
-                  if (txt.isNotEmpty) {
-                    _touchInput.sendText(_adb.selectedDeviceSerial, txt,
-                        displayId: displayId);
-                    _touchInput.sendKeyEvent(_adb.selectedDeviceSerial, 66,
-                        displayId: displayId); // Enter
-                    _textController.clear();
-                  }
-                },
+                ],
               ),
             ),
-          ),
-          const SizedBox(width: 6),
-
-          // Send Button
-          InkWell(
-            onTap: () {
-              final txt = _textController.text.trim();
-              if (txt.isNotEmpty) {
-                _touchInput.sendText(_adb.selectedDeviceSerial, txt,
-                    displayId: displayId);
-                _textController.clear();
-              }
-            },
-            borderRadius: BorderRadius.circular(6),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFF2563EB),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child:
-                  const Icon(Icons.send_rounded, size: 12, color: Colors.white),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavIcon(IconData icon, String tooltip, VoidCallback onTap) {
-    return Tooltip(
-      message: tooltip,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(4),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-          child: Icon(icon, size: 14, color: const Color(0xFF94A3B8)),
-        ),
+          );
+        },
       ),
     );
   }

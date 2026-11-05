@@ -15,11 +15,21 @@ struct _MyApplication {
 
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
 
+// Cleanly handle window close to avoid upstream Flutter Linux embedder bug in fl_platform_handler.cc
+// where gtk_window_set_application modifies the internal GList during iteration causing SIGSEGV.
+static gboolean on_main_window_delete(GtkWidget* widget, GdkEvent* event, gpointer user_data) {
+  GApplication* app = G_APPLICATION(user_data);
+  g_application_quit(app);
+  return TRUE;
+}
+
 // Implements GApplication::activate.
 static void my_application_activate(GApplication* application) {
   MyApplication* self = MY_APPLICATION(application);
   GtkWindow* window =
       GTK_WINDOW(gtk_application_window_new(GTK_APPLICATION(application)));
+
+  g_signal_connect(window, "delete-event", G_CALLBACK(on_main_window_delete), application);
 
   // Use a header bar when running in GNOME as this is the common style used
   // by applications and is the setup most users will be using (e.g. Ubuntu

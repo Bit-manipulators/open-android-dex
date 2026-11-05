@@ -1,10 +1,12 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../services/adb_service.dart';
 
 /// Pure Android 16 Expressive Quick Settings / Control Center Panel.
 /// Features frosted glassmorphism, Material You Expressive pills,
-/// tactile capsule sliders, and Android 16 media card.
+/// tactile dual-layer capsule sliders with inverted clip mask,
+/// and responsive Android 16 media card.
 class QuickSettingsPanel extends StatefulWidget {
   final VoidCallback onClose;
 
@@ -16,6 +18,21 @@ class QuickSettingsPanel extends StatefulWidget {
 
 class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
   final _adb = AdbService();
+  StreamSubscription<bool>? _stateSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _stateSub = _adb.onDeviceStateChanged.listen((_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _stateSub?.cancel();
+    super.dispose();
+  }
 
   String _formatCurrentTime() {
     final now = DateTime.now();
@@ -48,18 +65,21 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(28),
-      child: BackdropFilter(
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {}, // Prevent taps inside panel from triggering outside-tap dismissal
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
         child: Container(
-          width: 370,
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
+          width: 376,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           decoration: BoxDecoration(
-            color: const Color(0xFF141519).withOpacity(0.92),
+            color: const Color(0xFF13151A).withOpacity(0.93),
             borderRadius: BorderRadius.circular(28),
             border:
-                Border.all(color: Colors.white.withOpacity(0.09), width: 1.0),
+                Border.all(color: Colors.white.withOpacity(0.08), width: 1.0),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.65),
@@ -74,7 +94,7 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
             children: [
               // 1. Android 16 Status Header (Time, Date, Battery Capsule, Action Buttons)
               _buildHeader(),
-              const SizedBox(height: 18),
+              const SizedBox(height: 14),
 
               // 2. Primary Dual Connectivity Capsules (Internet/Wi-Fi and Bluetooth)
               Row(
@@ -111,15 +131,18 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
 
-              // 3. Android 16 Quick Action Grid (2x2 rounded pills)
+              // 3. Android 16 Quick Action Grid (2x2 unified tiles)
               Row(
                 children: [
                   Expanded(
-                    child: _buildSecondaryPill(
-                      label: 'Do Not Disturb',
-                      icon: Icons.do_not_disturb_on_rounded,
+                    child: _buildQuickTile(
+                      title: 'Do Not Disturb',
+                      subtitle: _adb.isDndEnabled ? 'On' : 'Off',
+                      icon: _adb.isDndEnabled
+                          ? Icons.do_not_disturb_on_rounded
+                          : Icons.do_not_disturb_off_rounded,
                       isActive: _adb.isDndEnabled,
                       onTap: () async {
                         await _adb.toggleDnd();
@@ -129,9 +152,12 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: _buildSecondaryPill(
-                      label: 'Auto-rotate',
-                      icon: Icons.screen_rotation_rounded,
+                    child: _buildQuickTile(
+                      title: 'Auto-rotate',
+                      subtitle: _adb.isAutoRotate ? 'Auto' : 'Locked',
+                      icon: _adb.isAutoRotate
+                          ? Icons.screen_rotation_rounded
+                          : Icons.screen_lock_rotation_rounded,
                       isActive: _adb.isAutoRotate,
                       onTap: () async {
                         await _adb.toggleAutoRotate();
@@ -145,8 +171,9 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
               Row(
                 children: [
                   Expanded(
-                    child: _buildSecondaryPill(
-                      label: 'Screenshot',
+                    child: _buildQuickTile(
+                      title: 'Screenshot',
+                      subtitle: 'Capture',
                       icon: Icons.screenshot_monitor_rounded,
                       isActive: false,
                       onTap: () async {
@@ -156,8 +183,9 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: _buildSecondaryPill(
-                      label: 'Lock Screen',
+                    child: _buildQuickTile(
+                      title: 'Lock Screen',
+                      subtitle: 'Sleep',
                       icon: Icons.lock_outline_rounded,
                       isActive: false,
                       onTap: () async {
@@ -168,9 +196,9 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
                   ),
                 ],
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 14),
 
-              // 4. Android 16 Tactile Capsule Sliders (Brightness & Volume)
+              // 4. Android 16 Tactile Dual-Layer Sliders (Brightness & Volume)
               _Android16CapsuleSlider(
                 value: (_adb.screenBrightness / 255).clamp(0.0, 1.0),
                 icon: Icons.brightness_medium_rounded,
@@ -198,7 +226,7 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
                   _adb.setVolume(vol);
                 },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
 
               // 5. Android 16 Media Player Card ("Now Playing")
               _buildAndroid16MediaCard(),
@@ -206,7 +234,8 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildHeader() {
@@ -225,6 +254,7 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
                 fontSize: 21,
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.5,
+                fontFeatures: [FontFeature.tabularFigures()],
               ),
             ),
             const SizedBox(height: 2),
@@ -244,37 +274,7 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
           mainAxisSize: MainAxisSize.min,
           children: [
             // Battery Stadium Pill
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: const Color(0xFF282A30),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withOpacity(0.08)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    _adb.isCharging
-                        ? Icons.battery_charging_full_rounded
-                        : Icons.battery_std_rounded,
-                    size: 14,
-                    color: _adb.isCharging
-                        ? const Color(0xFF34D399)
-                        : const Color(0xFFA8C7FA),
-                  ),
-                  const SizedBox(width: 5),
-                  Text(
-                    '${_adb.batteryLevel}%',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            _buildBatteryBadge(),
             const SizedBox(width: 8),
 
             // Settings button
@@ -297,6 +297,48 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
     );
   }
 
+  Widget _buildBatteryBadge() {
+    final isCharging = _adb.isCharging;
+    final level = _adb.batteryLevel;
+    final Color iconColor = isCharging
+        ? const Color(0xFF34D399)
+        : (level <= 20
+            ? const Color(0xFFF87171)
+            : const Color(0xFFA8C7FA));
+
+    final IconData iconData = isCharging
+        ? Icons.battery_charging_full_rounded
+        : (level <= 20
+            ? Icons.battery_alert_rounded
+            : Icons.battery_std_rounded);
+
+    return Container(
+      height: 30,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E2127),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.white.withOpacity(0.07)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(iconData, size: 14, color: iconColor),
+          const SizedBox(width: 5),
+          Text(
+            '$level%',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+              fontFeatures: [FontFeature.tabularFigures()],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCircleAction({
     required IconData icon,
     required String tooltip,
@@ -304,15 +346,24 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
   }) {
     return Tooltip(
       message: tooltip,
-      child: Material(
-        color: const Color(0xFF282A30),
-        shape: const CircleBorder(),
-        child: InkWell(
-          customBorder: const CircleBorder(),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(7.0),
-            child: Icon(icon, size: 16, color: Colors.white70),
+      child: Container(
+        width: 30,
+        height: 30,
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E2127),
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white.withOpacity(0.07)),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          shape: const CircleBorder(),
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            hoverColor: const Color(0xFF2C2F38),
+            onTap: onTap,
+            child: Center(
+              child: Icon(icon, size: 15, color: Colors.white70),
+            ),
           ),
         ),
       ),
@@ -326,135 +377,185 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
     required bool isActive,
     required VoidCallback onTap,
   }) {
-    return InkWell(
-      onTap: onTap,
+    return Material(
+      color: Colors.transparent,
       borderRadius: BorderRadius.circular(20),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeInOut,
-        height: 64,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      child: Ink(
+        height: 58,
         decoration: BoxDecoration(
-          color: isActive ? const Color(0xFFA8C7FA) : const Color(0xFF282A30),
+          color: isActive ? const Color(0xFFA8C7FA) : const Color(0xFF1E2127),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isActive
-                ? const Color(0xFFD3E3FD)
+                ? const Color(0xFFD3E3FD).withOpacity(0.5)
                 : Colors.white.withOpacity(0.06),
             width: 1,
           ),
         ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(7),
-              decoration: BoxDecoration(
-                color: isActive
-                    ? const Color(0xFF00325B).withOpacity(0.12)
-                    : const Color(0xFF1E1F24),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                icon,
-                size: 18,
-                color: isActive
-                    ? const Color(0xFF00325B)
-                    : const Color(0xFFE2E2E6),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: isActive ? const Color(0xFF00325B) : Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          hoverColor: isActive
+              ? Colors.white.withOpacity(0.12)
+              : Colors.white.withOpacity(0.04),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+            child: Row(
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: isActive
+                        ? const Color(0xFF00325B).withOpacity(0.12)
+                        : const Color(0xFF2B2E37),
+                    shape: BoxShape.circle,
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
+                  child: Center(
+                    child: Icon(
+                      icon,
+                      size: 18,
                       color: isActive
-                          ? const Color(0xFF041E49).withOpacity(0.8)
-                          : const Color(0xFF94A3B8),
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w500,
+                          ? const Color(0xFF00325B)
+                          : const Color(0xFFE2E2E6),
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          color:
+                              isActive ? const Color(0xFF00325B) : Colors.white,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 1.5),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: isActive
+                              ? const Color(0xFF041E49).withOpacity(0.8)
+                              : const Color(0xFF94A3B8),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 16,
+                  color: isActive
+                      ? const Color(0xFF00325B).withOpacity(0.6)
+                      : Colors.white38,
+                ),
+              ],
             ),
-            Icon(
-              Icons.chevron_right_rounded,
-              size: 16,
-              color: isActive
-                  ? const Color(0xFF00325B).withOpacity(0.6)
-                  : Colors.white38,
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildSecondaryPill({
-    required String label,
+  Widget _buildQuickTile({
+    required String title,
+    required String subtitle,
     required IconData icon,
     required bool isActive,
     required VoidCallback onTap,
   }) {
-    return InkWell(
-      onTap: onTap,
+    return Material(
+      color: Colors.transparent,
       borderRadius: BorderRadius.circular(18),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeInOut,
-        height: 44,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Ink(
+        height: 50,
         decoration: BoxDecoration(
-          color: isActive ? const Color(0xFFA8C7FA) : const Color(0xFF282A30),
+          color: isActive ? const Color(0xFFA8C7FA) : const Color(0xFF1E2127),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: isActive
-                ? const Color(0xFFD3E3FD)
+                ? const Color(0xFFD3E3FD).withOpacity(0.5)
                 : Colors.white.withOpacity(0.06),
             width: 1,
           ),
         ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              size: 17,
-              color:
-                  isActive ? const Color(0xFF00325B) : const Color(0xFFE2E2E6),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: isActive
-                      ? const Color(0xFF00325B)
-                      : const Color(0xFFE2E2E6),
-                  fontSize: 11.5,
-                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          hoverColor: isActive
+              ? Colors.white.withOpacity(0.12)
+              : Colors.white.withOpacity(0.04),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            child: Row(
+              children: [
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: isActive
+                        ? const Color(0xFF00325B).withOpacity(0.12)
+                        : const Color(0xFF2B2E37),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Icon(
+                      icon,
+                      size: 15,
+                      color: isActive
+                          ? const Color(0xFF00325B)
+                          : const Color(0xFFE2E2E6),
+                    ),
+                  ),
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          color:
+                              isActive ? const Color(0xFF00325B) : Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 1),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: isActive
+                              ? const Color(0xFF041E49).withOpacity(0.8)
+                              : const Color(0xFF94A3B8),
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -462,10 +563,10 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
 
   Widget _buildAndroid16MediaCard() {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
       decoration: BoxDecoration(
-        color: const Color(0xFF22242A),
-        borderRadius: BorderRadius.circular(22),
+        color: const Color(0xFF1A1C22),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white.withOpacity(0.06)),
       ),
       child: Column(
@@ -473,35 +574,47 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
         children: [
           // Device Output Pill
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  const Icon(Icons.phone_android_rounded,
-                      size: 12, color: Color(0xFFA8C7FA)),
-                  const SizedBox(width: 5),
-                  Text(
-                    '${_adb.deviceModel} Output',
-                    style: const TextStyle(
-                        color: Color(0xFFA8C7FA),
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w600),
-                  ),
-                ],
+              Expanded(
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.phone_android_rounded,
+                      size: 12,
+                      color: Color(0xFFA8C7FA),
+                    ),
+                    const SizedBox(width: 5),
+                    Expanded(
+                      child: Text(
+                        '${_adb.deviceModel} Output',
+                        style: const TextStyle(
+                          color: Color(0xFFA8C7FA),
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              const Icon(Icons.cast_connected_rounded,
-                  size: 13, color: Color(0xFFA8C7FA)),
+              const SizedBox(width: 6),
+              const Icon(
+                Icons.cast_connected_rounded,
+                size: 13,
+                color: Color(0xFFA8C7FA),
+              ),
             ],
           ),
           const SizedBox(height: 10),
 
-          // Track Info & Art
+          // Track Info & Squircle Album Art
           Row(
             children: [
-              // Squircle Album Art
               Container(
-                width: 44,
-                height: 44,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: [Color(0xFF38BDF8), Color(0xFF6366F1)],
@@ -509,11 +622,21 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF38BDF8).withOpacity(0.25),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-                child: const Icon(Icons.music_note_rounded,
-                    size: 22, color: Colors.white),
+                child: const Icon(
+                  Icons.music_note_rounded,
+                  size: 20,
+                  color: Colors.white,
+                ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -521,17 +644,21 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
                     Text(
                       _adb.currentMediaTitle,
                       style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700),
+                        color: Colors.white,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 1.5),
                     Text(
                       _adb.currentMediaArtist,
                       style: const TextStyle(
-                          color: Color(0xFF94A3B8), fontSize: 11),
+                        color: Color(0xFF94A3B8),
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w500,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -542,79 +669,115 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
           ),
           const SizedBox(height: 10),
 
-          // Android 16 Squiggly / Expressive Progress Bar
+          // Progress Bar with timestamps
           Row(
             children: [
-              const Text('0:45',
-                  style: TextStyle(color: Color(0xFF64748B), fontSize: 10)),
+              const Text(
+                '0:45',
+                style: TextStyle(
+                  color: Color(0xFF64748B),
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w500,
+                  fontFeatures: [FontFeature.tabularFigures()],
+                ),
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(4),
                   child: Container(
-                    height: 4,
-                    color: const Color(0xFF334155),
+                    height: 3.5,
+                    color: const Color(0xFF2C323D),
                     child: Align(
                       alignment: Alignment.centerLeft,
-                      child: Container(
-                        width: 90,
-                        color: const Color(0xFFA8C7FA),
+                      child: FractionallySizedBox(
+                        widthFactor: 0.35,
+                        child: Container(
+                          color: const Color(0xFFA8C7FA),
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
               const SizedBox(width: 8),
-              const Text('3:20',
-                  style: TextStyle(color: Color(0xFF64748B), fontSize: 10)),
+              const Text(
+                '3:20',
+                style: TextStyle(
+                  color: Color(0xFF64748B),
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w500,
+                  fontFeatures: [FontFeature.tabularFigures()],
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
 
           // Playback Controls
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              IconButton(
-                icon: const Icon(Icons.skip_previous_rounded,
-                    size: 22, color: Colors.white70),
-                onPressed: () => _adb.mediaPrevious(),
-                splashRadius: 18,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-              const SizedBox(width: 20),
-              // Big Android 16 Squircle Play/Pause button
-              InkWell(
-                onTap: () async {
-                  await _adb.mediaPlayPause();
-                  setState(() {});
-                },
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFA8C7FA),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Icon(
-                    _adb.isMediaPlaying
-                        ? Icons.pause_rounded
-                        : Icons.play_arrow_rounded,
-                    size: 24,
-                    color: const Color(0xFF00325B),
+              Material(
+                color: Colors.transparent,
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  hoverColor: Colors.white.withOpacity(0.08),
+                  onTap: () => _adb.mediaPrevious(),
+                  child: const Padding(
+                    padding: EdgeInsets.all(6.0),
+                    child: Icon(
+                      Icons.skip_previous_rounded,
+                      size: 20,
+                      color: Colors.white70,
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(width: 20),
-              IconButton(
-                icon: const Icon(Icons.skip_next_rounded,
-                    size: 22, color: Colors.white70),
-                onPressed: () => _adb.mediaNext(),
-                splashRadius: 18,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
+              const SizedBox(width: 18),
+              // Big Android 16 Squircle Play/Pause button
+              Material(
+                color: const Color(0xFFA8C7FA),
+                borderRadius: BorderRadius.circular(14),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  hoverColor: Colors.white.withOpacity(0.15),
+                  onTap: () async {
+                    await _adb.mediaPlayPause();
+                    setState(() {});
+                  },
+                  child: Container(
+                    width: 38,
+                    height: 38,
+                    alignment: Alignment.center,
+                    child: Icon(
+                      _adb.isMediaPlaying
+                          ? Icons.pause_rounded
+                          : Icons.play_arrow_rounded,
+                      size: 22,
+                      color: const Color(0xFF00325B),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 18),
+              Material(
+                color: Colors.transparent,
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  hoverColor: Colors.white.withOpacity(0.08),
+                  onTap: () => _adb.mediaNext(),
+                  child: const Padding(
+                    padding: EdgeInsets.all(6.0),
+                    child: Icon(
+                      Icons.skip_next_rounded,
+                      size: 20,
+                      color: Colors.white70,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -625,7 +788,8 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
 }
 
 /// Android 16 Tactile Fluid Capsule Slider Widget.
-/// Fluidly responds to drag and tap, with track-embedded icon and label.
+/// Uses dual-layer inverted clip mask so text and icons always have
+/// 100% optimal contrast regardless of fill level.
 class _Android16CapsuleSlider extends StatelessWidget {
   final double value; // 0.0 to 1.0
   final ValueChanged<double> onChanged;
@@ -641,85 +805,108 @@ class _Android16CapsuleSlider extends StatelessWidget {
     required this.valueText,
   });
 
+  Widget _buildContent({
+    required Color iconColor,
+    required Color textColor,
+    required Color valueColor,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: iconColor),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: textColor,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Text(
+            valueText,
+            style: TextStyle(
+              color: valueColor,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final w = constraints.maxWidth;
         final clampedVal = value.clamp(0.0, 1.0);
-        return GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onHorizontalDragUpdate: (details) {
-            final newVal = (details.localPosition.dx / w).clamp(0.0, 1.0);
-            onChanged(newVal);
-          },
-          onTapDown: (details) {
-            final newVal = (details.localPosition.dx / w).clamp(0.0, 1.0);
-            onChanged(newVal);
-          },
-          child: Container(
-            height: 46,
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              color: const Color(0xFF282A30),
-              borderRadius: BorderRadius.circular(23),
-              border: Border.all(color: Colors.white.withOpacity(0.06)),
-            ),
-            child: Stack(
-              children: [
-                // Filled progress portion with smooth rounded capsule shape
-                FractionallySizedBox(
-                  widthFactor: clampedVal,
-                  heightFactor: 1.0,
-                  alignment: Alignment.centerLeft,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFA8C7FA),
-                      borderRadius: BorderRadius.circular(23),
+
+        return MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onHorizontalDragUpdate: (details) {
+              final newVal = (details.localPosition.dx / w).clamp(0.0, 1.0);
+              onChanged(newVal);
+            },
+            onTapDown: (details) {
+              final newVal = (details.localPosition.dx / w).clamp(0.0, 1.0);
+              onChanged(newVal);
+            },
+            child: Container(
+              height: 44,
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E2127),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: Colors.white.withOpacity(0.06)),
+              ),
+              child: Stack(
+                children: [
+                  // Layer 1: Base Dark Track Layer (White / Slate text)
+                  Positioned.fill(
+                    child: _buildContent(
+                      iconColor: Colors.white70,
+                      textColor: Colors.white,
+                      valueColor: const Color(0xFF94A3B8),
                     ),
                   ),
-                ),
-                // Contents: Icon on left, Label in center, Value text on right
-                Positioned.fill(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    child: Row(
-                      children: [
-                        Icon(
-                          icon,
-                          size: 19,
-                          color: clampedVal > 0.18
-                              ? const Color(0xFF00325B)
-                              : Colors.white70,
-                        ),
-                        const SizedBox(width: 9),
-                        Expanded(
-                          child: Text(
-                            label,
-                            style: TextStyle(
-                              color: clampedVal > 0.45
-                                  ? const Color(0xFF00325B)
-                                  : Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
+
+                  // Layer 2: Active Fill Layer (Clipped to clampedVal)
+                  // Dark Navy text on Light Blue fill
+                  Positioned.fill(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(22),
+                        child: Container(
+                          width: w * clampedVal,
+                          height: 44,
+                          color: const Color(0xFFA8C7FA),
+                          child: OverflowBox(
+                            minWidth: w,
+                            maxWidth: w,
+                            alignment: Alignment.centerLeft,
+                            child: _buildContent(
+                              iconColor: const Color(0xFF00325B),
+                              textColor: const Color(0xFF00325B),
+                              valueColor: const Color(0xFF00325B),
                             ),
                           ),
                         ),
-                        Text(
-                          valueText,
-                          style: TextStyle(
-                            color: clampedVal > 0.88
-                                ? const Color(0xFF00325B)
-                                : const Color(0xFFCBD5E1),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );

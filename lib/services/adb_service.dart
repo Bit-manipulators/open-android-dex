@@ -59,6 +59,9 @@ class AdbService {
   Stream<bool> get onDeviceStateChanged => _deviceStateController.stream;
 
   Timer? _pollingTimer;
+  bool _isPolling = false;
+  bool? _lastConnectedState;
+  String? _lastDeviceSerial;
 
   void startPolling() {
     _pollDevice();
@@ -355,9 +358,13 @@ class AdbService {
 
   Future<void> _pollDevice() async {
     if (isDemoMode) return;
+    if (_isPolling) return;
+    _isPolling = true;
     try {
       final devices = await getConnectedDevices();
-      if (devices.isNotEmpty) {
+      final bool hasDevices = devices.isNotEmpty;
+
+      if (hasDevices) {
         if (selectedDeviceSerial == null ||
             !devices.contains(selectedDeviceSerial) ||
             selectedDeviceSerial!.contains('._tcp')) {
@@ -370,15 +377,27 @@ class AdbService {
         if (installedApps.isEmpty) {
           await fetchInstalledApps();
         }
-        _deviceStateController.add(true);
       } else {
         selectedDeviceSerial = null;
         deviceModel = 'No Device Connected';
         deviceBrand = '';
-        _deviceStateController.add(false);
+      }
+
+      final bool connected = selectedDeviceSerial != null;
+      // Only emit state change notification when connection state or device serial actually changes
+      if (_lastConnectedState != connected || _lastDeviceSerial != selectedDeviceSerial) {
+        _lastConnectedState = connected;
+        _lastDeviceSerial = selectedDeviceSerial;
+        _deviceStateController.add(connected);
       }
     } catch (_) {
-      _deviceStateController.add(false);
+      if (_lastConnectedState != false) {
+        _lastConnectedState = false;
+        _lastDeviceSerial = null;
+        _deviceStateController.add(false);
+      }
+    } finally {
+      _isPolling = false;
     }
   }
 
@@ -565,10 +584,10 @@ class AdbService {
   }
 
   Future<void> toggleWifi() async {
-    if (selectedDeviceSerial == null) return;
     final targetState = !isWifiEnabled;
     isWifiEnabled = targetState;
     _deviceStateController.add(true);
+    if (selectedDeviceSerial == null || isDemoMode) return;
     try {
       await Process.run('adb', [
         '-s',
@@ -583,10 +602,10 @@ class AdbService {
   }
 
   Future<void> toggleBluetooth() async {
-    if (selectedDeviceSerial == null) return;
     final targetState = !isBluetoothEnabled;
     isBluetoothEnabled = targetState;
     _deviceStateController.add(true);
+    if (selectedDeviceSerial == null || isDemoMode) return;
     try {
       await Process.run('adb', [
         '-s',

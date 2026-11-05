@@ -14,7 +14,7 @@ An open-source desktop environment that transforms your Android smartphone or ta
 </p>
 
 <p align="center">
-  <img src="video_and_screenshorts/open_android_dex_desktop.jpg" alt="Open Android DeX Clean Multi-Window Desktop Workspace" width="100%" style="border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);" />
+  <img src="video_and_screenshorts/open_android_dex_screenshort.png" alt="Open Android DeX Clean Multi-Window Desktop Workspace" width="100%" style="border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);" />
 </p>
 <p align="center">
   <em>True multi-window Android desktop workstation on Linux — floating resizable apps, taskbar, and quick settings with zero system bar clutter.</em>

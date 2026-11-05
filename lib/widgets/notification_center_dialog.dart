@@ -31,7 +31,10 @@ class _NotificationCenterDialogState extends State<NotificationCenterDialog> {
   Widget build(BuildContext context) {
     final notifs = _adb.activeNotifications;
 
-    return Container(
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {}, // Prevent taps inside from triggering outside dismissal
+      child: Container(
       width: 360,
       constraints: const BoxConstraints(maxHeight: 460),
       padding: const EdgeInsets.all(16),
@@ -217,8 +220,9 @@ class _NotificationCenterDialogState extends State<NotificationCenterDialog> {
             ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   String _formatTime(DateTime dt) {
     int hour = dt.hour % 12;

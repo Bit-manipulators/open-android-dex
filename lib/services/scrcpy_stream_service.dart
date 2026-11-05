@@ -105,7 +105,8 @@ class ScrcpyStreamService {
     final evenH = (height & ~1).clamp(360, 3840);
 
     final safeId = windowId.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_');
-    final pipePath = _getStreamPipePath(safeId);
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final pipePath = _getStreamPipePath('${safeId}_$timestamp');
 
     // 2. Ensure a clean, fresh FIFO pipe
     final pipeFile = File(pipePath);
@@ -298,12 +299,32 @@ class ScrcpyStreamService {
   }
 
   /// Permanently removes the FIFO pipe file when window is destroyed.
-  void cleanupPipe(String windowId) {
+  void cleanupPipe(String windowId, [String? specificPipe]) {
     try {
+      if (specificPipe != null) {
+        final f = File(specificPipe);
+        if (f.existsSync()) {
+          try {
+            f.deleteSync();
+          } catch (_) {}
+        }
+      }
       final safeId = windowId.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_');
-      final pipeFile = File(_getStreamPipePath(safeId));
-      if (pipeFile.existsSync()) {
-        pipeFile.deleteSync();
+      final xdgRuntime = Platform.environment['XDG_RUNTIME_DIR'];
+      final dirs = [
+        if (xdgRuntime != null) Directory('$xdgRuntime/opendex'),
+        Directory('/tmp'),
+      ];
+      for (final dir in dirs) {
+        if (dir.existsSync()) {
+          for (final entity in dir.listSync()) {
+            if (entity is File && entity.path.contains('stream_$safeId')) {
+              try {
+                entity.deleteSync();
+              } catch (_) {}
+            }
+          }
+        }
       }
     } catch (_) {}
   }

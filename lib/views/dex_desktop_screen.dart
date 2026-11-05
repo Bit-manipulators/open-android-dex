@@ -49,7 +49,7 @@ class _DexDesktopScreenState extends State<DexDesktopScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final devices = await _adb.getConnectedDevices();
-      if (devices.isNotEmpty) {
+      if (devices.isNotEmpty || _adb.isDemoMode) {
         // Device is already attached! Immediately launch default desktop app
         if (_adb.selectedDeviceSerial == null ||
             !devices.contains(_adb.selectedDeviceSerial)) {
@@ -115,7 +115,16 @@ class _DexDesktopScreenState extends State<DexDesktopScreen> {
                     ),
 
                   // 5. Quick Settings Panel (if open)
-                  if (_isQuickSettingsOpen)
+                  if (_isQuickSettingsOpen) ...[
+                    // Dismiss when clicking outside panel
+                    Positioned.fill(
+                      bottom: 52, // Don't block taskbar toggles
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () =>
+                            setState(() => _isQuickSettingsOpen = false),
+                      ),
+                    ),
                     Positioned(
                       right: 16,
                       bottom: 58,
@@ -124,9 +133,19 @@ class _DexDesktopScreenState extends State<DexDesktopScreen> {
                             setState(() => _isQuickSettingsOpen = false),
                       ),
                     ),
+                  ],
 
                   // 6. Notification Center Dialog (if open)
-                  if (_isNotificationsOpen)
+                  if (_isNotificationsOpen) ...[
+                    // Dismiss when clicking outside dialog
+                    Positioned.fill(
+                      bottom: 52, // Don't block taskbar toggles
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () =>
+                            setState(() => _isNotificationsOpen = false),
+                      ),
+                    ),
                     Positioned(
                       right: 60,
                       bottom: 58,
@@ -135,6 +154,7 @@ class _DexDesktopScreenState extends State<DexDesktopScreen> {
                             setState(() => _isNotificationsOpen = false),
                       ),
                     ),
+                  ],
 
                   // 7. Pinned Bottom Taskbar
                   Positioned(
@@ -227,7 +247,7 @@ class _DexDesktopScreenState extends State<DexDesktopScreen> {
   Widget _buildDesktopCanvas(Size desktopSize) {
     final apps = _adb.installedApps;
     final primaryApps = apps.isNotEmpty
-        ? apps.take(12).toList()
+        ? apps.take(16).toList()
         : [
             AppInfo.fromPackage('com.google.android.calculator'),
             AppInfo.fromPackage('com.android.chrome'),
@@ -236,6 +256,21 @@ class _DexDesktopScreenState extends State<DexDesktopScreen> {
             AppInfo.fromPackage('com.android.settings'),
             AppInfo.fromPackage('com.android.filemanager'),
           ];
+
+    // Compute how many icons fit statically in each vertical column
+    // Available height: desktop height - taskbar (52) - top padding (24) - bottom padding (20)
+    final availableHeight = (desktopSize.height - 52 - 44).clamp(100.0, 4000.0);
+    // Each desktop icon cell takes ~94px vertical height
+    final int maxRows = (availableHeight / 94).floor().clamp(1, 12);
+
+    // Chunk into static columns: Column 1, Column 2, etc. (standard PC desktop arrangement)
+    final List<List<AppInfo>> columns = [];
+    for (var i = 0; i < primaryApps.length; i += maxRows) {
+      final end = (i + maxRows < primaryApps.length)
+          ? i + maxRows
+          : primaryApps.length;
+      columns.add(primaryApps.sublist(i, end));
+    }
 
     return Positioned.fill(
       bottom: 52, // Leave space for taskbar
@@ -341,21 +376,27 @@ class _DexDesktopScreenState extends State<DexDesktopScreen> {
             ),
           ),
 
-          // Desktop App Grid (Left side)
+          // Static PC-Style Desktop App Columns (No scrolling, static placement)
           Positioned(
-            top: 24,
-            left: 24,
-            bottom: 24,
-            width: 110,
-            child: SingleChildScrollView(
-              child: Column(
-                children: primaryApps.map((app) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 18),
-                    child: _buildDesktopAppIcon(app, desktopSize),
-                  );
-                }).toList(),
-              ),
+            top: 20,
+            left: 20,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: columns.map((colApps) {
+                return Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: colApps.map((app) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _buildDesktopAppIcon(app, desktopSize),
+                      );
+                    }).toList(),
+                  ),
+                );
+              }).toList(),
             ),
           ),
         ],
@@ -364,41 +405,51 @@ class _DexDesktopScreenState extends State<DexDesktopScreen> {
   }
 
   Widget _buildDesktopAppIcon(AppInfo app, Size desktopSize) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => _windowManager.openApp(app, desktopSize),
-        borderRadius: BorderRadius.circular(14),
-        hoverColor: Colors.white.withOpacity(0.12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AppIconWidget(
-                app: app,
-                size: 58,
-                borderRadius: 16,
-              ),
-              const SizedBox(height: 6),
-              Text(
-                app.name,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  shadows: [
-                    Shadow(
+    return SizedBox(
+      width: 82,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _windowManager.openApp(app, desktopSize),
+          borderRadius: BorderRadius.circular(12),
+          hoverColor: Colors.white.withOpacity(0.12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                AppIconWidget(
+                  app: app,
+                  size: 48,
+                  borderRadius: 14,
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  app.name,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w500,
+                    shadows: [
+                      Shadow(
                         color: Colors.black,
                         blurRadius: 4,
-                        offset: Offset(0, 1)),
-                  ],
+                        offset: Offset(0, 1),
+                      ),
+                      Shadow(
+                        color: Colors.black87,
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

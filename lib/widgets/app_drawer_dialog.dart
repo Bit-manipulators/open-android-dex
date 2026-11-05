@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/app_info.dart';
 import '../services/adb_service.dart';
 import 'app_icon_widget.dart';
@@ -19,13 +20,46 @@ class AppDrawerDialog extends StatefulWidget {
 
 class _AppDrawerDialogState extends State<AppDrawerDialog> {
   final _searchController = TextEditingController();
+  final _searchFocusNode = FocusNode();
   String _searchQuery = '';
-  String _selectedCategory = 'All';
+
+  @override
+  void initState() {
+    super.initState();
+    // Automatically select the search bar when the app menu is opened
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _searchFocusNode.requestFocus();
+        _searchController.selection = TextSelection(
+          baseOffset: 0,
+          extentOffset: _searchController.text.length,
+        );
+      }
+    });
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
+  }
+
+  void _openFirstMatchingApp(
+      String val, List<AppInfo> allApps, List<AppInfo> filtered) {
+    final query = val.trim().toLowerCase();
+    final matches = allApps.where((app) {
+      return app.name.toLowerCase().contains(query) ||
+          app.packageName.toLowerCase().contains(query);
+    }).toList();
+
+    final target = matches.isNotEmpty
+        ? matches.first
+        : (filtered.isNotEmpty ? filtered.first : null);
+    if (target != null) {
+      widget.onSelectApp(target);
+      widget.onClose();
+    }
   }
 
   @override
@@ -34,13 +68,8 @@ class _AppDrawerDialogState extends State<AppDrawerDialog> {
     final allApps = adb.installedApps;
 
     final filtered = allApps.where((app) {
-      final matchesSearch = app.name
-              .toLowerCase()
-              .contains(_searchQuery.toLowerCase()) ||
+      return app.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           app.packageName.toLowerCase().contains(_searchQuery.toLowerCase());
-      final matchesCat =
-          _selectedCategory == 'All' || app.category == _selectedCategory;
-      return matchesSearch && matchesCat;
     }).toList();
 
     return GestureDetector(
@@ -75,84 +104,65 @@ class _AppDrawerDialogState extends State<AppDrawerDialog> {
                   child: Column(
                     children: [
                       // Search Bar
-                      TextField(
-                        controller: _searchController,
-                        onChanged: (val) => setState(() => _searchQuery = val),
-                        style:
-                            const TextStyle(color: Colors.white, fontSize: 13),
-                        decoration: InputDecoration(
-                          hintText: 'Search installed apps...',
-                          hintStyle: const TextStyle(
-                              color: Color(0xFF64748B), fontSize: 13),
-                          prefixIcon: const Icon(Icons.search_rounded,
-                              color: Color(0xFF94A3B8), size: 18),
-                          suffixIcon: _searchQuery.isNotEmpty
-                              ? IconButton(
-                                  icon: const Icon(Icons.clear_rounded,
-                                      size: 16, color: Color(0xFF94A3B8)),
-                                  onPressed: () {
-                                    _searchController.clear();
-                                    setState(() => _searchQuery = '');
-                                  },
-                                )
-                              : null,
-                          filled: true,
-                          fillColor: const Color(0xFF1C2436),
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 10),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide:
-                                const BorderSide(color: Color(0xFF334155)),
+                      Focus(
+                        onKeyEvent: (node, event) {
+                          if (event is KeyDownEvent &&
+                              (event.logicalKey == LogicalKeyboardKey.enter ||
+                                  event.logicalKey ==
+                                      LogicalKeyboardKey.numpadEnter)) {
+                            _openFirstMatchingApp(
+                                _searchController.text, allApps, filtered);
+                            return KeyEventResult.handled;
+                          }
+                          return KeyEventResult.ignored;
+                        },
+                        child: TextField(
+                          controller: _searchController,
+                          focusNode: _searchFocusNode,
+                          autofocus: true,
+                          textInputAction: TextInputAction.search,
+                          onSubmitted: (val) =>
+                              _openFirstMatchingApp(val, allApps, filtered),
+                          onChanged: (val) =>
+                              setState(() => _searchQuery = val),
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 13),
+                          decoration: InputDecoration(
+                            hintText: 'Search installed apps...',
+                            hintStyle: const TextStyle(
+                                color: Color(0xFF64748B), fontSize: 13),
+                            prefixIcon: const Icon(Icons.search_rounded,
+                                color: Color(0xFF94A3B8), size: 18),
+                            suffixIcon: _searchQuery.isNotEmpty
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear_rounded,
+                                        size: 16, color: Color(0xFF94A3B8)),
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      setState(() => _searchQuery = '');
+                                    },
+                                  )
+                                : null,
+                            filled: true,
+                            fillColor: const Color(0xFF1C2436),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 10),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide:
+                                  const BorderSide(color: Color(0xFF334155)),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide:
+                                  const BorderSide(color: Color(0xFF2A374E)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: const BorderSide(
+                                  color: Color(0xFF3B82F6), width: 1.5),
+                            ),
                           ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide:
-                                const BorderSide(color: Color(0xFF2A374E)),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(
-                                color: Color(0xFF3B82F6), width: 1.5),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-
-                      // Category Pills
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            'All',
-                            'Tools',
-                            'Media',
-                            'Social',
-                            'System'
-                          ].map((cat) {
-                            final isSel = _selectedCategory == cat;
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 6),
-                              child: ChoiceChip(
-                                label: Text(cat,
-                                    style: TextStyle(
-                                        fontSize: 11,
-                                        color: isSel
-                                            ? Colors.white
-                                            : const Color(0xFF94A3B8))),
-                                selected: isSel,
-                                selectedColor: const Color(0xFF2563EB),
-                                backgroundColor: const Color(0xFF1B2335),
-                                visualDensity: VisualDensity.compact,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(6)),
-                                onSelected: (sel) {
-                                  if (sel)
-                                    setState(() => _selectedCategory = cat);
-                                },
-                              ),
-                            );
-                          }).toList(),
                         ),
                       ),
                     ],

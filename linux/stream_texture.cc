@@ -9,6 +9,8 @@ extern "C" {
 
 #include <cinttypes>
 #include <csignal>
+#include <fcntl.h>
+#include <unistd.h>
 #include <iostream>
 #include <map>
 #include <mutex>
@@ -25,10 +27,15 @@ struct _StreamTexture {
   uint32_t width;
   uint32_t height;
 
+  // Thread-safe triple-buffering:
+  // - render_buffer: safely owned by Flutter engine render thread during copy_pixels
+  // - ready_buffer: latest complete frame waiting for next copy_pixels tick
+  // - worker_buffer: actively written to by FFmpeg sws_scale in background thread
   uint8_t* render_buffer;
+  uint8_t* ready_buffer;
   uint8_t* worker_buffer;
   size_t buffer_capacity;
-  gboolean has_frame;
+  gboolean has_new_frame;
   gboolean notification_pending;
   GMutex mutex;
 
@@ -50,12 +57,14 @@ struct TextureFrameNotification {
 static gboolean on_frame_available_idle(gpointer user_data) {
   auto* notif = static_cast<TextureFrameNotification*>(user_data);
   if (notif) {
+    gboolean should_notify = FALSE;
     if (notif->stream) {
       g_mutex_lock(&notif->stream->mutex);
       notif->stream->notification_pending = FALSE;
+      should_notify = notif->stream->is_running;
       g_mutex_unlock(&notif->stream->mutex);
     }
-    if (notif->registrar && notif->texture) {
+    if (should_notify && notif->registrar && notif->texture) {
       fl_texture_registrar_mark_texture_frame_available(notif->registrar, notif->texture);
     }
     if (notif->texture) {
@@ -74,6 +83,12 @@ static gboolean stream_texture_copy_pixels(FlPixelBufferTexture* texture,
   StreamTexture* self = STREAM_TEXTURE(texture);
 
   g_mutex_lock(&self->mutex);
+  // Atomic buffer exchange: present the newest completed ready_buffer
+  if (self->has_new_frame && self->ready_buffer != nullptr) {
+    std::swap(self->render_buffer, self->ready_buffer);
+    self->has_new_frame = FALSE;
+  }
+
   if (self->render_buffer != nullptr && self->width > 0 && self->height > 0) {
     *out_buffer = self->render_buffer;
     *width = self->width;
@@ -101,6 +116,10 @@ static void stream_texture_dispose(GObject* object) {
     g_free(self->render_buffer);
     self->render_buffer = nullptr;
   }
+  if (self->ready_buffer) {
+    g_free(self->ready_buffer);
+    self->ready_buffer = nullptr;
+  }
   if (self->worker_buffer) {
     g_free(self->worker_buffer);
     self->worker_buffer = nullptr;
@@ -109,7 +128,7 @@ static void stream_texture_dispose(GObject* object) {
     g_free(self->source_path);
     self->source_path = nullptr;
   }
-  self->has_frame = FALSE;
+  self->has_new_frame = FALSE;
   g_mutex_unlock(&self->mutex);
 
   G_OBJECT_CLASS(stream_texture_parent_class)->dispose(object);
@@ -131,11 +150,12 @@ static void stream_texture_init(StreamTexture* self) {
   self->registrar = nullptr;
   self->source_path = nullptr;
   self->render_buffer = nullptr;
+  self->ready_buffer = nullptr;
   self->worker_buffer = nullptr;
   self->buffer_capacity = 0;
   self->width = 0;
   self->height = 0;
-  self->has_frame = FALSE;
+  self->has_new_frame = FALSE;
   self->notification_pending = FALSE;
   self->worker_thread = nullptr;
   self->is_running = FALSE;
@@ -287,14 +307,23 @@ static gpointer stream_texture_worker(gpointer data) {
           int frame_h = frame->height;
 
           if (frame_w > 0 && frame_h > 0) {
-            size_t req_size = (size_t)frame_w * frame_h * 4 + 4096;
+            // Allocate generous headroom to prevent frequent reallocations during resizing
+            size_t req_size = (size_t)frame_w * frame_h * 4 + 65536;
 
             g_mutex_lock(&self->mutex);
-            if (req_size > self->buffer_capacity || self->worker_buffer == nullptr || self->render_buffer == nullptr) {
+            if (req_size > self->buffer_capacity || self->worker_buffer == nullptr ||
+                self->ready_buffer == nullptr || self->render_buffer == nullptr) {
+              uint8_t* new_worker = (uint8_t*)g_malloc0(req_size);
+              uint8_t* new_ready  = (uint8_t*)g_malloc0(req_size);
+              uint8_t* new_render = (uint8_t*)g_malloc0(req_size);
+
               if (self->worker_buffer) g_free(self->worker_buffer);
+              if (self->ready_buffer) g_free(self->ready_buffer);
               if (self->render_buffer) g_free(self->render_buffer);
-              self->worker_buffer = (uint8_t*)g_malloc0(req_size);
-              self->render_buffer = (uint8_t*)g_malloc0(req_size);
+
+              self->worker_buffer = new_worker;
+              self->ready_buffer = new_ready;
+              self->render_buffer = new_render;
               self->buffer_capacity = req_size;
             }
 
@@ -317,9 +346,10 @@ static gpointer stream_texture_worker(gpointer data) {
 
               gboolean schedule_notif = FALSE;
               g_mutex_lock(&self->mutex);
-              // Swap buffers atomically: worker buffer becomes render buffer
-              std::swap(self->render_buffer, self->worker_buffer);
-              self->has_frame = TRUE;
+              // Safely exchange worker_buffer with ready_buffer (triple-buffering).
+              // Flutter render thread owns render_buffer independently; no data races!
+              std::swap(self->ready_buffer, self->worker_buffer);
+              self->has_new_frame = TRUE;
 
               if (!self->notification_pending && self->is_running && self->registrar) {
                 self->notification_pending = TRUE;
@@ -360,10 +390,16 @@ StreamTexture* stream_texture_new(FlTextureRegistrar* registrar, const gchar* so
   self->height = (uint32_t)height;
   self->is_running = TRUE;
   self->notification_pending = FALSE;
+  self->has_new_frame = FALSE;
 
-  size_t init_size = (size_t)width * height * 4 + 4096;
+  // Allocate 1080p+ capacity up-front (approx 10MB) to prevent in-flight reallocations
+  size_t init_size = (size_t)width * height * 4 + 65536;
+  if (init_size < (size_t)1920 * 1080 * 4 + 65536) {
+    init_size = (size_t)1920 * 1080 * 4 + 65536;
+  }
   self->buffer_capacity = init_size;
   self->render_buffer = (uint8_t*)g_malloc0(init_size);
+  self->ready_buffer  = (uint8_t*)g_malloc0(init_size);
   self->worker_buffer = (uint8_t*)g_malloc0(init_size);
 
   // Pre-fill initial render_buffer with dark slate background (15, 23, 42, 255)
@@ -372,8 +408,12 @@ StreamTexture* stream_texture_new(FlTextureRegistrar* registrar, const gchar* so
     self->render_buffer[i + 1] = 23;
     self->render_buffer[i + 2] = 42;
     self->render_buffer[i + 3] = 255;
+    self->ready_buffer[i]      = 15;
+    self->ready_buffer[i + 1]  = 23;
+    self->ready_buffer[i + 2]  = 42;
+    self->ready_buffer[i + 3]  = 255;
   }
-  self->has_frame = TRUE;
+  self->has_new_frame = TRUE;
 
   self->worker_thread = g_thread_new("stream-texture-worker", stream_texture_worker, self);
   return self;
@@ -384,6 +424,13 @@ void stream_texture_stop(StreamTexture* self) {
 
   self->is_running = FALSE;
   if (self->worker_thread) {
+    // Poke the FIFO pipe with non-blocking write to immediately unblock any stuck av_read_frame()
+    if (self->source_path) {
+      int poke_fd = open(self->source_path, O_WRONLY | O_NONBLOCK);
+      if (poke_fd >= 0) {
+        close(poke_fd);
+      }
+    }
     g_thread_join(self->worker_thread);
     self->worker_thread = nullptr;
   }
