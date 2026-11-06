@@ -105,7 +105,7 @@ jobs:
   build-windows:
     name: 🪟 Build Windows 11 x64 (Installer & Portable)
     needs: run-tests
-    runs-on: windows-latest
+    runs-on: windows-2022
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -118,6 +118,9 @@ jobs:
 
       - name: Enable Windows Desktop Support
         run: flutter config --enable-windows-desktop
+
+      - name: Verify Toolchain (flutter doctor)
+        run: flutter doctor -v
 
       - name: Install Flutter Dependencies
         run: flutter pub get
