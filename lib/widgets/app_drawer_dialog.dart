@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/app_info.dart';
@@ -22,10 +23,16 @@ class _AppDrawerDialogState extends State<AppDrawerDialog> {
   final _searchController = TextEditingController();
   final _searchFocusNode = FocusNode();
   String _searchQuery = '';
+  StreamSubscription? _deviceSub;
 
   @override
   void initState() {
     super.initState();
+    // React in real time when icons are extracted or active device changes
+    _deviceSub = AdbService().onDeviceStateChanged.listen((_) {
+      if (mounted) setState(() {});
+    });
+
     // Automatically select the search bar when the app menu is opened
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -40,6 +47,7 @@ class _AppDrawerDialogState extends State<AppDrawerDialog> {
 
   @override
   void dispose() {
+    _deviceSub?.cancel();
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
