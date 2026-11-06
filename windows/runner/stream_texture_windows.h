@@ -1,9 +1,12 @@
 #ifndef RUNNER_STREAM_TEXTURE_WINDOWS_H_
 #define RUNNER_STREAM_TEXTURE_WINDOWS_H_
 
+#include <flutter_windows.h>
 #include <flutter/binary_messenger.h>
 #include <flutter/encodable_value.h>
 #include <flutter/method_channel.h>
+#include <flutter/pixel_buffer_texture.h>
+#include <flutter/plugin_registrar_windows.h>
 #include <flutter/texture_registrar.h>
 
 #include <windows.h>
@@ -50,7 +53,6 @@ class StreamTextureWindows {
   std::thread worker_thread_;
 };
 
-void StreamTexturePluginRegister(flutter::BinaryMessenger* messenger,
-                                 flutter::TextureRegistrar* registrar);
+void StreamTexturePluginRegisterWithRegistrar(FlutterDesktopPluginRegistrarRef registrar);
 
 #endif  // RUNNER_STREAM_TEXTURE_WINDOWS_H_

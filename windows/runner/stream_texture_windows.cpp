@@ -47,12 +47,11 @@ StreamTextureWindows::StreamTextureWindows(flutter::TextureRegistrar* registrar,
   pixel_buffer_.width = width_;
   pixel_buffer_.height = height_;
 
-  auto pixel_buffer_texture = std::make_unique<flutter::PixelBufferTexture>(
-      [this](size_t w, size_t h) -> const FlutterDesktopPixelBuffer* {
-        return this->CopyPixelBuffer(w, h);
-      });
-
-  texture_variant_ = std::make_unique<flutter::TextureVariant>(std::move(pixel_buffer_texture));
+  texture_variant_ = std::make_unique<flutter::TextureVariant>(
+      flutter::PixelBufferTexture(
+          [this](size_t w, size_t h) -> const FlutterDesktopPixelBuffer* {
+            return this->CopyPixelBuffer(w, h);
+          }));
   texture_id_ = registrar_->RegisterTexture(texture_variant_.get());
 
   is_running_ = true;
@@ -297,14 +296,20 @@ static void HandleMethodCall(const flutter::MethodCall<flutter::EncodableValue>&
   }
 }
 
-void StreamTexturePluginRegister(flutter::BinaryMessenger* messenger,
-                                 flutter::TextureRegistrar* registrar) {
-  auto channel = std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
-      messenger, "open_android_dex/stream", &flutter::StandardMethodCodec::GetInstance());
+void StreamTexturePluginRegisterWithRegistrar(FlutterDesktopPluginRegistrarRef registrar) {
+  auto plugin_registrar =
+      flutter::PluginRegistrarManager::GetInstance()
+          ->GetRegistrar<flutter::PluginRegistrarWindows>(registrar);
 
+  auto channel = std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+      plugin_registrar->messenger(),
+      "open_android_dex/stream",
+      &flutter::StandardMethodCodec::GetInstance());
+
+  flutter::TextureRegistrar* texture_registrar = plugin_registrar->texture_registrar();
   channel->SetMethodCallHandler(
-      [registrar](const flutter::MethodCall<flutter::EncodableValue>& call,
-                  std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
-        HandleMethodCall(call, std::move(result), registrar);
+      [texture_registrar](const flutter::MethodCall<flutter::EncodableValue>& call,
+                          std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+        HandleMethodCall(call, std::move(result), texture_registrar);
       });
 }
