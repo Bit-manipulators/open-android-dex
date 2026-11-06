@@ -385,7 +385,8 @@ class AdbService {
 
       final bool connected = selectedDeviceSerial != null;
       // Only emit state change notification when connection state or device serial actually changes
-      if (_lastConnectedState != connected || _lastDeviceSerial != selectedDeviceSerial) {
+      if (_lastConnectedState != connected ||
+          _lastDeviceSerial != selectedDeviceSerial) {
         _lastConnectedState = connected;
         _lastDeviceSerial = selectedDeviceSerial;
         _deviceStateController.add(connected);

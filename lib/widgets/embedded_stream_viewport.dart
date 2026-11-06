@@ -414,8 +414,7 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
                           end: Alignment.bottomCenter,
                           colors: [
                             const Color(0xFF0F172A),
-                            win.app.gradientColors.first
-                                .withOpacity(0.15),
+                            win.app.gradientColors.first.withOpacity(0.15),
                             const Color(0xFF080C14),
                           ],
                         ),
