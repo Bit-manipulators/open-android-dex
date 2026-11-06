@@ -80,15 +80,28 @@ jobs:
       - name: Install Flutter Dependencies
         run: flutter pub get
 
+      - name: Resolve Release Version
+        id: version
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VER="${{ github.event.inputs.tag_name }}"
+          else
+            VER="${{ github.ref_name }}"
+          fi
+          echo "version=${VER:-v1.0.0}" >> $GITHUB_OUTPUT
+
       - name: Build AppImage
+        env:
+          APP_VERSION: ${{ steps.version.outputs.version }}
         run: |
           chmod +x scripts/build_appimage.sh
-          ./scripts/build_appimage.sh
+          ./scripts/build_appimage.sh "$APP_VERSION"
 
       - name: Validate AppImage
         run: |
-          APPIMAGE="build/release_artifacts/Open-Android-DeX-Linux-x86_64.AppImage"
-          if [ ! -f "$APPIMAGE" ]; then
+          APPIMAGE=$(ls build/release_artifacts/Open-Android-DeX-*.AppImage | head -n 1)
+          if [ -z "$APPIMAGE" ] || [ ! -f "$APPIMAGE" ]; then
             echo "❌ Error: AppImage artifact was not generated!" >&2
             exit 1
           fi
@@ -98,8 +111,8 @@ jobs:
       - name: Upload Linux AppImage Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Open-Android-DeX-Linux-x86_64.AppImage
-          path: build/release_artifacts/Open-Android-DeX-Linux-x86_64.AppImage
+          name: linux-appimage
+          path: build/release_artifacts/Open-Android-DeX-*.AppImage
           retention-days: 7
 
   build-windows:
@@ -128,49 +141,34 @@ jobs:
       - name: Build Windows Application (Release)
         run: flutter build windows --release
 
-      - name: Package Windows Portable ZIP
-        shell: pwsh
+      - name: Resolve Release Version
+        id: version
+        shell: bash
         run: |
-          $ReleaseDir = "build\windows\x64\runner\Release"
-          $OutDir = "build\release_artifacts"
-          New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
-          $ZipPath = "$OutDir\Open-Android-DeX-Windows-x64-Portable.zip"
-          Compress-Archive -Path "$ReleaseDir\*" -DestinationPath $ZipPath -Force
-          Write-Host "Created Portable ZIP: $ZipPath"
-          Get-Item $ZipPath | Select-Object Name, Length
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VER="${{ github.event.inputs.tag_name }}"
+          else
+            VER="${{ github.ref_name }}"
+          fi
+          echo "version=${VER:-v1.0.0}" >> $GITHUB_OUTPUT
 
-      - name: Compile Inno Setup Installer
+      - name: Package Windows Artifacts
         shell: pwsh
+        env:
+          APP_VERSION: ${{ steps.version.outputs.version }}
         run: |
-          # Locate ISCC.exe (preinstalled on windows-latest runner)
-          $iscc = (Get-Command iscc.exe -ErrorAction SilentlyContinue).Source
-          if (-not $iscc) {
-            $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-          }
-          if (-not (Test-Path $iscc)) {
-            choco install innosetup --yes --no-progress
-            $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-          }
-
-          & $iscc windows\packaging\installer.iss
-          $InstallerPath = "build\windows_installer\Open-Android-DeX-Windows-x64-Setup.exe"
-          if (-not (Test-Path $InstallerPath)) {
-            Write-Error "Installer was not generated at $InstallerPath"
-            exit 1
-          }
-          Copy-Item $InstallerPath "build\release_artifacts\Open-Android-DeX-Windows-x64-Setup.exe" -Force
-          Write-Host "Created Inno Setup Installer at build\release_artifacts\Open-Android-DeX-Windows-x64-Setup.exe"
+          .\scripts\build_windows.ps1 -Version "$env:APP_VERSION"
 
       - name: Validate Windows Artifacts
         shell: pwsh
         run: |
-          $Setup = "build\release_artifacts\Open-Android-DeX-Windows-x64-Setup.exe"
-          $Zip = "build\release_artifacts\Open-Android-DeX-Windows-x64-Portable.zip"
-          if (-not (Test-Path $Setup) -or (Get-Item $Setup).Length -lt 100000) {
+          $Setup = (Get-ChildItem build\release_artifacts\Open-Android-DeX-*-Windows-x64-Setup.exe | Select-Object -First 1).FullName
+          $Zip = (Get-ChildItem build\release_artifacts\Open-Android-DeX-*-Windows-x64-Portable.zip | Select-Object -First 1).FullName
+          if (-not $Setup -or -not (Test-Path $Setup) -or (Get-Item $Setup).Length -lt 100000) {
             Write-Error "Installer is missing or invalid size."
             exit 1
           }
-          if (-not (Test-Path $Zip) -or (Get-Item $Zip).Length -lt 100000) {
+          if (-not $Zip -or -not (Test-Path $Zip) -or (Get-Item $Zip).Length -lt 100000) {
             Write-Error "Portable ZIP is missing or invalid size."
             exit 1
           }
@@ -179,15 +177,15 @@ jobs:
       - name: Upload Windows Setup Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Open-Android-DeX-Windows-x64-Setup.exe
-          path: build/release_artifacts/Open-Android-DeX-Windows-x64-Setup.exe
+          name: windows-setup
+          path: build/release_artifacts/Open-Android-DeX-*-Windows-x64-Setup.exe
           retention-days: 7
 
       - name: Upload Windows Portable Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Open-Android-DeX-Windows-x64-Portable.zip
-          path: build/release_artifacts/Open-Android-DeX-Windows-x64-Portable.zip
+          name: windows-portable
+          path: build/release_artifacts/Open-Android-DeX-*-Windows-x64-Portable.zip
           retention-days: 7
 
   create-draft-release:
@@ -269,7 +267,4 @@ jobs:
           draft: ${{ steps.vars.outputs.draft == 'true' }}
           prerelease: false
           files: |
-            release_files/Open-Android-DeX-Windows-x64-Setup.exe
-            release_files/Open-Android-DeX-Windows-x64-Portable.zip
-            release_files/Open-Android-DeX-Linux-x86_64.AppImage
-            release_files/SHA256SUMS.txt
+            release_files/*

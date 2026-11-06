@@ -1,9 +1,16 @@
 # Open Android DeX — Windows 11 Build & Packaging Script
-# Usage: powershell -ExecutionPolicy Bypass -File .\scripts\build_windows.ps1
+# Usage: powershell -ExecutionPolicy Bypass -File .\scripts\build_windows.ps1 [-Version <version>]
+param(
+    [string]$Version = $env:APP_VERSION
+)
+
 $ErrorActionPreference = "Stop"
 
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host "  🚀 Open Android DeX — Windows 11 Build Pipeline" -ForegroundColor Cyan
+if ($Version) {
+    Write-Host "  Version: $Version" -ForegroundColor Cyan
+}
 Write-Host "============================================================" -ForegroundColor Cyan
 
 # 1. Enable Windows Desktop in Flutter
@@ -27,8 +34,17 @@ if (-not (Test-Path $ReleaseDir)) {
 
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 
+# Resolve output filenames (versioned if version is provided)
+if ($Version) {
+    $ZipFilename = "Open-Android-DeX-$Version-Windows-x64-Portable.zip"
+    $SetupBase = "Open-Android-DeX-$Version-Windows-x64-Setup"
+} else {
+    $ZipFilename = "Open-Android-DeX-Windows-x64-Portable.zip"
+    $SetupBase = "Open-Android-DeX-Windows-x64-Setup"
+}
+
 # 4. Package Portable ZIP
-$ZipPath = "$OutDir\Open-Android-DeX-Windows-x64-Portable.zip"
+$ZipPath = "$OutDir\$ZipFilename"
 Write-Host "==> Creating Portable ZIP at $ZipPath..."
 Compress-Archive -Path "$ReleaseDir\*" -DestinationPath $ZipPath -Force
 
@@ -40,11 +56,12 @@ if (-not $iscc) {
 
 if (Test-Path $iscc) {
     Write-Host "==> Compiling Inno Setup Installer..."
-    & $iscc windows\packaging\installer.iss
-    $InstallerSrc = "build\windows_installer\Open-Android-DeX-Windows-x64-Setup.exe"
+    $cleanVersion = if ($Version) { $Version.TrimStart('v') } else { "1.0.0" }
+    & $iscc "/DMyAppVersion=$cleanVersion" "/DOutputBaseFilename=$SetupBase" windows\packaging\installer.iss
+    $InstallerSrc = "build\windows_installer\$SetupBase.exe"
     if (Test-Path $InstallerSrc) {
-        Copy-Item $InstallerSrc "$OutDir\Open-Android-DeX-Windows-x64-Setup.exe" -Force
-        Write-Host "  ✅ Setup Installer: $OutDir\Open-Android-DeX-Windows-x64-Setup.exe" -ForegroundColor Green
+        Copy-Item $InstallerSrc "$OutDir\$SetupBase.exe" -Force
+        Write-Host "  ✅ Setup Installer: $OutDir\$SetupBase.exe" -ForegroundColor Green
     }
 } else {
     Write-Host "⚠️ Notice: Inno Setup 6 (ISCC.exe) not found. Portable ZIP created successfully." -ForegroundColor Yellow

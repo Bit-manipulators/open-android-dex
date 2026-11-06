@@ -2,10 +2,16 @@
 ; Produces: Open-Android-DeX-Windows-x64-Setup.exe
 
 #define MyAppName "Open Android DeX"
+#ifndef MyAppVersion
 #define MyAppVersion "1.0.0"
+#endif
 #define MyAppPublisher "Bit-manipulators"
 #define MyAppURL "https://github.com/Bit-manipulators/open-android-dex"
 #define MyAppExeName "open_android_dex.exe"
+
+#ifndef OutputBaseFilename
+#define OutputBaseFilename "Open-Android-DeX-Windows-x64-Setup"
+#endif
 
 [Setup]
 AppId={{5E4F8C92-0A1B-4C67-89DE-123456789ABC}
@@ -19,7 +25,7 @@ DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 OutputDir=..\..\build\windows_installer
-OutputBaseFilename=Open-Android-DeX-Windows-x64-Setup
+OutputBaseFilename={#OutputBaseFilename}
 SetupIconFile=..\runner\resources\app_icon.ico
 Compression=lzma2/ultra64
 SolidCompression=yes

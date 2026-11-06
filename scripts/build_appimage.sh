@@ -154,7 +154,13 @@ else
 fi
 
 # 7. Package AppImage
-OUTPUT_APPIMAGE="${OUT_DIR}/Open-Android-DeX-Linux-x86_64.AppImage"
+VERSION="${1:-${APP_VERSION:-${VERSION:-}}}"
+if [ -n "${VERSION}" ]; then
+    APPIMAGE_NAME="Open-Android-DeX-${VERSION}-Linux-x86_64.AppImage"
+else
+    APPIMAGE_NAME="Open-Android-DeX-Linux-x86_64.AppImage"
+fi
+OUTPUT_APPIMAGE="${OUT_DIR}/${APPIMAGE_NAME}"
 rm -f "${OUTPUT_APPIMAGE}"
 
 echo "==> Creating AppImage: ${OUTPUT_APPIMAGE}..."
