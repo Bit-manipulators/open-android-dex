@@ -25,6 +25,19 @@ def test_input_controller_delete():
     adb.keyevent.assert_called_with("ser1", 67)
 
 
+def test_input_controller_scroll():
+    adb = AdbClient()
+    adb.swipe = MagicMock()
+    inp = InputController(adb)
+    # 2-finger scroll down at (500, 1000) with dy=250
+    inp.scroll("ser1", 500, 1000, dx=0, dy=250, duration=120)
+    adb.swipe.assert_called_with("ser1", 500, 1000, 500, 750, duration=120)
+
+    # 2-finger horizontal scroll right at (500, 1000) with dx=150
+    inp.scroll("ser1", 500, 1000, dx=150, dy=0, duration=90)
+    adb.swipe.assert_called_with("ser1", 500, 1000, 350, 1000, duration=90)
+
+
 def test_url_launcher_intent_structure():
     adb = AdbClient()
     adb._run = MagicMock()

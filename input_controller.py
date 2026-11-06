@@ -85,6 +85,33 @@ class InputController:
         """Tap a screen coordinate."""
         self.adb.tap(serial, x, y)
 
-    def swipe(self, serial: str, x1: int, y1: int, x2: int, y2: int) -> None:
+    def swipe(
+        self,
+        serial: str,
+        x1: int,
+        y1: int,
+        x2: int,
+        y2: int,
+        duration: int | None = None,
+    ) -> None:
         """Swipe between two coordinates."""
-        self.adb.swipe(serial, x1, y1, x2, y2)
+        self.adb.swipe(serial, x1, y1, x2, y2, duration=duration)
+
+    def scroll(
+        self,
+        serial: str,
+        x: int,
+        y: int,
+        dx: int = 0,
+        dy: int = 0,
+        duration: int = 100,
+    ) -> None:
+        """Two-finger touchpad scroll gesture at coordinate (x, y) with delta (dx, dy).
+
+        In natural scrolling:
+        Positive dy (scrolling down) swipes upwards (content moves up).
+        Positive dx (scrolling right) swipes leftwards (content moves left).
+        """
+        x2 = x - dx
+        y2 = y - dy
+        self.adb.swipe(serial, x, y, x2, y2, duration=duration)
