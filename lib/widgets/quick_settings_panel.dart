@@ -67,175 +67,177 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () {}, // Prevent taps inside panel from triggering outside-tap dismissal
+      onTap:
+          () {}, // Prevent taps inside panel from triggering outside-tap dismissal
       child: ClipRRect(
         borderRadius: BorderRadius.circular(28),
         child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
-        child: Container(
-          width: 376,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          decoration: BoxDecoration(
-            color: const Color(0xFF13151A).withOpacity(0.93),
-            borderRadius: BorderRadius.circular(28),
-            border:
-                Border.all(color: Colors.white.withOpacity(0.08), width: 1.0),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.65),
-                blurRadius: 36,
-                offset: const Offset(0, 14),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 1. Android 16 Status Header (Time, Date, Battery Capsule, Action Buttons)
-              _buildHeader(),
-              const SizedBox(height: 14),
+          filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
+          child: Container(
+            width: 376,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF13151A).withOpacity(0.93),
+              borderRadius: BorderRadius.circular(28),
+              border:
+                  Border.all(color: Colors.white.withOpacity(0.08), width: 1.0),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.65),
+                  blurRadius: 36,
+                  offset: const Offset(0, 14),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 1. Android 16 Status Header (Time, Date, Battery Capsule, Action Buttons)
+                _buildHeader(),
+                const SizedBox(height: 14),
 
-              // 2. Primary Dual Connectivity Capsules (Internet/Wi-Fi and Bluetooth)
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildPrimaryCapsule(
-                      title: 'Internet',
-                      subtitle:
-                          _adb.isWifiEnabled ? 'Wi-Fi On' : 'Disconnected',
-                      icon: _adb.isWifiEnabled
-                          ? Icons.wifi_rounded
-                          : Icons.wifi_off_rounded,
-                      isActive: _adb.isWifiEnabled,
-                      onTap: () async {
-                        await _adb.toggleWifi();
-                        setState(() {});
-                      },
+                // 2. Primary Dual Connectivity Capsules (Internet/Wi-Fi and Bluetooth)
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildPrimaryCapsule(
+                        title: 'Internet',
+                        subtitle:
+                            _adb.isWifiEnabled ? 'Wi-Fi On' : 'Disconnected',
+                        icon: _adb.isWifiEnabled
+                            ? Icons.wifi_rounded
+                            : Icons.wifi_off_rounded,
+                        isActive: _adb.isWifiEnabled,
+                        onTap: () async {
+                          await _adb.toggleWifi();
+                          setState(() {});
+                        },
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _buildPrimaryCapsule(
-                      title: 'Bluetooth',
-                      subtitle: _adb.isBluetoothEnabled ? 'Active' : 'Off',
-                      icon: _adb.isBluetoothEnabled
-                          ? Icons.bluetooth_rounded
-                          : Icons.bluetooth_disabled_rounded,
-                      isActive: _adb.isBluetoothEnabled,
-                      onTap: () async {
-                        await _adb.toggleBluetooth();
-                        setState(() {});
-                      },
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _buildPrimaryCapsule(
+                        title: 'Bluetooth',
+                        subtitle: _adb.isBluetoothEnabled ? 'Active' : 'Off',
+                        icon: _adb.isBluetoothEnabled
+                            ? Icons.bluetooth_rounded
+                            : Icons.bluetooth_disabled_rounded,
+                        isActive: _adb.isBluetoothEnabled,
+                        onTap: () async {
+                          await _adb.toggleBluetooth();
+                          setState(() {});
+                        },
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
+                  ],
+                ),
+                const SizedBox(height: 10),
 
-              // 3. Android 16 Quick Action Grid (2x2 unified tiles)
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildQuickTile(
-                      title: 'Do Not Disturb',
-                      subtitle: _adb.isDndEnabled ? 'On' : 'Off',
-                      icon: _adb.isDndEnabled
-                          ? Icons.do_not_disturb_on_rounded
-                          : Icons.do_not_disturb_off_rounded,
-                      isActive: _adb.isDndEnabled,
-                      onTap: () async {
-                        await _adb.toggleDnd();
-                        setState(() {});
-                      },
+                // 3. Android 16 Quick Action Grid (2x2 unified tiles)
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildQuickTile(
+                        title: 'Do Not Disturb',
+                        subtitle: _adb.isDndEnabled ? 'On' : 'Off',
+                        icon: _adb.isDndEnabled
+                            ? Icons.do_not_disturb_on_rounded
+                            : Icons.do_not_disturb_off_rounded,
+                        isActive: _adb.isDndEnabled,
+                        onTap: () async {
+                          await _adb.toggleDnd();
+                          setState(() {});
+                        },
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _buildQuickTile(
-                      title: 'Auto-rotate',
-                      subtitle: _adb.isAutoRotate ? 'Auto' : 'Locked',
-                      icon: _adb.isAutoRotate
-                          ? Icons.screen_rotation_rounded
-                          : Icons.screen_lock_rotation_rounded,
-                      isActive: _adb.isAutoRotate,
-                      onTap: () async {
-                        await _adb.toggleAutoRotate();
-                        setState(() {});
-                      },
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _buildQuickTile(
+                        title: 'Auto-rotate',
+                        subtitle: _adb.isAutoRotate ? 'Auto' : 'Locked',
+                        icon: _adb.isAutoRotate
+                            ? Icons.screen_rotation_rounded
+                            : Icons.screen_lock_rotation_rounded,
+                        isActive: _adb.isAutoRotate,
+                        onTap: () async {
+                          await _adb.toggleAutoRotate();
+                          setState(() {});
+                        },
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildQuickTile(
-                      title: 'Screenshot',
-                      subtitle: 'Capture',
-                      icon: Icons.screenshot_monitor_rounded,
-                      isActive: false,
-                      onTap: () async {
-                        await _adb.takeScreenshot();
-                      },
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildQuickTile(
+                        title: 'Screenshot',
+                        subtitle: 'Capture',
+                        icon: Icons.screenshot_monitor_rounded,
+                        isActive: false,
+                        onTap: () async {
+                          await _adb.takeScreenshot();
+                        },
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _buildQuickTile(
-                      title: 'Lock Screen',
-                      subtitle: 'Sleep',
-                      icon: Icons.lock_outline_rounded,
-                      isActive: false,
-                      onTap: () async {
-                        await _adb.lockScreen();
-                        widget.onClose();
-                      },
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _buildQuickTile(
+                        title: 'Lock Screen',
+                        subtitle: 'Sleep',
+                        icon: Icons.lock_outline_rounded,
+                        isActive: false,
+                        onTap: () async {
+                          await _adb.lockScreen();
+                          widget.onClose();
+                        },
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
+                  ],
+                ),
+                const SizedBox(height: 14),
 
-              // 4. Android 16 Tactile Dual-Layer Sliders (Brightness & Volume)
-              _Android16CapsuleSlider(
-                value: (_adb.screenBrightness / 255).clamp(0.0, 1.0),
-                icon: Icons.brightness_medium_rounded,
-                label: 'Brightness',
-                valueText: '${((_adb.screenBrightness / 255) * 100).toInt()}%',
-                onChanged: (val) {
-                  final brightnessVal = (val * 255).round();
-                  setState(() => _adb.screenBrightness = brightnessVal);
-                  _adb.setBrightness(brightnessVal);
-                },
-              ),
-              const SizedBox(height: 10),
-              _Android16CapsuleSlider(
-                value: (_adb.currentVolume / _adb.maxVolume).clamp(0.0, 1.0),
-                icon: _adb.currentVolume == 0
-                    ? Icons.volume_off_rounded
-                    : (_adb.currentVolume > 14
-                        ? Icons.volume_up_rounded
-                        : Icons.volume_down_rounded),
-                label: 'Volume',
-                valueText: '${_adb.currentVolume}/${_adb.maxVolume}',
-                onChanged: (val) {
-                  final vol = (val * _adb.maxVolume).round();
-                  setState(() => _adb.currentVolume = vol);
-                  _adb.setVolume(vol);
-                },
-              ),
-              const SizedBox(height: 14),
+                // 4. Android 16 Tactile Dual-Layer Sliders (Brightness & Volume)
+                _Android16CapsuleSlider(
+                  value: (_adb.screenBrightness / 255).clamp(0.0, 1.0),
+                  icon: Icons.brightness_medium_rounded,
+                  label: 'Brightness',
+                  valueText:
+                      '${((_adb.screenBrightness / 255) * 100).toInt()}%',
+                  onChanged: (val) {
+                    final brightnessVal = (val * 255).round();
+                    setState(() => _adb.screenBrightness = brightnessVal);
+                    _adb.setBrightness(brightnessVal);
+                  },
+                ),
+                const SizedBox(height: 10),
+                _Android16CapsuleSlider(
+                  value: (_adb.currentVolume / _adb.maxVolume).clamp(0.0, 1.0),
+                  icon: _adb.currentVolume == 0
+                      ? Icons.volume_off_rounded
+                      : (_adb.currentVolume > 14
+                          ? Icons.volume_up_rounded
+                          : Icons.volume_down_rounded),
+                  label: 'Volume',
+                  valueText: '${_adb.currentVolume}/${_adb.maxVolume}',
+                  onChanged: (val) {
+                    final vol = (val * _adb.maxVolume).round();
+                    setState(() => _adb.currentVolume = vol);
+                    _adb.setVolume(vol);
+                  },
+                ),
+                const SizedBox(height: 14),
 
-              // 5. Android 16 Media Player Card ("Now Playing")
-              _buildAndroid16MediaCard(),
-            ],
+                // 5. Android 16 Media Player Card ("Now Playing")
+                _buildAndroid16MediaCard(),
+              ],
+            ),
           ),
         ),
       ),
-    ),
-  );
+    );
   }
 
   Widget _buildHeader() {
@@ -302,9 +304,7 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
     final level = _adb.batteryLevel;
     final Color iconColor = isCharging
         ? const Color(0xFF34D399)
-        : (level <= 20
-            ? const Color(0xFFF87171)
-            : const Color(0xFFA8C7FA));
+        : (level <= 20 ? const Color(0xFFF87171) : const Color(0xFFA8C7FA));
 
     final IconData iconData = isCharging
         ? Icons.battery_charging_full_rounded

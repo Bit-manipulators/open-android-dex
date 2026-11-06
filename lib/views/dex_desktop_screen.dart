@@ -266,9 +266,8 @@ class _DexDesktopScreenState extends State<DexDesktopScreen> {
     // Chunk into static columns: Column 1, Column 2, etc. (standard PC desktop arrangement)
     final List<List<AppInfo>> columns = [];
     for (var i = 0; i < primaryApps.length; i += maxRows) {
-      final end = (i + maxRows < primaryApps.length)
-          ? i + maxRows
-          : primaryApps.length;
+      final end =
+          (i + maxRows < primaryApps.length) ? i + maxRows : primaryApps.length;
       columns.add(primaryApps.sublist(i, end));
     }
 
