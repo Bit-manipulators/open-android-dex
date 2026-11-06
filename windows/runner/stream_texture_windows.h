@@ -5,7 +5,6 @@
 #include <flutter/binary_messenger.h>
 #include <flutter/encodable_value.h>
 #include <flutter/method_channel.h>
-#include <flutter/pixel_buffer_texture.h>
 #include <flutter/plugin_registrar_windows.h>
 #include <flutter/texture_registrar.h>
 
