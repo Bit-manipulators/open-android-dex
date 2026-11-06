@@ -1,0 +1,277 @@
+name: Build & Release Automation
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Release Tag (e.g. v1.0.0)"
+        required: false
+        default: "v1.0.0"
+      draft:
+        description: "Create as Draft Release"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  run-tests:
+    name: 🧪 Automated Test Suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            python3-gi gir1.2-gtk-4.0 adb scrcpy \
+            clang cmake ninja-build pkg-config \
+            libgtk-3-dev libavcodec-dev libavformat-dev libswscale-dev libavutil-dev
+
+      - name: Run Python Test Suite
+        run: python3 run_tests.py
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.24.5"
+          channel: "stable"
+
+      - name: Install Flutter Dependencies
+        run: flutter pub get
+
+      - name: Verify Code Formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Static Analysis
+        run: flutter analyze --no-fatal-infos
+
+      - name: Run Flutter Unit & Widget Tests
+        run: flutter test
+
+  build-linux-appimage:
+    name: 🐧 Build Linux x86_64 AppImage
+    needs: run-tests
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.24.5"
+          channel: "stable"
+
+      - name: Install Linux Build Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            clang cmake ninja-build pkg-config \
+            libgtk-3-dev libavcodec-dev libavformat-dev libswscale-dev libavutil-dev \
+            file curl desktop-file-utils
+
+      - name: Install Flutter Dependencies
+        run: flutter pub get
+
+      - name: Build AppImage
+        run: |
+          chmod +x scripts/build_appimage.sh
+          ./scripts/build_appimage.sh
+
+      - name: Validate AppImage
+        run: |
+          APPIMAGE="build/release_artifacts/Open-Android-DeX-Linux-x86_64.AppImage"
+          if [ ! -f "$APPIMAGE" ]; then
+            echo "❌ Error: AppImage artifact was not generated!" >&2
+            exit 1
+          fi
+          ls -lh "$APPIMAGE"
+          sha256sum "$APPIMAGE"
+
+      - name: Upload Linux AppImage Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Open-Android-DeX-Linux-x86_64.AppImage
+          path: build/release_artifacts/Open-Android-DeX-Linux-x86_64.AppImage
+          retention-days: 7
+
+  build-windows:
+    name: 🪟 Build Windows 11 x64 (Installer & Portable)
+    needs: run-tests
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.24.5"
+          channel: "stable"
+
+      - name: Enable Windows Desktop Support
+        run: flutter config --enable-windows-desktop
+
+      - name: Install Flutter Dependencies
+        run: flutter pub get
+
+      - name: Build Windows Application (Release)
+        run: flutter build windows --release
+
+      - name: Package Windows Portable ZIP
+        shell: pwsh
+        run: |
+          $ReleaseDir = "build\windows\x64\runner\Release"
+          $OutDir = "build\release_artifacts"
+          New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
+          $ZipPath = "$OutDir\Open-Android-DeX-Windows-x64-Portable.zip"
+          Compress-Archive -Path "$ReleaseDir\*" -DestinationPath $ZipPath -Force
+          Write-Host "Created Portable ZIP: $ZipPath"
+          Get-Item $ZipPath | Select-Object Name, Length
+
+      - name: Compile Inno Setup Installer
+        shell: pwsh
+        run: |
+          # Locate ISCC.exe (preinstalled on windows-latest runner)
+          $iscc = (Get-Command iscc.exe -ErrorAction SilentlyContinue).Source
+          if (-not $iscc) {
+            $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          }
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup --yes --no-progress
+            $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          }
+
+          & $iscc windows\packaging\installer.iss
+          $InstallerPath = "build\windows_installer\Open-Android-DeX-Windows-x64-Setup.exe"
+          if (-not (Test-Path $InstallerPath)) {
+            Write-Error "Installer was not generated at $InstallerPath"
+            exit 1
+          }
+          Copy-Item $InstallerPath "build\release_artifacts\Open-Android-DeX-Windows-x64-Setup.exe" -Force
+          Write-Host "Created Inno Setup Installer at build\release_artifacts\Open-Android-DeX-Windows-x64-Setup.exe"
+
+      - name: Validate Windows Artifacts
+        shell: pwsh
+        run: |
+          $Setup = "build\release_artifacts\Open-Android-DeX-Windows-x64-Setup.exe"
+          $Zip = "build\release_artifacts\Open-Android-DeX-Windows-x64-Portable.zip"
+          if (-not (Test-Path $Setup) -or (Get-Item $Setup).Length -lt 100000) {
+            Write-Error "Installer is missing or invalid size."
+            exit 1
+          }
+          if (-not (Test-Path $Zip) -or (Get-Item $Zip).Length -lt 100000) {
+            Write-Error "Portable ZIP is missing or invalid size."
+            exit 1
+          }
+          Get-FileHash -Algorithm SHA256 $Setup, $Zip | Format-Table
+
+      - name: Upload Windows Setup Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Open-Android-DeX-Windows-x64-Setup.exe
+          path: build/release_artifacts/Open-Android-DeX-Windows-x64-Setup.exe
+          retention-days: 7
+
+      - name: Upload Windows Portable Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Open-Android-DeX-Windows-x64-Portable.zip
+          path: build/release_artifacts/Open-Android-DeX-Windows-x64-Portable.zip
+          retention-days: 7
+
+  create-draft-release:
+    name: 📦 Publish Draft GitHub Release
+    needs: [build-linux-appimage, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download All Release Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release_files
+          merge-multiple: true
+
+      - name: Compute SHA256 Checksums
+        working-directory: release_files
+        run: |
+          sha256sum * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Resolve Release Tag & Draft Flag
+        id: vars
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.tag_name }}"
+            DRAFT="${{ github.event.inputs.draft }}"
+          else
+            TAG="${{ github.ref_name }}"
+            DRAFT="true"
+          fi
+          echo "tag=${TAG:-v1.0.0}" >> $GITHUB_OUTPUT
+          echo "draft=${DRAFT:-true}" >> $GITHUB_OUTPUT
+
+      - name: Generate Release Notes
+        id: notes
+        run: |
+          cat << 'EOF' > RELEASE_NOTES.md
+          # Open Android DeX — Release Release
+
+          Welcome to the new cross-platform release of **Open Android DeX**, adding official **Windows 11 (x64)** and portable **Linux (AppImage)** releases!
+
+          ---
+
+          ## 🚀 What's New
+
+          ### 🪟 Windows 11 (x64) Support
+          - **Native Windows Desktop Runner**: Full multi-window compositor running natively under Win32.
+          - **In-Process Video Streaming**: Low-latency video texture streaming via `flutter::PixelBufferTexture`.
+          - **USB Connection Detection**: Automatic ADB device discovery and authorization handling.
+          - **Distributions**:
+            - `Open-Android-DeX-Windows-x64-Setup.exe` (Complete Inno Setup installer)
+            - `Open-Android-DeX-Windows-x64-Portable.zip` (Zero-install standalone package)
+
+          ### 🐧 Linux AppImage Distribution
+          - **Portable Single-File Release**: `Open-Android-DeX-Linux-x86_64.AppImage`.
+          - **Cross-Distro Compatibility**: Bundles Flutter engine, runtime libraries, and FFmpeg dependencies.
+          - **Dual Display Server Support**: Works seamlessly under Wayland (Hyprland, Sway, GNOME, KDE) and X11.
+
+          ### 📱 Core & Gesture Enhancements
+          - **Natural Trackpad & Touchpad Scrolling**: Two-finger smooth scrolling and pan/zoom mapping.
+          - **Real-Time Icon Caching**: Isolated per-device icon cache streaming.
+          - **Cross-Platform Architecture**: Unified `PlatformAdapter` handling paths, processes, and IPC.
+
+          ---
+
+          ## 📋 Release Checksums (SHA-256)
+          EOF
+
+          cat release_files/SHA256SUMS.txt >> RELEASE_NOTES.md
+
+      - name: Create Draft Release on GitHub
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.vars.outputs.tag }}
+          name: "Open Android DeX ${{ steps.vars.outputs.tag }}"
+          body_path: RELEASE_NOTES.md
+          draft: ${{ steps.vars.outputs.draft == 'true' }}
+          prerelease: false
+          files: |
+            release_files/Open-Android-DeX-Windows-x64-Setup.exe
+            release_files/Open-Android-DeX-Windows-x64-Portable.zip
+            release_files/Open-Android-DeX-Linux-x86_64.AppImage
+            release_files/SHA256SUMS.txt
