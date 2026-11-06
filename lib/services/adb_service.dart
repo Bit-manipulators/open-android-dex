@@ -40,10 +40,10 @@ class AdbService {
           installedApps[idx] =
               installedApps[idx].copyWith(iconPath: event.iconPath);
         } else {
-          installedApps.add(
-              AppInfo.fromPackage(event.packageName, event.iconPath));
-          installedApps.sort((a, b) =>
-              a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+          installedApps
+              .add(AppInfo.fromPackage(event.packageName, event.iconPath));
+          installedApps.sort(
+              (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
         }
         _notifyIconUpdateThrottled();
       }
@@ -53,7 +53,8 @@ class AdbService {
     extractor.onIconExtracted.listen((serial) {
       if (selectedDeviceSerial == serial && installedApps.isNotEmpty) {
         installedApps = installedApps.map((app) {
-          final p = extractor.getCachedIconPath(app.packageName, serial: serial);
+          final p =
+              extractor.getCachedIconPath(app.packageName, serial: serial);
           return (p != null) ? app.copyWith(iconPath: p) : app;
         }).toList();
         _deviceStateController.add(true);
@@ -173,7 +174,7 @@ class AdbService {
     final s = serial ?? selectedDeviceSerial;
     if (s == null || isDemoMode) return;
     try {
-      await adbRunner( [
+      await adbRunner([
         '-s',
         s,
         'shell',
@@ -236,7 +237,7 @@ class AdbService {
   Future<List<MdnsServiceEntry>> getMdnsServices() async {
     final List<MdnsServiceEntry> entries = [];
     try {
-      final res = await adbRunner( ['mdns', 'services']);
+      final res = await adbRunner(['mdns', 'services']);
       final lines = (res.stdout as String).split('\n');
       for (var line in lines) {
         line = line.trim();
@@ -276,8 +277,7 @@ class AdbService {
 
     // 2. Try ip route
     try {
-      final res =
-          await adbRunner( ['-s', target, 'shell', 'ip', 'route']);
+      final res = await adbRunner(['-s', target, 'shell', 'ip', 'route']);
       final out = res.stdout as String;
       final match = RegExp(r'src\s+(\d+\.\d+\.\d+\.\d+)').firstMatch(out);
       if (match != null && _isValidIp(match.group(1)!)) {
@@ -321,7 +321,7 @@ class AdbService {
 
     try {
       // 1. Switch adbd on phone to TCP mode on port 5555
-      final tcpRes = await adbRunner( ['-s', serial, 'tcpip', '5555']);
+      final tcpRes = await adbRunner(['-s', serial, 'tcpip', '5555']);
       if (tcpRes.exitCode != 0) {
         return 'Failed to enable TCP mode: ${tcpRes.stderr}';
       }
@@ -329,7 +329,7 @@ class AdbService {
       await Future.delayed(const Duration(milliseconds: 1200));
 
       // 2. Connect wirelessly
-      final connRes = await adbRunner( ['connect', '$ip:5555']);
+      final connRes = await adbRunner(['connect', '$ip:5555']);
       final out = (connRes.stdout as String).trim();
 
       if (out.contains('connected') || out.contains('already connected')) {
@@ -351,7 +351,7 @@ class AdbService {
     if (port <= 0 || port > 65535) return 'Invalid port (1-65535)';
 
     try {
-      final res = await adbRunner( ['connect', '$cleanIp:$port']);
+      final res = await adbRunner(['connect', '$cleanIp:$port']);
       final out = (res.stdout as String).trim();
       if (out.contains('connected') || out.contains('already connected')) {
         selectedDeviceSerial = '$cleanIp:$port';
@@ -369,8 +369,7 @@ class AdbService {
     final cleanIp = ip.trim();
     final cleanCode = code.trim();
     try {
-      final res =
-          await adbRunner( ['pair', '$cleanIp:$port', cleanCode]);
+      final res = await adbRunner(['pair', '$cleanIp:$port', cleanCode]);
       final out = '${res.stdout}\n${res.stderr}'.trim();
       return out;
     } catch (e) {
@@ -392,7 +391,7 @@ class AdbService {
   Future<void> disconnectDevice(String serial) async {
     try {
       if (serial.contains(':')) {
-        await adbRunner( ['disconnect', serial]);
+        await adbRunner(['disconnect', serial]);
       }
       if (selectedDeviceSerial == serial) {
         selectedDeviceSerial = null;
@@ -417,7 +416,8 @@ class AdbService {
             selectedDeviceSerial!.contains('._tcp')) {
           selectedDeviceSerial = getPreferredDevice(devices);
         }
-        final serialChanged = prevSerial != null && prevSerial != selectedDeviceSerial;
+        final serialChanged =
+            prevSerial != null && prevSerial != selectedDeviceSerial;
         if (serialChanged) {
           installedApps = [];
         }
@@ -457,7 +457,7 @@ class AdbService {
   Future<List<String>> getConnectedDevices() async {
     if (isDemoMode) return ['demo-device-pixel8'];
     try {
-      final res = await adbRunner( ['devices']);
+      final res = await adbRunner(['devices']);
       if (res.exitCode != 0) return [];
 
       final lines = (res.stdout as String).split('\n');
@@ -479,14 +479,14 @@ class AdbService {
   Future<void> _updateDeviceInfo() async {
     if (selectedDeviceSerial == null) return;
     try {
-      final modelRes = await adbRunner( [
+      final modelRes = await adbRunner([
         '-s',
         selectedDeviceSerial!,
         'shell',
         'getprop',
         'ro.product.model'
       ]);
-      final brandRes = await adbRunner( [
+      final brandRes = await adbRunner([
         '-s',
         selectedDeviceSerial!,
         'shell',
@@ -525,7 +525,7 @@ class AdbService {
   Future<void> _updateVolume() async {
     if (selectedDeviceSerial == null) return;
     try {
-      final res = await adbRunner( [
+      final res = await adbRunner([
         '-s',
         selectedDeviceSerial!,
         'shell',
@@ -549,7 +549,7 @@ class AdbService {
   Future<void> _updateConnectivity() async {
     if (selectedDeviceSerial == null) return;
     try {
-      final wifiRes = await adbRunner( [
+      final wifiRes = await adbRunner([
         '-s',
         selectedDeviceSerial!,
         'shell',
@@ -560,7 +560,7 @@ class AdbService {
       ]);
       isWifiEnabled = (wifiRes.stdout as String).trim() == '1';
 
-      final btRes = await adbRunner( [
+      final btRes = await adbRunner([
         '-s',
         selectedDeviceSerial!,
         'shell',
@@ -576,7 +576,7 @@ class AdbService {
   Future<void> updateNotifications() async {
     if (selectedDeviceSerial == null) return;
     try {
-      final res = await adbRunner( [
+      final res = await adbRunner([
         '-s',
         selectedDeviceSerial!,
         'shell',
@@ -621,7 +621,7 @@ class AdbService {
     currentVolume = clamped;
     _deviceStateController.add(true);
     try {
-      await adbRunner( [
+      await adbRunner([
         '-s',
         selectedDeviceSerial!,
         'shell',
@@ -642,7 +642,7 @@ class AdbService {
     _deviceStateController.add(true);
     if (selectedDeviceSerial == null || isDemoMode) return;
     try {
-      await adbRunner( [
+      await adbRunner([
         '-s',
         selectedDeviceSerial!,
         'shell',
@@ -660,7 +660,7 @@ class AdbService {
     _deviceStateController.add(true);
     if (selectedDeviceSerial == null || isDemoMode) return;
     try {
-      await adbRunner( [
+      await adbRunner([
         '-s',
         selectedDeviceSerial!,
         'shell',
@@ -676,7 +676,7 @@ class AdbService {
     isMediaPlaying = !isMediaPlaying;
     _deviceStateController.add(true);
     try {
-      await adbRunner( [
+      await adbRunner([
         '-s',
         selectedDeviceSerial!,
         'shell',
@@ -691,7 +691,7 @@ class AdbService {
   Future<void> mediaNext() async {
     if (selectedDeviceSerial == null) return;
     try {
-      await adbRunner( [
+      await adbRunner([
         '-s',
         selectedDeviceSerial!,
         'shell',
@@ -706,7 +706,7 @@ class AdbService {
   Future<void> mediaPrevious() async {
     if (selectedDeviceSerial == null) return;
     try {
-      await adbRunner( [
+      await adbRunner([
         '-s',
         selectedDeviceSerial!,
         'shell',
@@ -727,7 +727,7 @@ class AdbService {
     _deviceStateController.add(true);
     if (selectedDeviceSerial == null || isDemoMode) return;
     try {
-      await adbRunner( [
+      await adbRunner([
         '-s',
         selectedDeviceSerial!,
         'shell',
@@ -745,7 +745,7 @@ class AdbService {
     _deviceStateController.add(true);
     if (selectedDeviceSerial == null || isDemoMode) return;
     try {
-      await adbRunner( [
+      await adbRunner([
         '-s',
         selectedDeviceSerial!,
         'shell',
@@ -763,7 +763,7 @@ class AdbService {
     _deviceStateController.add(true);
     if (selectedDeviceSerial == null || isDemoMode) return;
     try {
-      await adbRunner( [
+      await adbRunner([
         '-s',
         selectedDeviceSerial!,
         'shell',
@@ -778,7 +778,7 @@ class AdbService {
   Future<void> openSettings() async {
     if (selectedDeviceSerial == null || isDemoMode) return;
     try {
-      await adbRunner( [
+      await adbRunner([
         '-s',
         selectedDeviceSerial!,
         'shell',
@@ -798,7 +798,7 @@ class AdbService {
 
       // 1. Query all launcher apps on device
       try {
-        final launcherRes = await adbRunner( [
+        final launcherRes = await adbRunner([
           '-s',
           serial,
           'shell',
@@ -824,15 +824,8 @@ class AdbService {
       } catch (_) {}
 
       // 2. Also ensure 3rd-party packages (-3) are queried
-      final res3 = await adbRunner( [
-        '-s',
-        serial,
-        'shell',
-        'pm',
-        'list',
-        'packages',
-        '-3'
-      ]);
+      final res3 = await adbRunner(
+          ['-s', serial, 'shell', 'pm', 'list', 'packages', '-3']);
 
       if (res3.exitCode == 0) {
         for (var line in (res3.stdout as String).split('\n')) {
@@ -861,8 +854,8 @@ class AdbService {
       ];
 
       for (var sys in commonSysApps) {
-        final check = await adbRunner(
-            ['-s', serial, 'shell', 'pm', 'path', sys]);
+        final check =
+            await adbRunner(['-s', serial, 'shell', 'pm', 'path', sys]);
         if (check.exitCode == 0 && (check.stdout as String).trim().isNotEmpty) {
           packages.add(sys);
         }
@@ -897,7 +890,7 @@ class AdbService {
       }
     }
     try {
-      await adbRunner( [
+      await adbRunner([
         '-s',
         selectedDeviceSerial!,
         'shell',
@@ -919,7 +912,7 @@ class AdbService {
         args.addAll(['-d', displayId.toString()]);
       }
       args.addAll(['keyevent', '$keyCode']);
-      await adbRunner( args);
+      await adbRunner(args);
     } catch (_) {}
   }
 

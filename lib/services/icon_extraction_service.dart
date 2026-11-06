@@ -27,16 +27,16 @@ class IconExtractionService {
   /// Track actively extracting serials independently to allow multi-device extraction.
   final Set<String> _extractingSerials = {};
 
-  final _singleIconController =
-      StreamController<SingleIconUpdate>.broadcast();
+  final _singleIconController = StreamController<SingleIconUpdate>.broadcast();
   Stream<SingleIconUpdate> get onSingleIconExtracted =>
       _singleIconController.stream;
 
   final _iconUpdatesController = StreamController<String>.broadcast();
   Stream<String> get onIconExtracted => _iconUpdatesController.stream;
 
-  bool isExtracting([String? serial]) =>
-      serial == null ? _extractingSerials.isNotEmpty : _extractingSerials.contains(serial);
+  bool isExtracting([String? serial]) => serial == null
+      ? _extractingSerials.isNotEmpty
+      : _extractingSerials.contains(serial);
 
   /// Cleans serial numbers for safe filesystem and directory usage.
   static String sanitizeSerial(String serial) =>
@@ -131,8 +131,8 @@ class IconExtractionService {
       final hostGlobalDir = iconCacheDirectory;
 
       // 1. Push DEX helper to the specific device (-s serial)
-      final pushRes = await Process.run(
-          PlatformAdapter.adbExecutable, ['-s', serial, 'push', localDex, remoteDex]);
+      final pushRes = await Process.run(PlatformAdapter.adbExecutable,
+          ['-s', serial, 'push', localDex, remoteDex]);
       if (pushRes.exitCode != 0) {
         debugPrint(
             '[IconExtractionService] Failed to push helper dex to $serial: ${pushRes.stderr}');
@@ -140,8 +140,8 @@ class IconExtractionService {
       }
 
       // 2. Prepare remote output directory for this device
-      await Process.run(
-          PlatformAdapter.adbExecutable, ['-s', serial, 'shell', 'mkdir', '-p', remoteOutputDir]);
+      await Process.run(PlatformAdapter.adbExecutable,
+          ['-s', serial, 'shell', 'mkdir', '-p', remoteOutputDir]);
 
       // 3. Launch the dumper via Process.start to stream icon creation in real time
       final runArgs = [
@@ -155,7 +155,8 @@ class IconExtractionService {
         remoteOutputDir,
       ];
 
-      final process = await Process.start(PlatformAdapter.adbExecutable, runArgs);
+      final process =
+          await Process.start(PlatformAdapter.adbExecutable, runArgs);
 
       // Listen for ICON:<pkg>:<path> lines as they are dumped on device
       final lineStream = process.stdout
@@ -226,7 +227,8 @@ class IconExtractionService {
       // 6. Notify that extraction for this device is complete
       _iconUpdatesController.add(serial);
     } catch (e) {
-      debugPrint('[IconExtractionService] Exception during extraction for $serial: $e');
+      debugPrint(
+          '[IconExtractionService] Exception during extraction for $serial: $e');
     } finally {
       _extractingSerials.remove(serial);
     }

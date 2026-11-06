@@ -67,9 +67,8 @@ class PlatformAdapter {
     } else {
       final xdgCache = Platform.environment['XDG_CACHE_HOME'];
       final home = Platform.environment['HOME'] ?? '/tmp';
-      final base = (xdgCache != null && xdgCache.isNotEmpty)
-          ? xdgCache
-          : '$home/.cache';
+      final base =
+          (xdgCache != null && xdgCache.isNotEmpty) ? xdgCache : '$home/.cache';
       final dir = Directory('$base/open_android_dex');
       if (!dir.existsSync()) {
         try {
@@ -208,17 +207,20 @@ class PlatformAdapter {
     // 1. App-bundled platform tools (portable distribution)
     candidates.add('$appDirectory\\$binaryName');
     candidates.add('$appDirectory\\platform-tools\\$binaryName');
-    candidates.add('$appDirectory\\data\\flutter_assets\\assets\\bin\\$binaryName');
+    candidates
+        .add('$appDirectory\\data\\flutter_assets\\assets\\bin\\$binaryName');
 
     if (isWindows) {
       // 2. Android SDK standard install locations on Windows
       final localAppData = Platform.environment['LOCALAPPDATA'];
       if (localAppData != null) {
-        candidates.add('$localAppData\\Android\\Sdk\\platform-tools\\$binaryName');
+        candidates
+            .add('$localAppData\\Android\\Sdk\\platform-tools\\$binaryName');
       }
       final programFiles = Platform.environment['ProgramFiles'];
       if (programFiles != null) {
-        candidates.add('$programFiles\\Android\\android-sdk\\platform-tools\\$binaryName');
+        candidates.add(
+            '$programFiles\\Android\\android-sdk\\platform-tools\\$binaryName');
       }
     }
 
@@ -245,7 +247,8 @@ class PlatformAdapter {
     // 1. App-bundled scrcpy (portable distribution)
     candidates.add('$appDirectory\\$binaryName');
     candidates.add('$appDirectory\\scrcpy\\$binaryName');
-    candidates.add('$appDirectory\\data\\flutter_assets\\assets\\bin\\$binaryName');
+    candidates
+        .add('$appDirectory\\data\\flutter_assets\\assets\\bin\\$binaryName');
 
     if (isWindows) {
       final programFiles = Platform.environment['ProgramFiles'];
@@ -276,7 +279,8 @@ class PlatformAdapter {
       if (isWindows) {
         // On Windows, taskkill /F /T /PID terminates child processes spawned by scrcpy/adb
         try {
-          await Process.run('taskkill', ['/F', '/T', '/PID', process.pid.toString()]);
+          await Process.run(
+              'taskkill', ['/F', '/T', '/PID', process.pid.toString()]);
         } catch (_) {
           process.kill(ProcessSignal.sigkill);
         }

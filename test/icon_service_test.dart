@@ -48,7 +48,7 @@ void main() {
       const serialA = 'device_A_123';
       const serialB = 'device_B_456';
       final devDirA = service.getDeviceIconCacheDirectory(serialA);
-      final devDirB = service.getDeviceIconCacheDirectory(serialB);
+      service.getDeviceIconCacheDirectory(serialB);
 
       final iconA = File('$devDirA/com.test.multi.png');
       iconA.writeAsBytesSync(List.filled(200, 1));
@@ -56,8 +56,8 @@ void main() {
       try {
         expect(service.getCachedIconPath('com.test.multi', serial: serialA),
             equals(iconA.path));
-        expect(
-            service.getCachedIconPath('com.test.multi', serial: serialB), isNull);
+        expect(service.getCachedIconPath('com.test.multi', serial: serialB),
+            isNull);
       } finally {
         if (iconA.existsSync()) iconA.deleteSync();
       }

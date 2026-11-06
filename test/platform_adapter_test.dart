@@ -37,7 +37,8 @@ void main() {
       }
     });
 
-    test('createStreamPipe and cleanupStreamPipes handle pipes gracefully', () async {
+    test('createStreamPipe and cleanupStreamPipes handle pipes gracefully',
+        () async {
       final pipePath = PlatformAdapter.getStreamPipePath('unit_test_pipe');
       final created = await PlatformAdapter.createStreamPipe(pipePath);
       expect(created, isTrue);

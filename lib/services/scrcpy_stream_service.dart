@@ -156,8 +156,8 @@ class ScrcpyStreamService {
     try {
       await Process.run(PlatformAdapter.adbExecutable,
           ['-s', serial, 'shell', 'input', 'keyevent', 'KEYCODE_WAKEUP']);
-      await Process.run(
-          PlatformAdapter.adbExecutable, ['-s', serial, 'shell', 'wm', 'dismiss-keyguard']);
+      await Process.run(PlatformAdapter.adbExecutable,
+          ['-s', serial, 'shell', 'wm', 'dismiss-keyguard']);
       await Process.run(PlatformAdapter.adbExecutable, [
         '-s',
         serial,
@@ -273,8 +273,8 @@ class ScrcpyStreamService {
   /// Queries ADB for any active scrcpy virtual display ID
   Future<int?> getVirtualDisplayId(String serial) async {
     try {
-      final res = await Process.run(
-          PlatformAdapter.adbExecutable, ['-s', serial, 'shell', 'dumpsys', 'display']);
+      final res = await Process.run(PlatformAdapter.adbExecutable,
+          ['-s', serial, 'shell', 'dumpsys', 'display']);
       final out = res.stdout as String;
       final matches = RegExp(r'displayId=(\d+)[^,\n]*uniqueId=[^,\n]*scrcpy')
           .allMatches(out);

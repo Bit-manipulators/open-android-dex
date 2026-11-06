@@ -15,7 +15,8 @@ class TouchInputService {
   TouchInputService._internal();
 
   /// Pluggable ADB command runner for tests and custom dispatchers.
-  AdbRunner adbRunner = (args) => Process.run(PlatformAdapter.adbExecutable, args);
+  AdbRunner adbRunner =
+      (args) => Process.run(PlatformAdapter.adbExecutable, args);
 
   /// Multiplier to tune two-finger touchpad scrolling responsiveness.
   double scrollSensitivity = 8.0;
@@ -471,7 +472,8 @@ class TouchInputService {
     final scaleY = _activeDeviceHeight / _activeViewportHeight;
     final devDeltaX = _accumulatedScrollX * scaleX;
     final devDeltaY = _accumulatedScrollY * scaleY;
-    final totalDevDist = math.sqrt(devDeltaX * devDeltaX + devDeltaY * devDeltaY);
+    final totalDevDist =
+        math.sqrt(devDeltaX * devDeltaX + devDeltaY * devDeltaY);
 
     if (totalDevDist >= 15.0 && !_isDispatchingScroll) {
       _dispatchScrollQueue();
@@ -501,7 +503,8 @@ class TouchInputService {
 
         final devDeltaX = _accumulatedScrollX * scaleX;
         final devDeltaY = _accumulatedScrollY * scaleY;
-        final rawDist = math.sqrt(devDeltaX * devDeltaX + devDeltaY * devDeltaY);
+        final rawDist =
+            math.sqrt(devDeltaX * devDeltaX + devDeltaY * devDeltaY);
 
         if (rawDist < 1.0) {
           break;

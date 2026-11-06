@@ -19,7 +19,8 @@ void main() {
   });
 
   group('TouchInputService Coordinate Normalization', () {
-    test('normalizes viewport coordinates to target device space accurately', () {
+    test('normalizes viewport coordinates to target device space accurately',
+        () {
       final pt = service.normalizeCoordinates(
         localX: 200,
         localY: 400,
@@ -58,7 +59,8 @@ void main() {
   });
 
   group('Touchpad 2-Finger Scrolling & Gestures', () {
-    test('vertical 2-finger scroll down creates natural swipe moving fingers up',
+    test(
+        'vertical 2-finger scroll down creates natural swipe moving fingers up',
         () async {
       await service.sendScroll(
         serial: 'test-device',
@@ -85,7 +87,8 @@ void main() {
       expect(y1, greaterThan(y2));
     });
 
-    test('vertical 2-finger scroll up creates natural swipe moving fingers down',
+    test(
+        'vertical 2-finger scroll up creates natural swipe moving fingers down',
         () async {
       await service.sendScroll(
         serial: 'test-device',
@@ -152,7 +155,8 @@ void main() {
       expect(args[dIdx + 1], '2');
     });
 
-    test('small high-precision touchpad delta scales into healthy stroke (>160px)',
+    test(
+        'small high-precision touchpad delta scales into healthy stroke (>160px)',
         () async {
       await service.sendScroll(
         serial: 'test-device',
@@ -277,7 +281,8 @@ void main() {
       expect(y1, greaterThan(y2));
     });
 
-    test('inverted scrolling reverses swipe direction when naturalScrolling is false',
+    test(
+        'inverted scrolling reverses swipe direction when naturalScrolling is false',
         () async {
       service.naturalScrolling = false;
 
