@@ -25,7 +25,7 @@ class AdbClient:
     """Thin wrapper around the adb command-line tool."""
 
     def __init__(self, adb_path: Optional[str] = None) -> None:
-        self.adb_path = adb_path or shutil.which("adb") or "adb"
+        self.adb_path = adb_path or shutil.which("adb") or shutil.which("adb.exe") or "adb"
 
     def _run(self, args: List[str], serial: Optional[str] = None) -> subprocess.CompletedProcess:
         cmd = [self.adb_path]

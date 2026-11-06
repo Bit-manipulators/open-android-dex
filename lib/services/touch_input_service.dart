@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
+import 'platform_adapter.dart';
 
 typedef AdbRunner = Future<ProcessResult> Function(List<String> args);
 
@@ -14,7 +15,7 @@ class TouchInputService {
   TouchInputService._internal();
 
   /// Pluggable ADB command runner for tests and custom dispatchers.
-  AdbRunner adbRunner = (args) => Process.run('adb', args);
+  AdbRunner adbRunner = (args) => Process.run(PlatformAdapter.adbExecutable, args);
 
   /// Multiplier to tune two-finger touchpad scrolling responsiveness.
   double scrollSensitivity = 8.0;

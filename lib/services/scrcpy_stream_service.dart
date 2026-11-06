@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'platform_adapter.dart';
 
 enum ScrcpyDisplayMode {
   /// Uses scrcpy 3+ / 5+ new-display to create an isolated Android virtual display.
@@ -106,20 +107,10 @@ class ScrcpyStreamService {
 
     final safeId = windowId.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_');
     final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final pipePath = _getStreamPipePath('${safeId}_$timestamp');
+    final pipePath = PlatformAdapter.getStreamPipePath('${safeId}_$timestamp');
 
-    // 2. Ensure a clean, fresh FIFO pipe
-    final pipeFile = File(pipePath);
-    if (pipeFile.existsSync()) {
-      try {
-        pipeFile.deleteSync();
-      } catch (_) {}
-    }
-    try {
-      await Process.run('mkfifo', [pipePath]);
-    } catch (e) {
-      debugPrint('[ScrcpyStreamService] mkfifo error: $e');
-    }
+    // 2. Ensure a clean, fresh FIFO pipe or streaming channel
+    await PlatformAdapter.createStreamPipe(pipePath);
 
     final session = ScrcpyStreamSession(
       id: windowId,
@@ -163,11 +154,11 @@ class ScrcpyStreamService {
 
     // Wake up device, dismiss keyguard, and disable phone status bar in app windows
     try {
-      await Process.run('adb',
+      await Process.run(PlatformAdapter.adbExecutable,
           ['-s', serial, 'shell', 'input', 'keyevent', 'KEYCODE_WAKEUP']);
       await Process.run(
-          'adb', ['-s', serial, 'shell', 'wm', 'dismiss-keyguard']);
-      await Process.run('adb', [
+          PlatformAdapter.adbExecutable, ['-s', serial, 'shell', 'wm', 'dismiss-keyguard']);
+      await Process.run(PlatformAdapter.adbExecutable, [
         '-s',
         serial,
         'shell',
@@ -182,7 +173,7 @@ class ScrcpyStreamService {
     try {
       debugPrint(
           '[ScrcpyStreamService] Starting headless scrcpy pipe stream (${width}x$height) to $pipePath');
-      final proc = await Process.start('scrcpy', args);
+      final proc = await Process.start(PlatformAdapter.scrcpyExecutable, args);
 
       void handleOutput(String line) {
         final match = RegExp(r'New display:.*\(id=(\d+)\)').firstMatch(line);
@@ -251,22 +242,14 @@ class ScrcpyStreamService {
     }
   }
 
-  /// Stops an active session with graceful SIGTERM and ADB port cooldown.
+  /// Stops an active session with graceful process termination and port cooldown.
   Future<void> stopSession(String windowId) async {
     final session = _activeSessions.remove(windowId);
     if (session != null) {
       final proc = session.process;
       if (proc != null) {
         try {
-          // Gracefully request scrcpy shutdown so phone scrcpy-server releases sockets
-          proc.kill(ProcessSignal.sigterm);
-          await proc.exitCode.timeout(
-            const Duration(milliseconds: 600),
-            onTimeout: () {
-              proc.kill(ProcessSignal.sigkill);
-              return -1;
-            },
-          );
+          await PlatformAdapter.killProcess(proc);
         } catch (e) {
           debugPrint(
               '[ScrcpyStreamService] Exception during process shutdown: $e');
@@ -281,59 +264,17 @@ class ScrcpyStreamService {
     }
   }
 
-  /// Resolves a secure path for the named FIFO pipe, preferring user-specific runtime dir ($XDG_RUNTIME_DIR).
-  String _getStreamPipePath(String safeId) {
-    final xdgRuntime = Platform.environment['XDG_RUNTIME_DIR'];
-    if (xdgRuntime != null && Directory(xdgRuntime).existsSync()) {
-      final dir = Directory('$xdgRuntime/opendex');
-      if (!dir.existsSync()) {
-        try {
-          dir.createSync(recursive: true);
-        } catch (_) {}
-      }
-      if (dir.existsSync()) {
-        return '$xdgRuntime/opendex/stream_$safeId.mkv';
-      }
-    }
-    return '/tmp/opendex_stream_$safeId.mkv';
-  }
-
   /// Permanently removes the FIFO pipe file when window is destroyed.
   void cleanupPipe(String windowId, [String? specificPipe]) {
-    try {
-      if (specificPipe != null) {
-        final f = File(specificPipe);
-        if (f.existsSync()) {
-          try {
-            f.deleteSync();
-          } catch (_) {}
-        }
-      }
-      final safeId = windowId.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_');
-      final xdgRuntime = Platform.environment['XDG_RUNTIME_DIR'];
-      final dirs = [
-        if (xdgRuntime != null) Directory('$xdgRuntime/opendex'),
-        Directory('/tmp'),
-      ];
-      for (final dir in dirs) {
-        if (dir.existsSync()) {
-          for (final entity in dir.listSync()) {
-            if (entity is File && entity.path.contains('stream_$safeId')) {
-              try {
-                entity.deleteSync();
-              } catch (_) {}
-            }
-          }
-        }
-      }
-    } catch (_) {}
+    final safeId = windowId.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_');
+    PlatformAdapter.cleanupStreamPipes(safeId, specificPipe);
   }
 
   /// Queries ADB for any active scrcpy virtual display ID
   Future<int?> getVirtualDisplayId(String serial) async {
     try {
       final res = await Process.run(
-          'adb', ['-s', serial, 'shell', 'dumpsys', 'display']);
+          PlatformAdapter.adbExecutable, ['-s', serial, 'shell', 'dumpsys', 'display']);
       final out = res.stdout as String;
       final matches = RegExp(r'displayId=(\d+)[^,\n]*uniqueId=[^,\n]*scrcpy')
           .allMatches(out);
@@ -352,7 +293,7 @@ class ScrcpyStreamService {
     }
     if (serial != null) {
       try {
-        await Process.run('adb', [
+        await Process.run(PlatformAdapter.adbExecutable, [
           '-s',
           serial,
           'shell',
