@@ -14,7 +14,12 @@ class ScrcpyClient:
     """Wrapper around the scrcpy executable."""
 
     def __init__(self, scrcpy_path: Optional[str] = None) -> None:
-        self.scrcpy_path = scrcpy_path or shutil.which("scrcpy") or "scrcpy"
+        self.scrcpy_path = (
+            scrcpy_path
+            or shutil.which("scrcpy")
+            or shutil.which("scrcpy.exe")
+            or "scrcpy"
+        )
         self._process: Optional[subprocess.Popen] = None
 
     def is_available(self) -> bool:

@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'services/adb_service.dart';
 import 'views/dex_desktop_screen.dart';
@@ -10,6 +11,19 @@ void main(List<String> args) {
   runApp(const OpenAndroidDexApp());
 }
 
+/// Custom scroll behavior enabling two-finger trackpad, mouse, and touch scrolling everywhere.
+class DesktopScrollBehavior extends MaterialScrollBehavior {
+  const DesktopScrollBehavior();
+
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+        PointerDeviceKind.touch,
+        PointerDeviceKind.mouse,
+        PointerDeviceKind.trackpad,
+        PointerDeviceKind.stylus,
+      };
+}
+
 class OpenAndroidDexApp extends StatelessWidget {
   const OpenAndroidDexApp({super.key});
 
@@ -18,6 +32,7 @@ class OpenAndroidDexApp extends StatelessWidget {
     return MaterialApp(
       title: 'Open Android Dex',
       debugShowCheckedModeBanner: false,
+      scrollBehavior: const DesktopScrollBehavior(),
       themeMode: ThemeMode.dark,
       darkTheme: ThemeData(
         brightness: Brightness.dark,

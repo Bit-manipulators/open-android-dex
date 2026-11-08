@@ -25,7 +25,7 @@ class AdbClient:
     """Thin wrapper around the adb command-line tool."""
 
     def __init__(self, adb_path: Optional[str] = None) -> None:
-        self.adb_path = adb_path or shutil.which("adb") or "adb"
+        self.adb_path = adb_path or shutil.which("adb") or shutil.which("adb.exe") or "adb"
 
     def _run(self, args: List[str], serial: Optional[str] = None) -> subprocess.CompletedProcess:
         cmd = [self.adb_path]
@@ -76,13 +76,19 @@ class AdbClient:
         return self._run(["shell", "input", "tap", str(x), str(y)], serial=serial)
 
     def swipe(
-        self, serial: str, x1: int, y1: int, x2: int, y2: int
+        self,
+        serial: str,
+        x1: int,
+        y1: int,
+        x2: int,
+        y2: int,
+        duration: Optional[int] = None,
     ) -> subprocess.CompletedProcess:
-        """Swipe from one coordinate to another."""
-        return self._run(
-            ["shell", "input", "swipe", str(x1), str(y1), str(x2), str(y2)],
-            serial=serial,
-        )
+        """Swipe from one coordinate to another with optional duration in ms."""
+        args = ["shell", "input", "swipe", str(x1), str(y1), str(x2), str(y2)]
+        if duration is not None:
+            args.append(str(duration))
+        return self._run(args, serial=serial)
 
     def start_activity(
         self, serial: str, intent: str, data_uri: Optional[str] = None

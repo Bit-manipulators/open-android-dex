@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../models/app_info.dart';
+import '../services/adb_service.dart';
+import '../services/icon_extraction_service.dart';
 
 class AppIconWidget extends StatelessWidget {
   final AppInfo app;
@@ -22,7 +24,11 @@ class AppIconWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final effectiveIconSize = iconSize ?? (size * 0.52);
 
-    final path = app.iconPath;
+    final path = app.iconPath ??
+        IconExtractionService().getCachedIconPath(
+          app.packageName,
+          serial: AdbService().selectedDeviceSerial,
+        );
     final hasRealIcon =
         path != null && path.isNotEmpty && File(path).existsSync();
 

@@ -189,7 +189,7 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog>
   }
 
   Future<void> _handleWiredSelect(String serial) async {
-    _adb.selectedDeviceSerial = serial;
+    _adb.selectDevice(serial);
     Navigator.of(context).pop();
     widget.onConnected?.call();
   }

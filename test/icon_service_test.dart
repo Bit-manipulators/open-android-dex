@@ -43,5 +43,33 @@ void main() {
         }
       }
     });
+
+    test('getCachedIconPath isolates per-device serial cache', () {
+      const serialA = 'device_A_123';
+      const serialB = 'device_B_456';
+      final devDirA = service.getDeviceIconCacheDirectory(serialA);
+      service.getDeviceIconCacheDirectory(serialB);
+
+      final iconA = File('$devDirA/com.test.multi.png');
+      iconA.writeAsBytesSync(List.filled(200, 1));
+
+      try {
+        expect(service.getCachedIconPath('com.test.multi', serial: serialA),
+            equals(iconA.path));
+        expect(service.getCachedIconPath('com.test.multi', serial: serialB),
+            isNull);
+      } finally {
+        if (iconA.existsSync()) iconA.deleteSync();
+      }
+    });
+
+    test('sanitizeSerial cleans colons and special characters', () {
+      expect(IconExtractionService.sanitizeSerial('192.168.1.100:5555'),
+          equals('192_168_1_100_5555'));
+      expect(
+          IconExtractionService.sanitizeSerial(
+              'adb-ZD222H7659-gUr5K7._adb-tls-connect._tcp'),
+          equals('adb-ZD222H7659-gUr5K7__adb-tls-connect__tcp'));
+    });
   });
 }

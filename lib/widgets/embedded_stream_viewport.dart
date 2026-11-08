@@ -243,6 +243,7 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
     final mapped = _mapLocalToVideo(e.localPosition, constraints);
     if (_adb.isDemoMode) return;
     _touchInput.onPointerDown(
+      pointerId: e.pointer,
       localX: mapped.dx,
       localY: mapped.dy,
     );
@@ -254,8 +255,10 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
     final session = _streamService.getSession(widget.window.id);
     final devW = session?.targetWidth ?? widget.window.width.toInt();
     final devH = session?.targetHeight ?? widget.window.height.toInt();
+    final serial = session?.serial ?? _adb.selectedDeviceSerial;
     _touchInput.onPointerMove(
-      serial: _adb.selectedDeviceSerial,
+      pointerId: e.pointer,
+      serial: serial,
       displayId: session?.displayId,
       currentX: mapped.dx,
       currentY: mapped.dy,
@@ -272,11 +275,77 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
     final session = _streamService.getSession(widget.window.id);
     final devW = session?.targetWidth ?? widget.window.width.toInt();
     final devH = session?.targetHeight ?? widget.window.height.toInt();
+    final serial = session?.serial ?? _adb.selectedDeviceSerial;
     _touchInput.onPointerUp(
-      serial: _adb.selectedDeviceSerial,
+      pointerId: e.pointer,
+      serial: serial,
       displayId: session?.displayId,
       endX: mapped.dx,
       endY: mapped.dy,
+      viewportWidth: constraints.maxWidth,
+      viewportHeight: constraints.maxHeight,
+      deviceWidth: devW,
+      deviceHeight: devH,
+    );
+  }
+
+  void _onPointerCancel(PointerCancelEvent e, BoxConstraints constraints) {
+    if (_adb.isDemoMode) return;
+    _touchInput.onPointerCancel(pointerId: e.pointer);
+  }
+
+  void _onPointerPanZoomStart(
+      PointerPanZoomStartEvent e, BoxConstraints constraints) {
+    _focusNode.requestFocus();
+    if (_adb.isDemoMode) return;
+    final mapped = _mapLocalToVideo(e.localPosition, constraints);
+    final session = _streamService.getSession(widget.window.id);
+    final devW = session?.targetWidth ?? widget.window.width.toInt();
+    final devH = session?.targetHeight ?? widget.window.height.toInt();
+    final serial = session?.serial ?? _adb.selectedDeviceSerial;
+    _touchInput.onPointerPanZoomStart(
+      serial: serial,
+      displayId: session?.displayId,
+      localX: mapped.dx,
+      localY: mapped.dy,
+      viewportWidth: constraints.maxWidth,
+      viewportHeight: constraints.maxHeight,
+      deviceWidth: devW,
+      deviceHeight: devH,
+    );
+  }
+
+  void _onPointerPanZoomUpdate(
+      PointerPanZoomUpdateEvent e, BoxConstraints constraints) {
+    if (_adb.isDemoMode) return;
+    final mapped = _mapLocalToVideo(e.localPosition, constraints);
+    final session = _streamService.getSession(widget.window.id);
+    final devW = session?.targetWidth ?? widget.window.width.toInt();
+    final devH = session?.targetHeight ?? widget.window.height.toInt();
+    final serial = session?.serial ?? _adb.selectedDeviceSerial;
+    _touchInput.onPointerPanZoomUpdate(
+      serial: serial,
+      displayId: session?.displayId,
+      panDelta: e.panDelta,
+      localX: mapped.dx,
+      localY: mapped.dy,
+      viewportWidth: constraints.maxWidth,
+      viewportHeight: constraints.maxHeight,
+      deviceWidth: devW,
+      deviceHeight: devH,
+    );
+  }
+
+  void _onPointerPanZoomEnd(
+      PointerPanZoomEndEvent e, BoxConstraints constraints) {
+    if (_adb.isDemoMode) return;
+    final session = _streamService.getSession(widget.window.id);
+    final devW = session?.targetWidth ?? widget.window.width.toInt();
+    final devH = session?.targetHeight ?? widget.window.height.toInt();
+    final serial = session?.serial ?? _adb.selectedDeviceSerial;
+    _touchInput.onPointerPanZoomEnd(
+      serial: serial,
+      displayId: session?.displayId,
       viewportWidth: constraints.maxWidth,
       viewportHeight: constraints.maxHeight,
       deviceWidth: devW,
@@ -290,9 +359,11 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
       final session = _streamService.getSession(widget.window.id);
       final devW = session?.targetWidth ?? widget.window.width.toInt();
       final devH = session?.targetHeight ?? widget.window.height.toInt();
+      final serial = session?.serial ?? _adb.selectedDeviceSerial;
       _touchInput.sendScroll(
-        serial: _adb.selectedDeviceSerial,
+        serial: serial,
         displayId: session?.displayId,
+        scrollDeltaX: e.scrollDelta.dx,
         scrollDeltaY: e.scrollDelta.dy,
         localX: mapped.dx,
         localY: mapped.dy,
@@ -389,7 +460,13 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
               onPointerDown: (e) => _onPointerDown(e, constraints),
               onPointerMove: (e) => _onPointerMove(e, constraints),
               onPointerUp: (e) => _onPointerUp(e, constraints),
+              onPointerCancel: (e) => _onPointerCancel(e, constraints),
               onPointerSignal: (e) => _onPointerSignal(e, constraints),
+              onPointerPanZoomStart: (e) =>
+                  _onPointerPanZoomStart(e, constraints),
+              onPointerPanZoomUpdate: (e) =>
+                  _onPointerPanZoomUpdate(e, constraints),
+              onPointerPanZoomEnd: (e) => _onPointerPanZoomEnd(e, constraints),
               child: Stack(
                 children: [
                   // Viewport Canvas: Clean Cropped Live Texture or Connecting Indicator

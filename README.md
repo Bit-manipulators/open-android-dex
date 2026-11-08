@@ -2,12 +2,13 @@
 
 [![CI](https://github.com/Bit-manipulators/open-android-dex/actions/workflows/ci.yml/badge.svg)](https://github.com/Bit-manipulators/open-android-dex/actions)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE)
-[![Platform: Linux](https://img.shields.io/badge/Platform-Linux%20(X11%20%7C%20Wayland)-teal.svg)](#requirements)
+[![Platform: Linux & Windows 11](https://img.shields.io/badge/Platform-Linux%20(X11%20%7C%20Wayland)%20%7C%20Windows%2011-teal.svg)](#system-requirements)
+[![Packaging: AppImage & Setup](https://img.shields.io/badge/Packages-AppImage%20%7C%20Setup.exe%20%7C%20Portable-orange.svg)](#installation--release-packages)
 [![Android: 10 - 16](https://img.shields.io/badge/Android-API%2029--36-green.svg)](#android-device-support)
 [![Good First Issues](https://img.shields.io/badge/PRs-Welcome-brightgreen.svg)](docs/GOOD_FIRST_ISSUES.md)
 [![Dev Containers](https://img.shields.io/badge/Dev%20Containers-Ready-blue.svg)](.devcontainer)
 
-An open-source desktop environment that transforms your Android smartphone or tablet into a multi-window workstation under **Linux** (Wayland and X11) — featuring resizable floating windows, an interactive DeX taskbar, app drawer, low-latency screen streaming, and keyboard/mouse input mapping.
+An open-source desktop environment that transforms your Android smartphone or tablet into a multi-window workstation under **Windows 11** and **Linux** (Wayland and X11) — featuring resizable floating windows, an interactive DeX taskbar, app drawer, low-latency screen streaming, and keyboard/mouse/touchpad input mapping.
 
 <p align="center">
   <img src="video_and_screenshorts/open_android_dex_demo.gif" alt="Open Android DeX Live Demo" width="100%" style="border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);" />
@@ -25,15 +26,22 @@ An open-source desktop environment that transforms your Android smartphone or ta
 ## 📑 Table of Contents
 
 - [Overview & Goals](#overview--goals)
+- [Installation & Release Packages](#-installation--release-packages)
+  - [Windows 11 (Installer & Portable)](#-windows-11-x64)
+  - [Linux (Portable AppImage)](#-linux-x86_64-appimage)
 - [Feature Status Matrix](#feature-status-matrix)
 - [Architecture & Shell Options](#architecture--shell-options)
-  - [1. Flutter Desktop Compositor (Primary)](#1-flutter-desktop-compositor-primary)
-  - [2. Python / GTK4 Shell (Lightweight Fallback)](#2-python--gtk4-shell-lightweight-fallback)
+  - [1. Flutter Desktop Compositor (Primary: Linux & Windows 11)](#1-flutter-desktop-compositor-primary-linux--windows-11)
+  - [2. Python / GTK4 Shell (Lightweight Fallback: Linux)](#2-python--gtk4-shell-lightweight-fallback-linux)
   - [3. Android Companion App](#3-android-companion-app)
 - [System Requirements](#system-requirements)
+  - [Windows 11 Host](#windows-11-host)
+  - [Linux Host](#linux-host)
+  - [Android Device Support](#android-device-support)
 - [Quick Start Guide](#quick-start-guide)
-  - [Running the Flutter Desktop Shell](#running-the-flutter-desktop-shell)
-  - [Running the Python / GTK4 Shell](#running-the-python--gtk4-shell)
+  - [Running on Windows 11](#running-on-windows-11)
+  - [Running the Linux AppImage](#running-the-linux-appimage)
+  - [Building from Source](#building-from-source)
 - [Testing & Quality Assurance](#testing--quality-assurance)
 - [Provenance & Reverse-Engineering Transparency](#provenance--reverse-engineering-transparency)
 - [Documentation & Contributing](#documentation--contributing)
@@ -43,13 +51,33 @@ An open-source desktop environment that transforms your Android smartphone or ta
 
 ## Overview & Goals
 
-**Open Android DeX** aims to deliver a modern, multi-window desktop computing experience powered directly by your personal Android phone connected to a Linux laptop or external monitor.
+**Open Android DeX** aims to deliver a modern, multi-window desktop computing experience powered directly by your personal Android phone connected to a **Windows 11** or **Linux** laptop or external monitor.
 
 ### Key Project Objectives
 * **True Multi-Window Workspace**: Float, drag, resize, maximize, and minimize independent Android applications across an expansive desktop canvas.
 * **Low Latency & High Frame Rate**: Decode 60 FPS video streams in-process directly to GPU textures via hardware-accelerated pipelines.
+* **Universal Desktop Support**: Native multi-window experience on both **Windows 11 (x64)** and **Linux** (Wayland & X11).
 * **Clean-Room Open Source**: 100% original code licensed under GPL-3.0, without proprietary binaries, proprietary libraries, or vendor lock-in.
 * **Dual Architecture Flexibility**: A modern, feature-rich Flutter compositor alongside an ultra-lightweight GTK4 shell.
+
+---
+
+## 📦 Installation & Release Packages
+
+Precompiled, validated releases are distributed via GitHub Releases:
+
+### 🪟 Windows 11 (x64)
+* **Installer:** [`Open-Android-DeX-Windows-x64-Setup.exe`](https://github.com/Bit-manipulators/open-android-dex/releases) — Standard setup wizard with Desktop & Start Menu integration and uninstaller.
+* **Portable Package:** [`Open-Android-DeX-Windows-x64-Portable.zip`](https://github.com/Bit-manipulators/open-android-dex/releases) — Standalone folder; extract and launch `open_android_dex.exe` anywhere with zero installation.
+* 📖 Detailed setup & driver instructions: [`docs/WINDOWS_SETUP.md`](docs/WINDOWS_SETUP.md)
+
+### 🐧 Linux (x86_64 AppImage)
+* **Portable AppImage:** [`Open-Android-DeX-Linux-x86_64.AppImage`](https://github.com/Bit-manipulators/open-android-dex/releases) — Self-contained executable bundling all required Flutter and multimedia shared libraries.
+  ```bash
+  chmod +x Open-Android-DeX-Linux-x86_64.AppImage
+  ./Open-Android-DeX-Linux-x86_64.AppImage
+  ```
+* 📖 Comprehensive guide & desktop integration: [`docs/APPIMAGE_GUIDE.md`](docs/APPIMAGE_GUIDE.md)
 
 ---
 
@@ -57,16 +85,19 @@ An open-source desktop environment that transforms your Android smartphone or ta
 
 | Feature | Status | Description |
 | :--- | :--- | :--- |
+| **Windows 11 (x64) Compositor** | ✅ **Implemented** | Native Win32 desktop runner, texture streaming, and installer |
+| **Linux AppImage Distribution** | ✅ **Implemented** | Standalone portable bundle with Wayland and X11 support |
 | **8-Way Window Resizing** | ✅ **Implemented** | Smooth edge and corner dragging with geometry persistence |
 | **Z-Index Window Ordering** | ✅ **Implemented** | Active window elevation, focus switching, and drop shadows |
-| **In-Process Video Textures** | ✅ **Implemented** | Native C++ FFmpeg decoding from headless scrcpy pipes |
+| **In-Process Video Textures** | ✅ **Implemented** | Native C++ decoding from headless scrcpy pipelines |
+| **Trackpad & Touchpad Scrolling** | ✅ **Implemented** | Two-finger smooth scrolling and natural pan/zoom gestures |
 | **DeX Bottom Taskbar** | ✅ **Implemented** | 9-dot launcher, Android navigation (Back, Home, Recents), clock |
 | **App Drawer & Search** | ✅ **Implemented** | Dynamic package querying with real-time text filtering |
 | **Staged Boot Sequencer** | ✅ **Implemented** | 5-step detection and health check (ADB → Device → Link → scrcpy) |
 | **Media Volume Control** | ✅ **Implemented** | Hardware volume stepping and mute toggles via ADB |
 | **Android Virtual Displays** | 🟡 **Partially Implemented** | Uses `--new-display` on Android 14+; auto-adapts on resize |
 | **Real-Time Notification Sync** | 🟡 **Partially Implemented** | `dumpsys` polling in desktop; Companion daemon in Kotlin |
-| **Audio Forwarding to Host** | 🔵 **Planned** | PipeWire / PulseAudio integration via scrcpy audio tunnel |
+| **Audio Forwarding to Host** | 🔵 **Planned** | PipeWire / PulseAudio / WASAPI integration via scrcpy tunnel |
 | **Bidirectional Clipboard Sync** | 🔵 **Planned** | Automatic copy-paste synchronization between host and phone |
 | **Direct Control Socket Touch** | 🧪 **Experimental** | Direct binary touch packets over scrcpy control port |
 
@@ -94,12 +125,14 @@ Open Android DeX provides two distinct desktop shells tailored for different use
 
 For full technical diagrams, data flows, and IPC details, refer to [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
-### 1. Flutter Desktop Compositor (Primary)
-* **Code Location:** [`lib/`](lib/) and [`linux/`](linux/)
-* **Window Engine:** Draggable and 8-direction resizable window frames with active focus management and minimize/maximize memory.
-* **Streaming Engine:** Headless `scrcpy` writes live H.264 video to a named pipe (`$XDG_RUNTIME_DIR/opendex/`), which [`stream_texture.cc`](linux/stream_texture.cc) decodes into an `FlPixelBufferTexture` rendered in real-time.
+### 1. Flutter Desktop Compositor (Primary: Linux & Windows 11)
+* **Code Location:** [`lib/`](lib/), [`linux/`](linux/), and [`windows/`](windows/)
+* **Window Engine:** Draggable and 8-direction resizable window frames with active focus management, smooth two-finger trackpad/touchpad scrolling, and minimize/maximize memory.
+* **Streaming Engine:**
+  - **Linux:** Headless `scrcpy` writes live H.264 video to an IPC named pipe (`$XDG_RUNTIME_DIR/opendex/`), which [`stream_texture.cc`](linux/stream_texture.cc) decodes into an `FlPixelBufferTexture` rendered in real-time.
+  - **Windows 11:** Headless `scrcpy.exe` streams to a Win32 Named Pipe (`\\.\pipe\opendex_stream_*`), which [`stream_texture_windows.cpp`](windows/runner/stream_texture_windows.cpp) decodes into a GPU-accelerated `flutter::PixelBufferTexture`.
 
-### 2. Python / GTK4 Shell (Lightweight Fallback)
+### 2. Python / GTK4 Shell (Lightweight Fallback: Linux)
 * **Code Location:** [`app.py`](app.py) and supporting Python modules
 * **Model:** Pure PyGObject GTK4 desktop launcher with status bar, app drawer, and system dock.
 * **Streaming:** Launches `scrcpy` in an external standalone window matching host compositor conventions.
@@ -112,14 +145,23 @@ For full technical diagrams, data flows, and IPC details, refer to [`docs/ARCHIT
 
 ## System Requirements
 
-### Host Linux PC
-* **Operating System:** Linux (Arch Linux, Ubuntu 22.04+, Debian 12+, Fedora 38+)
+### Windows 11 Host
+* **Operating System:** Windows 11 (64-bit x64) or Windows 10 Build 19041+
+* **Tools:**
+  * `adb.exe` ([Android SDK Platform-Tools](https://developer.android.com/tools/releases/platform-tools))
+  * `scrcpy.exe` ([Genymobile scrcpy 2.0+](https://github.com/Genymobile/scrcpy/releases))
+  * OEM Android USB Drivers (Google, Samsung, Motorola, etc.)
+  * (For building from source) Visual Studio 2022 with C++ desktop workload & Flutter SDK 3.24+
+
+### Linux Host
+* **Operating System:** Linux (Arch Linux, Ubuntu 20.04+, Debian 11+, Fedora 36+)
 * **Display Server:** Wayland (Hyprland, Sway, GNOME, KDE) or X11
 * **Tools:**
   * `adb` (Android Debug Bridge, version 31+)
   * `scrcpy` (version 2.0 - 5.0+)
+  * `libfuse2` (for running the AppImage; or launch with `--appimage-extract-and-run`)
   * Python 3.10+ (for Python GTK shell and test suite)
-  * Flutter SDK 3.24+ (for building the Flutter shell from source)
+  * Flutter SDK 3.24+ (for building from source)
 
 ### Android Device Support
 * Any smartphone, tablet, or handheld running **Android 10 through Android 16**.
@@ -144,48 +186,45 @@ python3 app.py --demo
 
 ---
 
-### 1. Automated Dependency Setup
+### Running on Windows 11
 
-To automatically detect your Linux distribution and install all system development packages:
+1. Download and run **`Open-Android-DeX-Windows-x64-Setup.exe`** (or extract the portable ZIP).
+2. Connect your phone via USB and enable USB Debugging.
+3. Launch Open Android DeX from your Start Menu or Desktop.
+4. See [`docs/WINDOWS_SETUP.md`](docs/WINDOWS_SETUP.md) for full driver and configuration details.
 
-```bash
-./scripts/dev_setup.sh
-```
+### Running the Linux AppImage
 
-Or install manually:
-
-**Debian / Ubuntu:**
-```bash
-sudo apt update
-sudo apt install -y adb scrcpy libgtk-4-dev libgtk-3-dev python3-gi gir1.2-gtk-4.0 \
-    pkg-config cmake ninja-build clang libavcodec-dev libavformat-dev libswscale-dev libavutil-dev
-```
-
-**Arch Linux:**
-```bash
-sudo pacman -S android-tools scrcpy gtk4 gtk3 python-gobject cmake ninja clang ffmpeg
-```
-
-**Fedora:**
-```bash
-sudo dnf install -y android-tools scrcpy gtk4-devel gtk3-devel python3-gobject \
-    cmake ninja-build clang ffmpeg-free-devel
-```
-
-### 2. Connect Your Phone
-1. Connect your Android phone to your PC via a USB-C data cable.
-2. When prompted on your phone, tap **"Always allow from this computer"** to authorize USB debugging.
-3. Verify connection:
+1. Download **`Open-Android-DeX-Linux-x86_64.AppImage`**.
+2. Run:
    ```bash
-   adb devices
+   chmod +x Open-Android-DeX-Linux-x86_64.AppImage
+   ./Open-Android-DeX-Linux-x86_64.AppImage
    ```
+3. See [`docs/APPIMAGE_GUIDE.md`](docs/APPIMAGE_GUIDE.md) for desktop integration and troubleshooting.
 
 ---
 
-### Running the Flutter Desktop Shell
+### Building from Source
 
+#### Building the Linux AppImage
 ```bash
+./scripts/build_appimage.sh
+```
+
+#### Building the Windows 11 Application
+```powershell
+# From PowerShell on Windows:
+.\scripts\build_windows.ps1
+```
+
+#### Running the Flutter Desktop Shell from Source
+```bash
+# On Linux:
 ./run_flutter_dex.sh
+
+# On Windows:
+flutter run -d windows
 ```
 
 Or via Flutter CLI:
@@ -244,6 +283,9 @@ For detailed security review and threat models, see [`docs/SECURITY.md`](docs/SE
 
 Comprehensive architectural and developer guides are available in `docs/`:
 
+* 🪟 **[Windows 11 Setup Guide](docs/WINDOWS_SETUP.md)**: Installation, ADB setup, USB drivers, and troubleshooting on Windows 11.
+* 🐧 **[Linux AppImage Guide](docs/APPIMAGE_GUIDE.md)**: Running, desktop integration, and building portable AppImages.
+* 📑 **[Technical Compatibility Report](docs/TECHNICAL_COMPATIBILITY_REPORT.md)**: Deep architectural analysis of Windows 11 and Linux cross-platform layer.
 * 🌟 **[Good First Issues for Contributors](docs/GOOD_FIRST_ISSUES.md)**: 5 bite-sized, ready-to-solve starter issues with code pointers.
 * 📢 **[Community Outreach & Launch Kit](docs/COMMUNITY_SUBMISSIONS.md)**: Ready-to-use posts for Reddit, Hacker News, and Awesome lists.
 * 📖 **[Architecture & Data Flow](docs/ARCHITECTURE.md)**: Video decoding, IPC, window management.

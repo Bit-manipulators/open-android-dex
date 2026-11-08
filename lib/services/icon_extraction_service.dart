@@ -1,6 +1,22 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'platform_adapter.dart';
+
+/// Event payload emitted whenever a single real-time icon has been extracted
+/// and pulled from a connected Android device.
+class SingleIconUpdate {
+  final String serial;
+  final String packageName;
+  final String iconPath;
+
+  const SingleIconUpdate({
+    required this.serial,
+    required this.packageName,
+    required this.iconPath,
+  });
+}
 
 class IconExtractionService {
   static final IconExtractionService _instance =
@@ -8,19 +24,39 @@ class IconExtractionService {
   factory IconExtractionService() => _instance;
   IconExtractionService._internal();
 
-  bool _isExtracting = false;
+  /// Track actively extracting serials independently to allow multi-device extraction.
+  final Set<String> _extractingSerials = {};
+
+  final _singleIconController = StreamController<SingleIconUpdate>.broadcast();
+  Stream<SingleIconUpdate> get onSingleIconExtracted =>
+      _singleIconController.stream;
+
   final _iconUpdatesController = StreamController<String>.broadcast();
   Stream<String> get onIconExtracted => _iconUpdatesController.stream;
 
+  bool isExtracting([String? serial]) => serial == null
+      ? _extractingSerials.isNotEmpty
+      : _extractingSerials.contains(serial);
+
+  /// Cleans serial numbers for safe filesystem and directory usage.
+  static String sanitizeSerial(String serial) =>
+      serial.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
+
   /// Resolves the host system cache directory for app icons.
   String get iconCacheDirectory {
-    final xdgCache = Platform.environment['XDG_CACHE_HOME'];
-    final home = Platform.environment['HOME'] ??
-        Platform.environment['USERPROFILE'] ??
-        '/tmp';
-    final base =
-        (xdgCache != null && xdgCache.isNotEmpty) ? xdgCache : '$home/.cache';
-    final dir = Directory('$base/open_android_dex/icons');
+    final dir = Directory('${PlatformAdapter.cacheDirectory}/icons');
+    if (!dir.existsSync()) {
+      try {
+        dir.createSync(recursive: true);
+      } catch (_) {}
+    }
+    return dir.path;
+  }
+
+  /// Resolves device-specific host cache directory to avoid icon collision across connected devices.
+  String getDeviceIconCacheDirectory(String serial) {
+    final safe = sanitizeSerial(serial);
+    final dir = Directory('$iconCacheDirectory/$safe');
     if (!dir.existsSync()) {
       try {
         dir.createSync(recursive: true);
@@ -30,7 +66,15 @@ class IconExtractionService {
   }
 
   /// Returns the cached icon path on the host filesystem if available.
-  String? getCachedIconPath(String packageName) {
+  /// Checks device-specific cache first, then falls back to global cache.
+  String? getCachedIconPath(String packageName, {String? serial}) {
+    if (serial != null && serial.isNotEmpty) {
+      final safe = sanitizeSerial(serial);
+      final devFile = File('$iconCacheDirectory/$safe/$packageName.png');
+      if (devFile.existsSync() && devFile.lengthSync() > 100) {
+        return devFile.path;
+      }
+    }
     final file = File('$iconCacheDirectory/$packageName.png');
     if (file.existsSync() && file.lengthSync() > 100) {
       return file.path;
@@ -40,10 +84,12 @@ class IconExtractionService {
 
   /// Finds the local dex helper binary file on the host machine.
   String? _resolveLocalDexPath() {
+    final appDir = PlatformAdapter.appDirectory;
     final candidates = [
       'assets/bin/dex_icon_dumper.dex',
       '${Directory.current.path}/assets/bin/dex_icon_dumper.dex',
-      '${Platform.resolvedExecutable.replaceAll(RegExp(r'[^/\\]+$'), '')}data/flutter_assets/assets/bin/dex_icon_dumper.dex',
+      '$appDir/data/flutter_assets/assets/bin/dex_icon_dumper.dex',
+      '$appDir\\data\\flutter_assets\\assets\\bin\\dex_icon_dumper.dex',
       '/tmp/build_dex/classes.dex',
     ];
     for (final path in candidates) {
@@ -55,14 +101,16 @@ class IconExtractionService {
     return null;
   }
 
-  /// Extracts real icons from the connected Android device in the background.
+  /// Extracts real icons from the connected Android device in real time,
+  /// streaming newly pulled icons as they are dumped without blocking other devices.
   Future<void> extractIconsForDevice(
       String serial, List<String> packageNames) async {
-    if (_isExtracting) return;
+    if (_extractingSerials.contains(serial)) return;
 
-    // Check which packages actually need extraction
-    final missingPackages =
-        packageNames.where((pkg) => getCachedIconPath(pkg) == null).toList();
+    // Check which packages actually need extraction for this device
+    final missingPackages = packageNames
+        .where((pkg) => getCachedIconPath(pkg, serial: serial) == null)
+        .toList();
     if (missingPackages.isEmpty) {
       return;
     }
@@ -74,26 +122,28 @@ class IconExtractionService {
       return;
     }
 
-    _isExtracting = true;
+    _extractingSerials.add(serial);
     try {
-      const remoteDex = '/data/local/tmp/opendex_dumper.dex';
-      const remoteOutputDir = '/data/local/tmp/opendex_icons';
+      final safeSerial = sanitizeSerial(serial);
+      final remoteDex = '/data/local/tmp/opendex_dumper_$safeSerial.dex';
+      final remoteOutputDir = '/data/local/tmp/opendex_icons_$safeSerial';
+      final hostDeviceDir = getDeviceIconCacheDirectory(serial);
+      final hostGlobalDir = iconCacheDirectory;
 
-      // 1. Push DEX helper to device
-      final pushRes =
-          await Process.run('adb', ['-s', serial, 'push', localDex, remoteDex]);
+      // 1. Push DEX helper to the specific device (-s serial)
+      final pushRes = await Process.run(PlatformAdapter.adbExecutable,
+          ['-s', serial, 'push', localDex, remoteDex]);
       if (pushRes.exitCode != 0) {
         debugPrint(
-            '[IconExtractionService] Failed to push helper dex: ${pushRes.stderr}');
-        _isExtracting = false;
+            '[IconExtractionService] Failed to push helper dex to $serial: ${pushRes.stderr}');
         return;
       }
 
-      // 2. Prepare remote output directory
-      await Process.run(
-          'adb', ['-s', serial, 'shell', 'mkdir', '-p', remoteOutputDir]);
+      // 2. Prepare remote output directory for this device
+      await Process.run(PlatformAdapter.adbExecutable,
+          ['-s', serial, 'shell', 'mkdir', '-p', remoteOutputDir]);
 
-      // 3. Run the dumper on the device via app_process
+      // 3. Launch the dumper via Process.start to stream icon creation in real time
       final runArgs = [
         '-s',
         serial,
@@ -105,36 +155,82 @@ class IconExtractionService {
         remoteOutputDir,
       ];
 
-      final runRes = await Process.run('adb', runArgs);
-      debugPrint(
-          '[IconExtractionService] app_process output: ${runRes.stdout}');
+      final process =
+          await Process.start(PlatformAdapter.adbExecutable, runArgs);
 
-      // 4. Pull all extracted icons from device into host cache
-      final hostDir = iconCacheDirectory;
-      final pullRes = await Process.run('adb', [
+      // Listen for ICON:<pkg>:<path> lines as they are dumped on device
+      final lineStream = process.stdout
+          .transform(utf8.decoder)
+          .transform(const LineSplitter());
+
+      await for (final rawLine in lineStream) {
+        final line = rawLine.trim();
+        if (line.startsWith('ICON:')) {
+          final parts = line.split(':');
+          if (parts.length >= 3) {
+            final pkg = parts[1].trim();
+            final remoteIconPath = parts.sublist(2).join(':').trim();
+
+            if (pkg.isNotEmpty && remoteIconPath.isNotEmpty) {
+              final targetDevPath = '$hostDeviceDir/$pkg.png';
+
+              // Pull this newly generated icon immediately to host in real time
+              final pullRes = await Process.run(PlatformAdapter.adbExecutable, [
+                '-s',
+                serial,
+                'pull',
+                remoteIconPath,
+                targetDevPath,
+              ]);
+
+              if (pullRes.exitCode == 0 && File(targetDevPath).existsSync()) {
+                // Also mirror to global cache for fast fallback
+                try {
+                  final globalPath = '$hostGlobalDir/$pkg.png';
+                  if (!File(globalPath).existsSync()) {
+                    File(targetDevPath).copySync(globalPath);
+                  }
+                } catch (_) {}
+
+                // Emit real-time single icon extraction event
+                _singleIconController.add(SingleIconUpdate(
+                  serial: serial,
+                  packageName: pkg,
+                  iconPath: targetDevPath,
+                ));
+              }
+            }
+          }
+        }
+      }
+
+      // Wait for app_process to finish
+      await process.exitCode;
+
+      // 4. Final safety pull of any remaining icons in the directory
+      await Process.run(PlatformAdapter.adbExecutable, [
         '-s',
         serial,
         'pull',
         '$remoteOutputDir/.',
-        hostDir,
+        hostDeviceDir,
       ]);
-      debugPrint(
-          '[IconExtractionService] Pulled icons to host: ${pullRes.stdout}');
 
       // 5. Cleanup temporary device files in the background
-      Process.run('adb', [
+      Process.run(PlatformAdapter.adbExecutable, [
         '-s',
         serial,
         'shell',
         'rm -rf $remoteOutputDir $remoteDex',
       ]);
 
-      // 6. Notify that new icons are ready
+      // 6. Notify that extraction for this device is complete
       _iconUpdatesController.add(serial);
     } catch (e) {
-      debugPrint('[IconExtractionService] Exception during extraction: $e');
+      debugPrint(
+          '[IconExtractionService] Exception during extraction for $serial: $e');
     } finally {
-      _isExtracting = false;
+      _extractingSerials.remove(serial);
     }
   }
 }
