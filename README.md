@@ -76,12 +76,12 @@ An open-source desktop environment that transforms your Android smartphone or ta
 Precompiled, validated releases are distributed via GitHub Releases:
 
 ### 🪟 Windows 11 (x64)
-* **Installer:** [`Open-Android-DeX-Windows-x64-Setup.exe`](https://github.com/Bit-manipulators/open-android-dex/releases) — Standard setup wizard with Desktop & Start Menu integration and uninstaller.
-* **Portable Package:** [`Open-Android-DeX-Windows-x64-Portable.zip`](https://github.com/Bit-manipulators/open-android-dex/releases) — Standalone folder; extract and launch `open_android_dex.exe` anywhere with zero installation.
+* **Installer:** [`Open-Android-DeX-Windows-x64-Setup.exe`](https://github.com/Bit-manipulators/open-android-dex/releases/download/v1.0.0/Open-Android-DeX-Windows-x64-Setup.exe) — Standard setup wizard with Desktop & Start Menu integration and uninstaller.
+* **Portable Package:** [`Open-Android-DeX-Windows-x64-Portable.zip`](https://github.com/Bit-manipulators/open-android-dex/releases/download/v1.0.0/Open-Android-DeX-Windows-x64-Portable.zip) — Standalone folder; extract and launch `open_android_dex.exe` anywhere with zero installation.
 * 📖 Detailed setup & driver instructions: [`docs/WINDOWS_SETUP.md`](docs/WINDOWS_SETUP.md)
 
 ### 🐧 Linux (x86_64 AppImage)
-* **Portable AppImage:** [`Open-Android-DeX-Linux-x86_64.AppImage`](https://github.com/Bit-manipulators/open-android-dex/releases) — Self-contained executable bundling all required Flutter and multimedia shared libraries.
+* **Portable AppImage:** [`Open-Android-DeX-Linux-x86_64.AppImage`](https://github.com/Bit-manipulators/open-android-dex/releases/download/v1.0.0/Open-Android-DeX-Linux-x86_64.AppImage) — Self-contained executable bundling all required Flutter and multimedia shared libraries.
   ```bash
   chmod +x Open-Android-DeX-Linux-x86_64.AppImage
   ./Open-Android-DeX-Linux-x86_64.AppImage
