@@ -11,6 +11,15 @@
 An open-source desktop environment that transforms your Android smartphone or tablet into a multi-window workstation under **Windows 11** and **Linux** (Wayland and X11) — featuring resizable floating windows, an interactive DeX taskbar, app drawer, low-latency screen streaming, and keyboard/mouse/touchpad input mapping.
 
 <p align="center">
+  <a href="https://github.com/Bit-manipulators/open-android-dex/releases/download/v1.0.0/Open-Android-DeX-Linux-x86_64.AppImage">
+    <img src="https://img.shields.io/badge/Download-Linux%20AppImage-2ea44f?style=for-the-badge&logo=linux&logoColor=white" alt="Download Open Android DeX for Linux" />
+  </a>
+  <a href="https://github.com/Bit-manipulators/open-android-dex/releases/download/v1.0.0/Open-Android-DeX-Windows-x64-Setup.exe">
+    <img src="https://img.shields.io/badge/Download-Windows%2011-0078d4?style=for-the-badge&logo=windows&logoColor=white" alt="Download Open Android DeX for Windows 11" />
+  </a>
+</p>
+
+<p align="center">
   <img src="video_and_screenshorts/open_android_dex_demo.gif" alt="Open Android DeX Live Demo" width="100%" style="border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);" />
 </p>
 
