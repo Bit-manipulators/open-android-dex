@@ -26,21 +26,13 @@ Open Android DeX provides two official distribution formats for Windows 11:
 
 ## 2. Prerequisites & Dependencies
 
-To connect and mirror physical Android devices from Windows 11, the following host tools are required:
+Open Android DeX Windows releases (**Setup Installer** and **Portable ZIP**) automatically bundle Google Android Platform-Tools (`adb.exe`) and `scrcpy.exe` out of the box, offering a 100% zero-configuration setup.
 
-### 1. Android Debug Bridge (ADB)
-* **Recommended:** Download the official [Android SDK Platform-Tools for Windows](https://developer.android.com/tools/releases/platform-tools).
-* Extract to `C:\platform-tools` and add it to your user `PATH` environment variable.
-* Alternatively, Open Android DeX automatically looks for `adb.exe` in:
-  - `%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe`
-  - `C:\Program Files\Android\android-sdk\platform-tools\adb.exe`
-  - Application root folder or `platform-tools/` subfolder.
+If running from source without bundled binaries, Open Android DeX includes an automated **Setup Assistant**:
+* When launched without ADB or scrcpy, an in-app setup banner appears with a **"Install Tools Automatically (1-Click Setup)"** button.
+* Tools are downloaded and configured locally in `%LOCALAPPDATA%\OpenAndroidDeX\tools\` with zero administrative privileges or PATH edits needed.
 
-### 2. scrcpy (Screen Copy Engine)
-* Download the Windows release from [Genymobile/scrcpy](https://github.com/Genymobile/scrcpy/releases).
-* Extract and ensure `scrcpy.exe` is in your system `PATH` or placed in the Open Android DeX application directory.
-
-### 3. OEM USB Drivers
+### OEM USB Drivers
 * If your phone is not recognized by `adb devices`, install the appropriate USB driver for your phone brand:
   - **Google Pixel:** [Google USB Driver](https://developer.android.com/studio/run/win-usb)
   - **Samsung:** [Samsung Android USB Driver](https://developer.samsung.com/android-usb-driver)
@@ -105,7 +97,8 @@ The output artifacts will be placed in `build\release_artifacts\`:
 
 | Issue | Cause | Solution |
 | :--- | :--- | :--- |
-| **"No ADB device connected"** | USB debugging not authorized or missing driver | Run `adb devices` in PowerShell. If status is `unauthorized`, unlock your phone and accept the prompt. If device is missing, install the OEM USB driver. |
-| **Stream fails to open** | `scrcpy.exe` not found | Place `scrcpy.exe` in the application folder or add scrcpy directory to Windows `PATH`. |
+| **"No ADB device connected"** | USB debugging not authorized or missing driver | Run `adb devices` in PowerShell. If status is `unauthorized`, unlock your phone and tap *"Always allow from this computer"*. If device is missing, install the OEM USB driver. |
+| **Stream fails to open** | `scrcpy.exe` not found | Use the in-app 1-click Setup Assistant in the connection dialog, or place `scrcpy.exe` in the application folder. |
+| **Diagnostic Log File** | Troubleshooting crashes or connection issues | Logs are saved to `%LOCALAPPDATA%\OpenAndroidDeX\logs\opendex.log`. Click the **Logs** button in the connection dialog to view. |
 | **Windows SmartScreen warning** | Release is newly built and unsigned | Click *"More info"* → *"Run anyway"*. Open Android DeX is 100% open-source under GPL-3.0. |
 | **Two-finger scroll direction reversed** | Personal preference | The compositor supports natural scrolling by default; mouse wheel gestures automatically scroll vertically. |

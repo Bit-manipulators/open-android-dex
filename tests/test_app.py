@@ -62,3 +62,24 @@ def test_app_demo_mode():
     app._volume_down()
     app._send_key(3)
 
+
+def test_app_battery_visualizer_states():
+    import gi
+    gi.require_version("Gtk", "4.0")
+    from gi.repository import Gtk
+
+    app = OpenAndroidDex(demo_mode=True)
+    box = Gtk.Box()
+    box.add_css_class("desk-chip")
+    label = Gtk.Label(label="🔋 —")
+    box.append(label)
+    app._battery_box = box
+    app._battery_label = label
+
+    # 1. Demo mode sets charging pulse class and bolt icon
+    app._enter_demo_mode()
+    assert label.get_text() == "⚡ 94%"
+    assert box.has_css_class("desk-chip-charging")
+    assert not box.has_css_class("desk-chip-battery-low")
+
+

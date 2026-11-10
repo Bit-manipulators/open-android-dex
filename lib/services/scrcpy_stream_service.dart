@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'app_logger.dart';
 import 'platform_adapter.dart';
 
 enum ScrcpyDisplayMode {
@@ -62,6 +63,7 @@ class ScrcpyStreamService {
     required String windowId,
     required String packageName,
     required String serial,
+    String? pipePath,
     ScrcpyDisplayMode mode = ScrcpyDisplayMode.virtualDisplay,
     int width = 720,
     int height = 1280,
@@ -76,6 +78,7 @@ class ScrcpyStreamService {
       windowId: windowId,
       packageName: packageName,
       serial: serial,
+      pipePath: pipePath,
       mode: mode,
       width: width,
       height: height,
@@ -93,6 +96,7 @@ class ScrcpyStreamService {
     required String windowId,
     required String packageName,
     required String serial,
+    String? pipePath,
     required ScrcpyDisplayMode mode,
     required int width,
     required int height,
@@ -107,16 +111,17 @@ class ScrcpyStreamService {
 
     final safeId = windowId.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_');
     final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final pipePath = PlatformAdapter.getStreamPipePath('${safeId}_$timestamp');
+    final resolvedPipePath =
+        pipePath ?? PlatformAdapter.getStreamPipePath('${safeId}_$timestamp');
 
     // 2. Ensure a clean, fresh FIFO pipe or streaming channel
-    await PlatformAdapter.createStreamPipe(pipePath);
+    await PlatformAdapter.createStreamPipe(resolvedPipePath);
 
     final session = ScrcpyStreamSession(
       id: windowId,
       packageName: packageName,
       serial: serial,
-      pipePath: pipePath,
+      pipePath: resolvedPipePath,
       mode: mode,
       targetWidth: evenW,
       targetHeight: evenH,
@@ -171,8 +176,8 @@ class ScrcpyStreamService {
     } catch (_) {}
 
     try {
-      debugPrint(
-          '[ScrcpyStreamService] Starting headless scrcpy pipe stream (${width}x$height) to $pipePath');
+      AppLogger.info(
+          '[ScrcpyStreamService] Starting headless scrcpy pipe stream (${width}x$height) to $resolvedPipePath');
       final proc = await Process.start(PlatformAdapter.scrcpyExecutable, args);
 
       void handleOutput(String line) {
@@ -181,7 +186,7 @@ class ScrcpyStreamService {
           final id = int.tryParse(match.group(1)!);
           if (id != null) {
             session.displayId = id;
-            debugPrint(
+            AppLogger.info(
                 '[ScrcpyStreamService] Parsed virtual display id=$id for window $windowId');
             _sessionStateController.add(session);
           }
@@ -192,14 +197,14 @@ class ScrcpyStreamService {
           .transform(utf8.decoder)
           .transform(const LineSplitter())
           .listen((line) {
-        debugPrint('[scrcpy stdout] $line');
+        AppLogger.info('[scrcpy stdout] $line');
         handleOutput(line);
       });
       proc.stderr
           .transform(utf8.decoder)
           .transform(const LineSplitter())
           .listen((line) {
-        debugPrint('[scrcpy stderr] $line');
+        AppLogger.warning('[scrcpy stderr] $line');
         handleOutput(line);
       });
 
@@ -213,7 +218,7 @@ class ScrcpyStreamService {
       _sessionStateController.add(session);
 
       proc.exitCode.then((code) {
-        debugPrint(
+        AppLogger.info(
             '[ScrcpyStreamService] scrcpy exited with code $code for $windowId');
         session.isRunning = false;
         _activeSessions.remove(windowId);
@@ -228,15 +233,15 @@ class ScrcpyStreamService {
         final fallbackId = await getVirtualDisplayId(serial);
         if (fallbackId != null) {
           session.displayId = fallbackId;
-          debugPrint(
+          AppLogger.info(
               '[ScrcpyStreamService] Fallback resolved virtual display id=$fallbackId for window $windowId');
           _sessionStateController.add(session);
         }
       }
 
       return session;
-    } catch (e) {
-      debugPrint('[ScrcpyStreamService] Failed to start scrcpy: $e');
+    } catch (e, stack) {
+      AppLogger.error('[ScrcpyStreamService] Failed to start scrcpy', e, stack);
       session.isRunning = false;
       return null;
     }

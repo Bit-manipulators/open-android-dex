@@ -182,6 +182,18 @@ window {
     font-weight: 500;
 }
 
+.desk-chip-charging {
+    color: #34d399;
+    border-color: rgba(16, 185, 129, 0.45);
+    background-color: rgba(16, 185, 129, 0.16);
+}
+
+.desk-chip-battery-low {
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.45);
+    background-color: rgba(239, 68, 68, 0.16);
+}
+
 .desk-mirror-pill {
     background-color: rgba(56, 189, 248, 0.14);
     border: 1px solid rgba(56, 189, 248, 0.35);
@@ -497,6 +509,7 @@ class OpenAndroidDex(Gtk.Application):
         self._mirror_topbar_btn: Optional[Gtk.Button] = None
         self._clock_label: Optional[Gtk.Label] = None
         self._battery_label: Optional[Gtk.Label] = None
+        self._battery_box: Optional[Gtk.Box] = None
 
         self._boot_card: Optional[Gtk.Box] = None
         self._boot_title: Optional[Gtk.Label] = None
@@ -679,11 +692,11 @@ class OpenAndroidDex(Gtk.Application):
         right_box.append(self._mirror_topbar_btn)
 
         # Battery Pill
-        battery_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
-        battery_box.add_css_class("desk-chip")
+        self._battery_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+        self._battery_box.add_css_class("desk-chip")
         self._battery_label = Gtk.Label(label="🔋 —")
-        battery_box.append(self._battery_label)
-        right_box.append(battery_box)
+        self._battery_box.append(self._battery_label)
+        right_box.append(self._battery_box)
 
         # Volume Controls
         vol_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=2)
@@ -1083,6 +1096,9 @@ class OpenAndroidDex(Gtk.Application):
             self._populate_flowbox(demo_apps)
         if self._battery_label:
             self._battery_label.set_text("⚡ 94%")
+        if self._battery_box:
+            self._battery_box.remove_css_class("desk-chip-battery-low")
+            self._battery_box.add_css_class("desk-chip-charging")
         return GLib.SOURCE_REMOVE
 
     def _auto_boot_if_available(self) -> bool:
@@ -1250,12 +1266,29 @@ class OpenAndroidDex(Gtk.Application):
             if not self._battery_label:
                 return GLib.SOURCE_REMOVE
             if level_match:
-                pct = level_match.group(1)
+                pct = int(level_match.group(1))
                 is_charging = status_match and status_match.group(1) == "2"
-                symbol = "⚡ " if is_charging else "🔋 "
+                if is_charging:
+                    symbol = "⚡ "
+                    if self._battery_box:
+                        self._battery_box.remove_css_class("desk-chip-battery-low")
+                        self._battery_box.add_css_class("desk-chip-charging")
+                elif pct < 20:
+                    symbol = "🪫 "
+                    if self._battery_box:
+                        self._battery_box.remove_css_class("desk-chip-charging")
+                        self._battery_box.add_css_class("desk-chip-battery-low")
+                else:
+                    symbol = "🔋 "
+                    if self._battery_box:
+                        self._battery_box.remove_css_class("desk-chip-charging")
+                        self._battery_box.remove_css_class("desk-chip-battery-low")
                 self._battery_label.set_text(f"{symbol}{pct}%")
             else:
                 self._battery_label.set_text("🔋 —")
+                if self._battery_box:
+                    self._battery_box.remove_css_class("desk-chip-charging")
+                    self._battery_box.remove_css_class("desk-chip-battery-low")
             return GLib.SOURCE_REMOVE
 
         GLib.idle_add(apply)

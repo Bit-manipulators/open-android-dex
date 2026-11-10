@@ -304,11 +304,11 @@ class _QuickSettingsPanelState extends State<QuickSettingsPanel> {
     final level = _adb.batteryLevel;
     final Color iconColor = isCharging
         ? const Color(0xFF34D399)
-        : (level <= 20 ? const Color(0xFFF87171) : const Color(0xFFA8C7FA));
+        : (level < 20 ? const Color(0xFFEF4444) : const Color(0xFFA8C7FA));
 
     final IconData iconData = isCharging
         ? Icons.battery_charging_full_rounded
-        : (level <= 20
+        : (level < 20
             ? Icons.battery_alert_rounded
             : Icons.battery_std_rounded);
 

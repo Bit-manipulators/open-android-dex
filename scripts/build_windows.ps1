@@ -1,4 +1,4 @@
-# Open Android DeX — Windows 11 Build & Packaging Script
+﻿# Open Android DeX — Windows 11 Build & Packaging Script
 # Usage: powershell -ExecutionPolicy Bypass -File .\scripts\build_windows.ps1 [-Version <version>]
 param(
     [string]$Version = $env:APP_VERSION
@@ -33,6 +33,44 @@ if (-not (Test-Path $ReleaseDir)) {
 }
 
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
+
+# 4. Bundle Platform-Tools (ADB) and scrcpy into Release directory for 100% zero-configuration out-of-the-box setup
+Write-Host "==> Bundling portable platform-tools (ADB) and scrcpy for zero-setup execution..." -ForegroundColor Cyan
+
+$AdbDir = "$ReleaseDir\platform-tools"
+if (-not (Test-Path "$AdbDir\adb.exe")) {
+    Write-Host "    -> Downloading Google Android Platform-Tools..."
+    $AdbZip = "$env:TEMP\platform-tools-windows.zip"
+    try {
+        Invoke-WebRequest -Uri "https://dl.google.com/android/repository/platform-tools-latest-windows.zip" -OutFile $AdbZip -UseBasicParsing
+        Expand-Archive -Path $AdbZip -DestinationPath $ReleaseDir -Force
+        Remove-Item $AdbZip -Force -ErrorAction SilentlyContinue
+        Write-Host "    -> Bundled platform-tools successfully." -ForegroundColor Green
+    } catch {
+        Write-Warning "Failed to download platform-tools: $_"
+    }
+}
+
+$ScrcpyDir = "$ReleaseDir\scrcpy"
+if (-not (Test-Path "$ScrcpyDir\scrcpy.exe")) {
+    Write-Host "    -> Downloading Genymobile scrcpy v2.7..."
+    $ScrcpyZip = "$env:TEMP\scrcpy-win64.zip"
+    $ScrcpyTemp = "$env:TEMP\scrcpy_extract_$PID"
+    try {
+        Invoke-WebRequest -Uri "https://github.com/Genymobile/scrcpy/releases/download/v2.7/scrcpy-win64-v2.7.zip" -OutFile $ScrcpyZip -UseBasicParsing
+        New-Item -ItemType Directory -Force -Path $ScrcpyTemp | Out-Null
+        Expand-Archive -Path $ScrcpyZip -DestinationPath $ScrcpyTemp -Force
+        $ExtractedFolder = (Get-ChildItem $ScrcpyTemp -Directory | Select-Object -First 1).FullName
+        if ($ExtractedFolder) {
+            Move-Item -Path $ExtractedFolder -Destination $ScrcpyDir -Force
+        }
+        Remove-Item $ScrcpyZip -Force -ErrorAction SilentlyContinue
+        Remove-Item $ScrcpyTemp -Recurse -Force -ErrorAction SilentlyContinue
+        Write-Host "    -> Bundled scrcpy successfully." -ForegroundColor Green
+    } catch {
+        Write-Warning "Failed to download scrcpy: $_"
+    }
+}
 
 # Resolve output filenames (versioned if version is provided)
 if ($Version) {

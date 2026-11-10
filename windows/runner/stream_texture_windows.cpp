@@ -54,6 +54,7 @@ StreamTextureWindows::StreamTextureWindows(flutter::TextureRegistrar* registrar,
           }));
   texture_id_ = registrar_->RegisterTexture(texture_variant_.get());
 
+  shutdown_event_ = CreateEventA(nullptr, TRUE, FALSE, nullptr);
   is_running_ = true;
   has_new_frame_ = true;
   worker_thread_ = std::thread(&StreamTextureWindows::WorkerLoop, this);
@@ -65,11 +66,19 @@ StreamTextureWindows::~StreamTextureWindows() {
     registrar_->UnregisterTexture(texture_id_);
     texture_id_ = -1;
   }
+  if (shutdown_event_ != nullptr) {
+    CloseHandle(shutdown_event_);
+    shutdown_event_ = nullptr;
+  }
 }
 
 void StreamTextureWindows::Stop() {
   if (!is_running_) return;
   is_running_ = false;
+
+  if (shutdown_event_ != nullptr) {
+    SetEvent(shutdown_event_);
+  }
 
   if (worker_thread_.joinable()) {
     worker_thread_.join();
@@ -172,28 +181,80 @@ void StreamTextureWindows::WorkerLoop() {
   if (packet) av_packet_free(&packet);
 
 #else
-  // Native Win32 Named Pipe / File reader fallback loop
+  // Native Win32 Named Pipe / File reader fallback loop with overlapped non-blocking I/O
   HANDLE pipe_handle = INVALID_HANDLE_VALUE;
   bool is_named_pipe = (source_path_.rfind("\\\\.\\pipe\\", 0) == 0);
+
+  HANDLE overlap_event = CreateEventA(nullptr, TRUE, FALSE, nullptr);
+  OVERLAPPED ov = {};
+  ov.hEvent = overlap_event;
 
   if (is_named_pipe) {
     pipe_handle = CreateNamedPipeA(
         source_path_.c_str(),
-        PIPE_ACCESS_INBOUND,
+        PIPE_ACCESS_INBOUND | FILE_FLAG_OVERLAPPED,
         PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT,
         1,
         65536,
         65536,
-        3000,
+        1000,
         nullptr);
   }
 
   while (is_running_) {
     if (is_named_pipe && pipe_handle != INVALID_HANDLE_VALUE) {
-      ConnectNamedPipe(pipe_handle, nullptr);
+      ResetEvent(overlap_event);
+      BOOL connect_ok = ConnectNamedPipe(pipe_handle, &ov);
+      if (!connect_ok) {
+        DWORD err = GetLastError();
+        if (err == ERROR_IO_PENDING) {
+          HANDLE wait_handles[2] = {shutdown_event_, overlap_event};
+          DWORD wait_res = WaitForMultipleObjects(2, wait_handles, FALSE, 250);
+          if (wait_res == WAIT_OBJECT_0 || !is_running_) {
+            CancelIoEx(pipe_handle, &ov);
+            break;
+          }
+          if (wait_res != WAIT_OBJECT_0 + 1) {
+            CancelIoEx(pipe_handle, &ov);
+            continue;
+          }
+        } else if (err != ERROR_PIPE_CONNECTED) {
+          DWORD wait_res = WaitForSingleObject(shutdown_event_, 100);
+          if (wait_res == WAIT_OBJECT_0 || !is_running_) {
+            break;
+          }
+          continue;
+        }
+      }
+
       std::vector<uint8_t> temp_chunk(65536);
-      DWORD bytes_read = 0;
-      while (is_running_ && ReadFile(pipe_handle, temp_chunk.data(), static_cast<DWORD>(temp_chunk.size()), &bytes_read, nullptr)) {
+      while (is_running_) {
+        ResetEvent(overlap_event);
+        DWORD bytes_read = 0;
+        BOOL read_ok = ReadFile(pipe_handle, temp_chunk.data(),
+                                static_cast<DWORD>(temp_chunk.size()),
+                                &bytes_read, &ov);
+        if (!read_ok) {
+          DWORD err = GetLastError();
+          if (err == ERROR_IO_PENDING) {
+            HANDLE wait_handles[2] = {shutdown_event_, overlap_event};
+            DWORD wait_res = WaitForMultipleObjects(2, wait_handles, FALSE, 250);
+            if (wait_res == WAIT_OBJECT_0 || !is_running_) {
+              CancelIoEx(pipe_handle, &ov);
+              break;
+            }
+            if (wait_res == WAIT_OBJECT_0 + 1) {
+              GetOverlappedResult(pipe_handle, &ov, &bytes_read, FALSE);
+            } else {
+              CancelIoEx(pipe_handle, &ov);
+              continue;
+            }
+          } else {
+            // Pipe broken or client disconnected
+            break;
+          }
+        }
+
         if (bytes_read > 0) {
           {
             std::lock_guard<std::mutex> lock(mutex_);
@@ -206,7 +267,10 @@ void StreamTextureWindows::WorkerLoop() {
       }
       DisconnectNamedPipe(pipe_handle);
     } else {
-      std::this_thread::sleep_for(std::chrono::milliseconds(33));
+      DWORD wait_res = WaitForSingleObject(shutdown_event_, 33);
+      if (wait_res == WAIT_OBJECT_0 || !is_running_) {
+        break;
+      }
       {
         std::lock_guard<std::mutex> lock(mutex_);
         has_new_frame_ = true;
@@ -218,7 +282,11 @@ void StreamTextureWindows::WorkerLoop() {
   }
 
   if (pipe_handle != INVALID_HANDLE_VALUE) {
+    CancelIoEx(pipe_handle, nullptr);
     CloseHandle(pipe_handle);
+  }
+  if (overlap_event != nullptr) {
+    CloseHandle(overlap_event);
   }
 #endif
 }

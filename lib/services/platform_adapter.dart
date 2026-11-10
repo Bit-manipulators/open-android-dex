@@ -79,6 +79,62 @@ class PlatformAdapter {
     }
   }
 
+  /// User tools directory for automatically bundled / downloaded ADB and scrcpy:
+  /// - Windows: %LOCALAPPDATA%/OpenAndroidDeX/tools
+  /// - Linux: $XDG_CACHE_HOME/open_android_dex/tools or ~/.cache/open_android_dex/tools
+  static String get toolsDirectory {
+    if (isWindows) {
+      final localAppData = Platform.environment['LOCALAPPDATA'] ??
+          Platform.environment['USERPROFILE'] ??
+          'C:\\Temp';
+      final dir = Directory('$localAppData\\OpenAndroidDeX\\tools');
+      if (!dir.existsSync()) {
+        try {
+          dir.createSync(recursive: true);
+        } catch (_) {}
+      }
+      return dir.path;
+    } else {
+      final dir = Directory('$cacheDirectory/tools');
+      if (!dir.existsSync()) {
+        try {
+          dir.createSync(recursive: true);
+        } catch (_) {}
+      }
+      return dir.path;
+    }
+  }
+
+  /// User diagnostics / logs directory:
+  /// - Windows: %LOCALAPPDATA%/OpenAndroidDeX/logs
+  /// - Linux: $XDG_CACHE_HOME/open_android_dex/logs or ~/.cache/open_android_dex/logs
+  static String get logDirectory {
+    if (isWindows) {
+      final localAppData = Platform.environment['LOCALAPPDATA'] ??
+          Platform.environment['USERPROFILE'] ??
+          'C:\\Temp';
+      final dir = Directory('$localAppData\\OpenAndroidDeX\\logs');
+      if (!dir.existsSync()) {
+        try {
+          dir.createSync(recursive: true);
+        } catch (_) {}
+      }
+      return dir.path;
+    } else {
+      final dir = Directory('$cacheDirectory/logs');
+      if (!dir.existsSync()) {
+        try {
+          dir.createSync(recursive: true);
+        } catch (_) {}
+      }
+      return dir.path;
+    }
+  }
+
+  /// Absolute file path for application diagnostic log output
+  static String get logFilePath =>
+      isWindows ? '$logDirectory\\opendex.log' : '$logDirectory/opendex.log';
+
   /// Secure runtime / IPC directory for pipe or streaming files:
   /// - Linux: $XDG_RUNTIME_DIR/opendex or /tmp/opendex
   /// - Windows: %LOCALAPPDATA%/OpenAndroidDeX/pipes or %TEMP%/opendex
@@ -210,8 +266,12 @@ class PlatformAdapter {
     candidates
         .add('$appDirectory\\data\\flutter_assets\\assets\\bin\\$binaryName');
 
+    // 2. User-local downloaded tools
+    candidates.add('$toolsDirectory\\platform-tools\\$binaryName');
+    candidates.add('$toolsDirectory\\$binaryName');
+
     if (isWindows) {
-      // 2. Android SDK standard install locations on Windows
+      // 3. Android SDK standard install locations on Windows
       final localAppData = Platform.environment['LOCALAPPDATA'];
       if (localAppData != null) {
         candidates
@@ -250,6 +310,10 @@ class PlatformAdapter {
     candidates
         .add('$appDirectory\\data\\flutter_assets\\assets\\bin\\$binaryName');
 
+    // 2. User-local downloaded tools
+    candidates.add('$toolsDirectory\\scrcpy\\$binaryName');
+    candidates.add('$toolsDirectory\\$binaryName');
+
     if (isWindows) {
       final programFiles = Platform.environment['ProgramFiles'];
       if (programFiles != null) {
@@ -271,6 +335,34 @@ class PlatformAdapter {
     // Default to PATH lookup
     _cachedScrcpyPath = binaryName;
     return binaryName;
+  }
+
+  /// Clears cached binary paths so resolution searches newly installed paths.
+  static void resetCachedBinaryPaths() {
+    _cachedAdbPath = null;
+    _cachedScrcpyPath = null;
+  }
+
+  /// Verifies if ADB executable is present and responds to 'version'.
+  static Future<bool> checkAdbAvailable() async {
+    try {
+      final res = await Process.run(adbExecutable, ['version'],
+          runInShell: Platform.isWindows);
+      return res.exitCode == 0;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Verifies if scrcpy executable is present and responds to '--version'.
+  static Future<bool> checkScrcpyAvailable() async {
+    try {
+      final res = await Process.run(scrcpyExecutable, ['--version'],
+          runInShell: Platform.isWindows);
+      return res.exitCode == 0;
+    } catch (_) {
+      return false;
+    }
   }
 
   /// Cleanly kills a process tree across Linux and Windows.

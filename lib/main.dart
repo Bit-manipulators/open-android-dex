@@ -1,10 +1,12 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'services/adb_service.dart';
+import 'services/app_logger.dart';
 import 'views/dex_desktop_screen.dart';
 
 void main(List<String> args) {
   WidgetsFlutterBinding.ensureInitialized();
+  AppLogger.init();
   if (args.contains('--demo') || args.contains('--mock')) {
     AdbService().enableDemoMode();
   }

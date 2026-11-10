@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../services/adb_service.dart';
+import '../services/app_logger.dart';
+import '../services/dependency_manager_service.dart';
 import 'qr_code_widget.dart';
 
 class ConnectionModeDialog extends StatefulWidget {
@@ -45,6 +48,11 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog>
   List<String> _wiredDevices = [];
   List<String> _wirelessDevices = [];
 
+  final _depManager = DependencyManagerService();
+  bool _depsChecked = false;
+  String _depInstallStatus = '';
+  double _depInstallProgress = 0.0;
+
   @override
   void initState() {
     super.initState();
@@ -52,6 +60,9 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog>
     _pairingPassword =
         ((DateTime.now().millisecondsSinceEpoch % 900000) + 100000).toString();
     _qrPayload = _adb.generateQrPairingPayload(_pairingPassword);
+    _depManager.checkDependencies().then((_) {
+      if (mounted) setState(() => _depsChecked = true);
+    });
     _refreshDevices();
     _detectTimer =
         Timer.periodic(const Duration(seconds: 2), (_) => _refreshDevices());
@@ -417,6 +428,7 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog>
               ),
             ),
             const Divider(color: Color(0xFF1E293B), height: 1),
+            _buildDependencyBanner(),
 
             // Tab Buttons
             Container(
@@ -516,6 +528,108 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog>
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildDependencyBanner() {
+    if (!_depsChecked || _depManager.isFullyReady)
+      return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1B4B).withOpacity(0.85),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFF6366F1).withOpacity(0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.auto_fix_high_rounded,
+                  size: 18, color: Color(0xFF818CF8)),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Setup Assistant: Required Tools Missing',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12.5,
+                  ),
+                ),
+              ),
+              TextButton.icon(
+                icon: const Icon(Icons.description_outlined,
+                    size: 14, color: Color(0xFF94A3B8)),
+                label: const Text('Logs',
+                    style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11)),
+                onPressed: () => AppLogger.openLogFolder(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            Platform.isWindows
+                ? 'ADB (Android Platform-Tools) and scrcpy can be automatically downloaded and configured with 1 click.'
+                : 'ADB and scrcpy must be installed via your system package manager (e.g. sudo apt install adb scrcpy).',
+            style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 11),
+          ),
+          if (Platform.isWindows) ...[
+            const SizedBox(height: 8),
+            if (_depManager.isInstalling) ...[
+              LinearProgressIndicator(
+                value: _depInstallProgress > 0 ? _depInstallProgress : null,
+                backgroundColor: const Color(0xFF312E81),
+                valueColor:
+                    const AlwaysStoppedAnimation<Color>(Color(0xFF818CF8)),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _depInstallStatus,
+                style:
+                    const TextStyle(color: Color(0xFFA5B4FC), fontSize: 10.5),
+              ),
+            ] else ...[
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4F46E5),
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  textStyle: const TextStyle(
+                      fontSize: 11.5, fontWeight: FontWeight.w600),
+                ),
+                icon: const Icon(Icons.download_rounded, size: 16),
+                label:
+                    const Text('Install Tools Automatically (1-Click Setup)'),
+                onPressed: () async {
+                  setState(() {
+                    _depInstallStatus = 'Starting setup...';
+                    _depInstallProgress = 0.05;
+                  });
+                  await _depManager.autoInstallWindowsDependencies(
+                    onProgress: (status, progress) {
+                      if (mounted) {
+                        setState(() {
+                          _depInstallStatus = status;
+                          _depInstallProgress = progress;
+                        });
+                      }
+                    },
+                  );
+                  if (mounted) {
+                    setState(() {});
+                    _refreshDevices();
+                  }
+                },
+              ),
+            ],
+          ],
+        ],
       ),
     );
   }
@@ -641,7 +755,7 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog>
                   ),
                   SizedBox(height: 6),
                   Text(
-                    '1. Connect your phone via USB cable.\n2. Ensure "USB Debugging" is enabled in Developer Options.\n3. The app will automatically detect it instantly.',
+                    '1. Connect your phone via USB cable.\n2. Ensure "USB Debugging" is enabled in Developer Options.\n3. Unlock your phone and accept "Always allow from this computer".\n4. The app will automatically connect and launch your desktop.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                         color: Color(0xFF94A3B8), fontSize: 11.5, height: 1.4),
@@ -668,6 +782,16 @@ class _ConnectionModeDialogState extends State<ConnectionModeDialog>
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Center(
+              child: TextButton.icon(
+                onPressed: () => AppLogger.openLogFolder(),
+                icon: const Icon(Icons.description_outlined,
+                    size: 15, color: Color(0xFF94A3B8)),
+                label: const Text('Open Diagnostic Logs Folder',
+                    style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11.5)),
               ),
             ),
             const SizedBox(height: 12),

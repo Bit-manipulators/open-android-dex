@@ -49,6 +49,7 @@ class StreamTextureWindows {
   std::mutex mutex_;
   std::atomic<bool> is_running_{false};
   std::atomic<bool> has_new_frame_{false};
+  HANDLE shutdown_event_ = nullptr;
   std::thread worker_thread_;
 };
 

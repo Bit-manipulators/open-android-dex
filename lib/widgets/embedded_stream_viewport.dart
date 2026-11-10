@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/dex_window.dart';
 import '../services/adb_service.dart';
+import '../services/platform_adapter.dart';
 import '../services/scrcpy_stream_service.dart';
 import '../services/texture_stream_channel.dart';
 import '../services/touch_input_service.dart';
@@ -156,25 +157,33 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
 
       final oldTexId = _textureId;
 
-      // 1. Start or restart headless scrcpy session with graceful handshake
+      final safeId = widget.window.id.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_');
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final pipePath =
+          PlatformAdapter.getStreamPipePath('${safeId}_$timestamp');
+
+      // 1. Initialize native texture / named pipe server first
+      final texId = await TextureStreamChannel.startStream(
+        path: pipePath,
+        width: targetW,
+        height: targetH,
+      );
+
+      // 2. Start or restart headless scrcpy session with graceful handshake
       final session = await _streamService.startSession(
         windowId: widget.window.id,
         packageName: widget.window.app.packageName,
         serial: serial,
+        pipePath: pipePath,
         mode: _currentMode,
         width: targetW,
         height: targetH,
         dpi: 240,
       );
 
-      // 2. Request native texture registration for the video stream
-      int? texId;
-      if (session != null) {
-        texId = await TextureStreamChannel.startStream(
-          path: session.pipePath,
-          width: targetW,
-          height: targetH,
-        );
+      // If scrcpy fails to start, cleanly stop newly opened texture
+      if (session == null && texId != null) {
+        TextureStreamChannel.stopStream(texId);
       }
 
       if (mounted) {

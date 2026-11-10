@@ -47,6 +47,27 @@ void main() {
       PlatformAdapter.cleanupStreamPipes('unit_test_pipe', pipePath);
     });
 
+    test('toolsDirectory and logDirectory return valid, existing paths', () {
+      final toolsDir = PlatformAdapter.toolsDirectory;
+      final logDir = PlatformAdapter.logDirectory;
+      final logFile = PlatformAdapter.logFilePath;
+
+      expect(toolsDir, isNotEmpty);
+      expect(Directory(toolsDir).existsSync(), isTrue);
+      expect(logDir, isNotEmpty);
+      expect(Directory(logDir).existsSync(), isTrue);
+      expect(logFile, contains('opendex.log'));
+    });
+
+    test('resetCachedBinaryPaths and availability checks execute without error',
+        () async {
+      PlatformAdapter.resetCachedBinaryPaths();
+      final adbOk = await PlatformAdapter.checkAdbAvailable();
+      final scrcpyOk = await PlatformAdapter.checkScrcpyAvailable();
+      expect(adbOk, isA<bool>());
+      expect(scrcpyOk, isA<bool>());
+    });
+
     test('resolves adb and scrcpy executables', () {
       final adb = PlatformAdapter.adbExecutable;
       final scrcpy = PlatformAdapter.scrcpyExecutable;

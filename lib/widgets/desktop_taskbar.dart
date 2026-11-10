@@ -5,6 +5,7 @@ import '../controllers/window_manager_controller.dart';
 import '../models/dex_window.dart';
 import '../services/adb_service.dart';
 import 'app_icon_widget.dart';
+import 'battery_capsule.dart';
 import 'connection_mode_dialog.dart';
 
 /// Desktop Taskbar featuring pure Windows 11 style active window items,
@@ -365,39 +366,9 @@ class _DesktopTaskbarState extends State<DesktopTaskbar> {
               const SizedBox(width: 8),
 
               // Battery Capsule
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF172033),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFF2D3C5C)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      adb.isCharging
-                          ? Icons.battery_charging_full_rounded
-                          : (adb.batteryLevel > 20
-                              ? Icons.battery_full_rounded
-                              : Icons.battery_alert_rounded),
-                      size: 14,
-                      color: adb.isCharging
-                          ? const Color(0xFFFBBF24)
-                          : (adb.batteryLevel > 20
-                              ? const Color(0xFF34D399)
-                              : const Color(0xFFF87171)),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${adb.batteryLevel}%',
-                      style: const TextStyle(
-                          color: Color(0xFFE2E8F0),
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w600),
-                    ),
-                  ],
-                ),
+              TaskbarBatteryCapsule(
+                batteryLevel: adb.batteryLevel,
+                isCharging: adb.isCharging,
               ),
               const SizedBox(width: 8),
 
