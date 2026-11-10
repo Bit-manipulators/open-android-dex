@@ -12,10 +12,10 @@ An open-source desktop environment that transforms your Android smartphone or ta
 
 <p align="center">
   <a href="https://github.com/Bit-manipulators/open-android-dex/releases/download/v1.0.0/Open-Android-DeX-Linux-x86_64.AppImage">
-    <img src="https://img.shields.io/badge/Download-Linux%20AppImage-2ea44f?style=flat-square&logo=linux&logoColor=white" alt="Download Open Android DeX for Linux" />
+    <img src="https://img.shields.io/badge/Download%20for-Linux%20AppImage-2ea44f?style=for-the-badge&logo=linux&logoColor=white&labelColor=24292f" alt="Download Open Android DeX for Linux" />
   </a>
   <a href="https://github.com/Bit-manipulators/open-android-dex/releases/download/v1.0.0/Open-Android-DeX-Windows-x64-Setup.exe">
-    <img src="https://img.shields.io/badge/Download-Windows%2011-0078d4?style=flat-square&logo=windows&logoColor=white" alt="Download Open Android DeX for Windows 11" />
+    <img src="https://img.shields.io/badge/Download%20for-Windows%2011-0078d4?style=for-the-badge&logo=windows&logoColor=white&labelColor=24292f" alt="Download Open Android DeX for Windows 11" />
   </a>
 </p>
 
