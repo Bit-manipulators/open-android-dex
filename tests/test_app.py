@@ -64,15 +64,30 @@ def test_app_demo_mode():
 
 
 def test_app_battery_visualizer_states():
-    import gi
-    gi.require_version("Gtk", "4.0")
-    from gi.repository import Gtk
+    class FakeWidget:
+        def __init__(self, text=""):
+            self.text = text
+            self.classes = set()
+
+        def set_text(self, text):
+            self.text = text
+
+        def get_text(self):
+            return self.text
+
+        def add_css_class(self, cls):
+            self.classes.add(cls)
+
+        def remove_css_class(self, cls):
+            self.classes.discard(cls)
+
+        def has_css_class(self, cls):
+            return cls in self.classes
 
     app = OpenAndroidDex(demo_mode=True)
-    box = Gtk.Box()
+    box = FakeWidget()
+    label = FakeWidget("🔋 —")
     box.add_css_class("desk-chip")
-    label = Gtk.Label(label="🔋 —")
-    box.append(label)
     app._battery_box = box
     app._battery_label = label
 
