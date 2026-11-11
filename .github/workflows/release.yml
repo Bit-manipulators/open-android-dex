@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       tag_name:
-        description: "Release Tag (e.g. v1.0.0)"
+        description: "Release Tag (e.g. v2.0.0)"
         required: false
-        default: "v1.0.0"
+        default: "v2.0.0"
       draft:
         description: "Create as Draft Release"
         type: boolean
@@ -89,7 +89,7 @@ jobs:
           else
             VER="${{ github.ref_name }}"
           fi
-          echo "version=${VER:-v1.0.0}" >> $GITHUB_OUTPUT
+          echo "version=${VER:-v2.0.0}" >> $GITHUB_OUTPUT
 
       - name: Build AppImage
         env:
@@ -150,7 +150,7 @@ jobs:
           else
             VER="${{ github.ref_name }}"
           fi
-          echo "version=${VER:-v1.0.0}" >> $GITHUB_OUTPUT
+          echo "version=${VER:-v2.0.0}" >> $GITHUB_OUTPUT
 
       - name: Package Windows Artifacts
         shell: pwsh
@@ -218,7 +218,7 @@ jobs:
             TAG="${{ github.ref_name }}"
             DRAFT="true"
           fi
-          echo "tag=${TAG:-v1.0.0}" >> $GITHUB_OUTPUT
+          echo "tag=${TAG:-v2.0.0}" >> $GITHUB_OUTPUT
           echo "draft=${DRAFT:-true}" >> $GITHUB_OUTPUT
 
       - name: Generate Release Notes
