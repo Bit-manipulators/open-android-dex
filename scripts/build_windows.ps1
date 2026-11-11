@@ -72,6 +72,25 @@ New-Item -ItemType Directory -Force -Path $AssetsBinDir | Out-Null
 Copy-Item "$SourceDir\adb.exe" "$AssetsBinDir\" -Force -ErrorAction SilentlyContinue
 Copy-Item "$SourceDir\scrcpy.exe" "$AssetsBinDir\" -Force -ErrorAction SilentlyContinue
 Copy-Item "$SourceDir\scrcpy-server" "$AssetsBinDir\" -Force -ErrorAction SilentlyContinue
+
+# Copy MSVC runtime DLLs (msvcp140.dll, vcruntime140.dll) to ensure standalone execution on clean Windows systems
+Write-Host "  Checking for MSVC runtime DLLs to include..."
+$vcRedistDirs = @(
+    (Get-ChildItem -Path "C:\Program Files\Microsoft Visual Studio\2022\*\VC\Redist\MSVC\*\x64\Microsoft.VC*.CRT" -ErrorAction SilentlyContinue | Select-Object -Last 1).FullName,
+    (Get-ChildItem -Path "C:\Program Files (x86)\Microsoft Visual Studio\2022\*\VC\Redist\MSVC\*\x64\Microsoft.VC*.CRT" -ErrorAction SilentlyContinue | Select-Object -Last 1).FullName,
+    "C:\Windows\System32"
+)
+foreach ($dir in $vcRedistDirs) {
+    if ($dir -and (Test-Path $dir)) {
+        Copy-Item "$dir\msvcp140*.dll" "$ReleaseDir\" -Force -ErrorAction SilentlyContinue
+        Copy-Item "$dir\vcruntime140*.dll" "$ReleaseDir\" -Force -ErrorAction SilentlyContinue
+        if ((Test-Path "$ReleaseDir\msvcp140.dll") -and (Test-Path "$ReleaseDir\vcruntime140.dll")) {
+            Write-Host "  ✅ Included MSVC runtime DLLs (msvcp140.dll, vcruntime140.dll)" -ForegroundColor Green
+            break
+        }
+    }
+}
+
 Write-Host "  ✅ Successfully bundled adb.exe, scrcpy.exe, scrcpy-server, and DLLs into Windows build!" -ForegroundColor Green
 
 # Resolve output filenames (versioned if version is provided)
