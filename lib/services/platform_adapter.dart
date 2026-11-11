@@ -216,8 +216,7 @@ class PlatformAdapter {
     candidates.add('$appDirectory/bin/$binaryName');
     candidates.add('$appDirectory/platform-tools/$binaryName');
     candidates.add('$appDirectory/scrcpy/$binaryName');
-    candidates
-        .add('$appDirectory/data/flutter_assets/assets/bin/$binaryName');
+    candidates.add('$appDirectory/data/flutter_assets/assets/bin/$binaryName');
 
     if (isWindows) {
       candidates.add('$appDirectory\\$binaryName');
@@ -270,8 +269,7 @@ class PlatformAdapter {
     candidates.add('$appDirectory/$binaryName');
     candidates.add('$appDirectory/bin/$binaryName');
     candidates.add('$appDirectory/scrcpy/$binaryName');
-    candidates
-        .add('$appDirectory/data/flutter_assets/assets/bin/$binaryName');
+    candidates.add('$appDirectory/data/flutter_assets/assets/bin/$binaryName');
 
     if (isWindows) {
       candidates.add('$appDirectory\\$binaryName');
@@ -324,8 +322,8 @@ class PlatformAdapter {
       candidates.add('$appDirectory\\scrcpy-server');
       candidates.add('$appDirectory\\bin\\scrcpy-server');
       candidates.add('$appDirectory\\scrcpy\\scrcpy-server');
-      candidates
-          .add('$appDirectory\\data\\flutter_assets\\assets\\bin\\scrcpy-server');
+      candidates.add(
+          '$appDirectory\\data\\flutter_assets\\assets\\bin\\scrcpy-server');
     } else {
       candidates.add('/usr/share/scrcpy/scrcpy-server');
       candidates.add('/usr/local/share/scrcpy/scrcpy-server');
