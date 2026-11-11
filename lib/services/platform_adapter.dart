@@ -197,20 +197,36 @@ class PlatformAdapter {
   }
 
   /// Resolves the path to the adb executable, checking bundled assets,
-  /// standard system locations, and PATH.
+  /// AppImage mount directories, portable distribution paths, standard system
+  /// locations, and PATH.
   static String get adbExecutable {
     if (_cachedAdbPath != null) return _cachedAdbPath!;
 
     final binaryName = isWindows ? 'adb.exe' : 'adb';
     final candidates = <String>[];
 
-    // 1. App-bundled platform tools (portable distribution)
-    candidates.add('$appDirectory\\$binaryName');
-    candidates.add('$appDirectory\\platform-tools\\$binaryName');
+    // 0. AppImage runtime directory ($APPDIR/usr/bin/adb)
+    final appDirEnv = Platform.environment['APPDIR'];
+    if (appDirEnv != null && appDirEnv.isNotEmpty) {
+      candidates.add('$appDirEnv/usr/bin/$binaryName');
+    }
+
+    // 1. App-bundled platform tools (portable distribution & release root)
+    candidates.add('$appDirectory/$binaryName');
+    candidates.add('$appDirectory/bin/$binaryName');
+    candidates.add('$appDirectory/platform-tools/$binaryName');
+    candidates.add('$appDirectory/scrcpy/$binaryName');
     candidates
-        .add('$appDirectory\\data\\flutter_assets\\assets\\bin\\$binaryName');
+        .add('$appDirectory/data/flutter_assets/assets/bin/$binaryName');
 
     if (isWindows) {
+      candidates.add('$appDirectory\\$binaryName');
+      candidates.add('$appDirectory\\bin\\$binaryName');
+      candidates.add('$appDirectory\\platform-tools\\$binaryName');
+      candidates.add('$appDirectory\\scrcpy\\$binaryName');
+      candidates
+          .add('$appDirectory\\data\\flutter_assets\\assets\\bin\\$binaryName');
+
       // 2. Android SDK standard install locations on Windows
       final localAppData = Platform.environment['LOCALAPPDATA'];
       if (localAppData != null) {
@@ -237,20 +253,33 @@ class PlatformAdapter {
   }
 
   /// Resolves the path to the scrcpy executable, checking bundled assets,
-  /// portable distribution paths, and PATH.
+  /// AppImage mount directories, portable distribution paths, and PATH.
   static String get scrcpyExecutable {
     if (_cachedScrcpyPath != null) return _cachedScrcpyPath!;
 
     final binaryName = isWindows ? 'scrcpy.exe' : 'scrcpy';
     final candidates = <String>[];
 
-    // 1. App-bundled scrcpy (portable distribution)
-    candidates.add('$appDirectory\\$binaryName');
-    candidates.add('$appDirectory\\scrcpy\\$binaryName');
+    // 0. AppImage runtime directory ($APPDIR/usr/bin/scrcpy)
+    final appDirEnv = Platform.environment['APPDIR'];
+    if (appDirEnv != null && appDirEnv.isNotEmpty) {
+      candidates.add('$appDirEnv/usr/bin/$binaryName');
+    }
+
+    // 1. App-bundled scrcpy (portable distribution & release root)
+    candidates.add('$appDirectory/$binaryName');
+    candidates.add('$appDirectory/bin/$binaryName');
+    candidates.add('$appDirectory/scrcpy/$binaryName');
     candidates
-        .add('$appDirectory\\data\\flutter_assets\\assets\\bin\\$binaryName');
+        .add('$appDirectory/data/flutter_assets/assets/bin/$binaryName');
 
     if (isWindows) {
+      candidates.add('$appDirectory\\$binaryName');
+      candidates.add('$appDirectory\\bin\\$binaryName');
+      candidates.add('$appDirectory\\scrcpy\\$binaryName');
+      candidates
+          .add('$appDirectory\\data\\flutter_assets\\assets\\bin\\$binaryName');
+
       final programFiles = Platform.environment['ProgramFiles'];
       if (programFiles != null) {
         candidates.add('$programFiles\\scrcpy\\$binaryName');
@@ -271,6 +300,64 @@ class PlatformAdapter {
     // Default to PATH lookup
     _cachedScrcpyPath = binaryName;
     return binaryName;
+  }
+
+  /// Resolves the path to the scrcpy-server file if bundled or installed on host.
+  static String? get scrcpyServerPath {
+    final candidates = <String>[];
+
+    // 0. AppImage runtime path
+    final appDirEnv = Platform.environment['APPDIR'];
+    if (appDirEnv != null && appDirEnv.isNotEmpty) {
+      candidates.add('$appDirEnv/usr/share/scrcpy/scrcpy-server');
+      candidates.add('$appDirEnv/usr/bin/scrcpy-server');
+    }
+
+    // 1. Bundled next to app or scrcpy binary
+    candidates.add('$appDirectory/scrcpy-server');
+    candidates.add('$appDirectory/bin/scrcpy-server');
+    candidates.add('$appDirectory/scrcpy/scrcpy-server');
+    candidates
+        .add('$appDirectory/data/flutter_assets/assets/bin/scrcpy-server');
+
+    if (isWindows) {
+      candidates.add('$appDirectory\\scrcpy-server');
+      candidates.add('$appDirectory\\bin\\scrcpy-server');
+      candidates.add('$appDirectory\\scrcpy\\scrcpy-server');
+      candidates
+          .add('$appDirectory\\data\\flutter_assets\\assets\\bin\\scrcpy-server');
+    } else {
+      candidates.add('/usr/share/scrcpy/scrcpy-server');
+      candidates.add('/usr/local/share/scrcpy/scrcpy-server');
+    }
+
+    for (final path in candidates) {
+      if (File(path).existsSync()) {
+        return path;
+      }
+    }
+    return null;
+  }
+
+  /// Environment variables passed to scrcpy process to ensure bundled adb and
+  /// scrcpy-server are prioritized.
+  static Map<String, String> get scrcpyEnvironment {
+    final env = Map<String, String>.from(Platform.environment);
+
+    final adb = adbExecutable;
+    if (adb != 'adb' && adb != 'adb.exe') {
+      env['ADB'] = adb;
+      final adbDir = File(adb).parent.path;
+      final currentPath = env['PATH'] ?? '';
+      env['PATH'] = '$adbDir${isWindows ? ';' : ':'}$currentPath';
+    }
+
+    final server = scrcpyServerPath;
+    if (server != null) {
+      env['SCRCPY_SERVER_PATH'] = server;
+    }
+
+    return env;
   }
 
   /// Cleanly kills a process tree across Linux and Windows.

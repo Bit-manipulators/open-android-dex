@@ -61,5 +61,18 @@ void main() {
         expect(scrcpy, anyOf(equals('scrcpy'), endsWith('/scrcpy')));
       }
     });
+
+    test('provides scrcpyEnvironment with ADB and server paths', () {
+      final env = PlatformAdapter.scrcpyEnvironment;
+      expect(env, isNotNull);
+      final adb = PlatformAdapter.adbExecutable;
+      if (adb != 'adb' && adb != 'adb.exe') {
+        expect(env['ADB'], equals(adb));
+      }
+      final server = PlatformAdapter.scrcpyServerPath;
+      if (server != null) {
+        expect(env['SCRCPY_SERVER_PATH'], equals(server));
+      }
+    });
   });
 }

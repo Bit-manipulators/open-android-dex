@@ -76,6 +76,71 @@ for lib in libavcodec libavformat libswscale libavutil; do
     find /usr/lib /usr/lib64 -name "${lib}*.so*" -exec cp -d {} "${APPDIR}/usr/lib/" \; 2>/dev/null || true
 done
 
+# Bundle standalone ADB, scrcpy, and scrcpy-server inside AppImage
+echo "==> Bundling portable ADB and scrcpy binaries..."
+mkdir -p "${APPDIR}/usr/share/scrcpy"
+CACHE_DIR="${REPO_ROOT}/build/downloads"
+mkdir -p "${CACHE_DIR}"
+
+SCRCPY_VERSION="v5.0.1"
+TARBALL="${CACHE_DIR}/scrcpy-linux-x86_64-${SCRCPY_VERSION}.tar.gz"
+
+# 1. Download official portable prebuilts if not cached
+if [ ! -f "${TARBALL}" ]; then
+    echo "    Downloading portable scrcpy & adb Linux bundle (${SCRCPY_VERSION})..."
+    curl -fsSL -o "${TARBALL}" \
+        "https://github.com/Genymobile/scrcpy/releases/download/${SCRCPY_VERSION}/scrcpy-linux-x86_64-${SCRCPY_VERSION}.tar.gz" || true
+fi
+
+# 2. Extract into AppDir
+if [ -f "${TARBALL}" ]; then
+    EXTRACT_DIR="${CACHE_DIR}/scrcpy-linux-${SCRCPY_VERSION}"
+    mkdir -p "${EXTRACT_DIR}"
+    tar -zxf "${TARBALL}" -C "${EXTRACT_DIR}" --strip-components=1 2>/dev/null || true
+
+    if [ -f "${EXTRACT_DIR}/adb" ]; then
+        cp -a "${EXTRACT_DIR}/adb" "${APPDIR}/usr/bin/adb"
+        chmod +x "${APPDIR}/usr/bin/adb"
+        echo "    ✅ Bundled adb into AppImage"
+    fi
+
+    if [ -f "${EXTRACT_DIR}/scrcpy" ]; then
+        cp -a "${EXTRACT_DIR}/scrcpy" "${APPDIR}/usr/bin/scrcpy"
+        chmod +x "${APPDIR}/usr/bin/scrcpy"
+        echo "    ✅ Bundled scrcpy into AppImage"
+    fi
+
+    if [ -f "${EXTRACT_DIR}/scrcpy-server" ]; then
+        cp -a "${EXTRACT_DIR}/scrcpy-server" "${APPDIR}/usr/share/scrcpy/scrcpy-server"
+        cp -a "${EXTRACT_DIR}/scrcpy-server" "${APPDIR}/usr/bin/scrcpy-server"
+        echo "    ✅ Bundled scrcpy-server into AppImage"
+    fi
+fi
+
+# Fallback: Copy from host system if not extracted from bundle
+if [ ! -f "${APPDIR}/usr/bin/adb" ] && command -v adb >/dev/null 2>&1; then
+    cp -a "$(command -v adb)" "${APPDIR}/usr/bin/adb"
+    chmod +x "${APPDIR}/usr/bin/adb"
+    echo "    ✅ Copied host adb into AppImage"
+fi
+
+if [ ! -f "${APPDIR}/usr/bin/scrcpy" ] && command -v scrcpy >/dev/null 2>&1; then
+    cp -a "$(command -v scrcpy)" "${APPDIR}/usr/bin/scrcpy"
+    chmod +x "${APPDIR}/usr/bin/scrcpy"
+    echo "    ✅ Copied host scrcpy into AppImage"
+fi
+
+if [ ! -f "${APPDIR}/usr/share/scrcpy/scrcpy-server" ]; then
+    for candidate in /usr/share/scrcpy/scrcpy-server /usr/local/share/scrcpy/scrcpy-server; do
+        if [ -f "$candidate" ]; then
+            cp -a "$candidate" "${APPDIR}/usr/share/scrcpy/scrcpy-server"
+            cp -a "$candidate" "${APPDIR}/usr/bin/scrcpy-server"
+            echo "    ✅ Copied host scrcpy-server into AppImage"
+            break
+        fi
+    done
+fi
+
 # Copy Icon
 if [ -f "${REPO_ROOT}/assets/app_icon.png" ]; then
     cp "${REPO_ROOT}/assets/app_icon.png" "${APPDIR}/open_android_dex.png"
@@ -112,18 +177,14 @@ export APPDIR
 export PATH="${APPDIR}/usr/bin:${PATH}"
 export LD_LIBRARY_PATH="${APPDIR}/usr/lib:${APPDIR}/usr/lib/open_android_dex:${LD_LIBRARY_PATH:-}"
 export XDG_DATA_DIRS="${APPDIR}/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+export SCRCPY_SERVER_PATH="${APPDIR}/usr/share/scrcpy/scrcpy-server"
+export ADB="${APPDIR}/usr/bin/adb"
 
 # Ensure Skia backend is preferred for FlPixelBufferTexture stability under Wayland
 export FLUTTER_ENGINE_SWITCHES=1
 export FLUTTER_ENGINE_SWITCH_1="--no-enable-impeller"
 
-# System tools diagnostics
-if ! command -v adb >/dev/null 2>&1; then
-    echo "[Open Android DeX] Notice: 'adb' not found on system PATH." >&2
-    echo "Install adb (android-tools) to mirror physical Android devices." >&2
-fi
-
-# Execute Flutter Desktop compositor
+# Execute Flutter Desktop compositor with bundled adb and scrcpy
 exec "${APPDIR}/usr/bin/open_android_dex" "$@"
 EOF
 
