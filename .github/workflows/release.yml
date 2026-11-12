@@ -208,6 +208,19 @@ jobs:
           sha256sum * > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
+      - name: Create Unversioned Release Aliases
+        working-directory: release_files
+        run: |
+          for f in Open-Android-DeX-*-Linux-x86_64.AppImage; do
+            [ -f "$f" ] && cp -v "$f" "Open-Android-DeX-Linux-x86_64.AppImage" || true
+          done
+          for f in Open-Android-DeX-*-Windows-x64-Setup.exe; do
+            [ -f "$f" ] && cp -v "$f" "Open-Android-DeX-Windows-x64-Setup.exe" || true
+          done
+          for f in Open-Android-DeX-*-Windows-x64-Portable.zip; do
+            [ -f "$f" ] && cp -v "$f" "Open-Android-DeX-Windows-x64-Portable.zip" || true
+          done
+
       - name: Resolve Release Tag & Draft Flag
         id: vars
         run: |
