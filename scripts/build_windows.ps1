@@ -1,4 +1,4 @@
-# Open Android DeX — Windows 11 Build & Packaging Script
+﻿# Open Android DeX — Windows 11 Build & Packaging Script
 # Usage: powershell -ExecutionPolicy Bypass -File .\scripts\build_windows.ps1 [-Version <version>]
 param(
     [string]$Version = $env:APP_VERSION
@@ -34,6 +34,65 @@ if (-not (Test-Path $ReleaseDir)) {
 
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 
+# 3.5 Bundle standalone ADB, scrcpy, and runtime dependencies
+Write-Host "==> Bundling portable ADB and scrcpy binaries for Windows..."
+$ScrcpyVersion = "v5.0.1"
+$DownloadsDir = "build\downloads"
+New-Item -ItemType Directory -Force -Path $DownloadsDir | Out-Null
+$ScrcpyZip = "$DownloadsDir\scrcpy-win64-$ScrcpyVersion.zip"
+
+if (-not (Test-Path $ScrcpyZip)) {
+    $ScrcpyUrl = "https://github.com/Genymobile/scrcpy/releases/download/$ScrcpyVersion/scrcpy-win64-$ScrcpyVersion.zip"
+    Write-Host "  Downloading portable scrcpy & adb bundle from $ScrcpyUrl..."
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    Invoke-WebRequest -Uri $ScrcpyUrl -OutFile $ScrcpyZip
+}
+
+$ScrcpyExtractDir = "$DownloadsDir\scrcpy-win64-$ScrcpyVersion"
+if (-not (Test-Path $ScrcpyExtractDir)) {
+    Write-Host "  Extracting scrcpy-win64 bundle..."
+    Expand-Archive -Path $ScrcpyZip -DestinationPath $DownloadsDir -Force
+}
+
+$SourceDir = if (Test-Path "$DownloadsDir\scrcpy-win64-$ScrcpyVersion\scrcpy-win64-$ScrcpyVersion") {
+    "$DownloadsDir\scrcpy-win64-$ScrcpyVersion\scrcpy-win64-$ScrcpyVersion"
+} else {
+    "$DownloadsDir\scrcpy-win64-$ScrcpyVersion"
+}
+
+# Copy adb, scrcpy, scrcpy-server, and all supporting DLLs directly into ReleaseDir
+Write-Host "  Copying bundled binaries into Release package ($ReleaseDir)..."
+Get-ChildItem -Path "$SourceDir\*" -Exclude "*.bat", "*.vbs" | ForEach-Object {
+    Copy-Item -Path $_.FullName -Destination $ReleaseDir -Recurse -Force
+}
+
+# Also ensure data\flutter_assets\assets\bin has adb and scrcpy for flutter asset resolution
+$AssetsBinDir = "$ReleaseDir\data\flutter_assets\assets\bin"
+New-Item -ItemType Directory -Force -Path $AssetsBinDir | Out-Null
+Copy-Item "$SourceDir\adb.exe" "$AssetsBinDir\" -Force -ErrorAction SilentlyContinue
+Copy-Item "$SourceDir\scrcpy.exe" "$AssetsBinDir\" -Force -ErrorAction SilentlyContinue
+Copy-Item "$SourceDir\scrcpy-server" "$AssetsBinDir\" -Force -ErrorAction SilentlyContinue
+
+# Copy MSVC runtime DLLs (msvcp140.dll, vcruntime140.dll) to ensure standalone execution on clean Windows systems
+Write-Host "  Checking for MSVC runtime DLLs to include..."
+$vcRedistDirs = @(
+    (Get-ChildItem -Path "C:\Program Files\Microsoft Visual Studio\2022\*\VC\Redist\MSVC\*\x64\Microsoft.VC*.CRT" -ErrorAction SilentlyContinue | Select-Object -Last 1).FullName,
+    (Get-ChildItem -Path "C:\Program Files (x86)\Microsoft Visual Studio\2022\*\VC\Redist\MSVC\*\x64\Microsoft.VC*.CRT" -ErrorAction SilentlyContinue | Select-Object -Last 1).FullName,
+    "C:\Windows\System32"
+)
+foreach ($dir in $vcRedistDirs) {
+    if ($dir -and (Test-Path $dir)) {
+        Copy-Item "$dir\msvcp140*.dll" "$ReleaseDir\" -Force -ErrorAction SilentlyContinue
+        Copy-Item "$dir\vcruntime140*.dll" "$ReleaseDir\" -Force -ErrorAction SilentlyContinue
+        if ((Test-Path "$ReleaseDir\msvcp140.dll") -and (Test-Path "$ReleaseDir\vcruntime140.dll")) {
+            Write-Host "  ✅ Included MSVC runtime DLLs (msvcp140.dll, vcruntime140.dll)" -ForegroundColor Green
+            break
+        }
+    }
+}
+
+Write-Host "  ✅ Successfully bundled adb.exe, scrcpy.exe, scrcpy-server, and DLLs into Windows build!" -ForegroundColor Green
+
 # Resolve output filenames (versioned if version is provided)
 if ($Version) {
     $ZipFilename = "Open-Android-DeX-$Version-Windows-x64-Portable.zip"
@@ -56,7 +115,7 @@ if (-not $iscc) {
 
 if (Test-Path $iscc) {
     Write-Host "==> Compiling Inno Setup Installer..."
-    $cleanVersion = if ($Version) { $Version.TrimStart('v') } else { "1.0.0" }
+    $cleanVersion = if ($Version) { $Version.TrimStart('v') } else { "2.0.0" }
     & $iscc "/DMyAppVersion=$cleanVersion" "/DOutputBaseFilename=$SetupBase" windows\packaging\installer.iss
     $InstallerSrc = "build\windows_installer\$SetupBase.exe"
     if (Test-Path $InstallerSrc) {

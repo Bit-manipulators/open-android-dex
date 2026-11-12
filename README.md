@@ -11,10 +11,10 @@
 An open-source desktop environment that transforms your Android smartphone or tablet into a multi-window workstation under **Windows 11** and **Linux** (Wayland and X11) — featuring resizable floating windows, an interactive DeX taskbar, app drawer, low-latency screen streaming, and keyboard/mouse/touchpad input mapping.
 
 <p align="center">
-  <a href="https://github.com/Bit-manipulators/open-android-dex/releases/download/v1.0.0/Open-Android-DeX-Linux-x86_64.AppImage">
+  <a href="https://github.com/Bit-manipulators/open-android-dex/releases/latest/download/Open-Android-DeX-Linux-x86_64.AppImage">
     <img src="https://img.shields.io/badge/Download%20for-Linux%20AppImage-2ea44f?style=for-the-badge&logo=linux&logoColor=white&labelColor=24292f" alt="Download Open Android DeX for Linux" />
   </a>
-  <a href="https://github.com/Bit-manipulators/open-android-dex/releases/download/v1.0.0/Open-Android-DeX-Windows-x64-Setup.exe">
+  <a href="https://github.com/Bit-manipulators/open-android-dex/releases/latest/download/Open-Android-DeX-Windows-x64-Setup.exe">
     <img src="https://img.shields.io/badge/Download%20for-Windows%2011-0078d4?style=for-the-badge&logo=windows&logoColor=white&labelColor=24292f" alt="Download Open Android DeX for Windows 11" />
   </a>
 </p>
@@ -76,12 +76,12 @@ An open-source desktop environment that transforms your Android smartphone or ta
 Precompiled, validated releases are distributed via GitHub Releases:
 
 ### 🪟 Windows 11 (x64)
-* **Installer:** [`Open-Android-DeX-Windows-x64-Setup.exe`](https://github.com/Bit-manipulators/open-android-dex/releases/download/v1.0.0/Open-Android-DeX-Windows-x64-Setup.exe) — Standard setup wizard with Desktop & Start Menu integration and uninstaller.
-* **Portable Package:** [`Open-Android-DeX-Windows-x64-Portable.zip`](https://github.com/Bit-manipulators/open-android-dex/releases/download/v1.0.0/Open-Android-DeX-Windows-x64-Portable.zip) — Standalone folder; extract and launch `open_android_dex.exe` anywhere with zero installation.
+* **Installer:** [`Open-Android-DeX-Windows-x64-Setup.exe`](https://github.com/Bit-manipulators/open-android-dex/releases/latest/download/Open-Android-DeX-Windows-x64-Setup.exe) — Standard setup wizard with Desktop & Start Menu integration and uninstaller.
+* **Portable Package:** [`Open-Android-DeX-Windows-x64-Portable.zip`](https://github.com/Bit-manipulators/open-android-dex/releases/latest/download/Open-Android-DeX-Windows-x64-Portable.zip) — Standalone folder; extract and launch `open_android_dex.exe` anywhere with zero installation.
 * 📖 Detailed setup & driver instructions: [`docs/WINDOWS_SETUP.md`](docs/WINDOWS_SETUP.md)
 
 ### 🐧 Linux (x86_64 AppImage)
-* **Portable AppImage:** [`Open-Android-DeX-Linux-x86_64.AppImage`](https://github.com/Bit-manipulators/open-android-dex/releases/download/v1.0.0/Open-Android-DeX-Linux-x86_64.AppImage) — Self-contained executable bundling all required Flutter and multimedia shared libraries.
+* **Portable AppImage:** [`Open-Android-DeX-Linux-x86_64.AppImage`](https://github.com/Bit-manipulators/open-android-dex/releases/latest/download/Open-Android-DeX-Linux-x86_64.AppImage) — Self-contained executable bundling all required Flutter and multimedia shared libraries.
   ```bash
   chmod +x Open-Android-DeX-Linux-x86_64.AppImage
   ./Open-Android-DeX-Linux-x86_64.AppImage

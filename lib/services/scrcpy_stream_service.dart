@@ -173,7 +173,11 @@ class ScrcpyStreamService {
     try {
       debugPrint(
           '[ScrcpyStreamService] Starting headless scrcpy pipe stream (${width}x$height) to $pipePath');
-      final proc = await Process.start(PlatformAdapter.scrcpyExecutable, args);
+      final proc = await Process.start(
+        PlatformAdapter.scrcpyExecutable,
+        args,
+        environment: PlatformAdapter.scrcpyEnvironment,
+      );
 
       void handleOutput(String line) {
         final match = RegExp(r'New display:.*\(id=(\d+)\)').firstMatch(line);
