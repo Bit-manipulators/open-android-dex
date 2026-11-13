@@ -66,6 +66,7 @@ class ScrcpyStreamService {
     int width = 720,
     int height = 1280,
     int dpi = 240,
+    String? customPipePath,
   }) async {
     // Wait for any existing in-flight start for this window to finish
     while (_inFlightStarts.containsKey(windowId)) {
@@ -80,6 +81,7 @@ class ScrcpyStreamService {
       width: width,
       height: height,
       dpi: dpi,
+      customPipePath: customPipePath,
     );
     _inFlightStarts[windowId] = future;
     try {
@@ -97,6 +99,7 @@ class ScrcpyStreamService {
     required int width,
     required int height,
     required int dpi,
+    String? customPipePath,
   }) async {
     // 1. Gracefully stop any existing session for this window and wait for port cooldown
     await stopSession(windowId);
@@ -107,10 +110,13 @@ class ScrcpyStreamService {
 
     final safeId = windowId.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_');
     final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final pipePath = PlatformAdapter.getStreamPipePath('${safeId}_$timestamp');
+    final pipePath = customPipePath ??
+        PlatformAdapter.getStreamPipePath('${safeId}_$timestamp');
 
-    // 2. Ensure a clean, fresh FIFO pipe or streaming channel
-    await PlatformAdapter.createStreamPipe(pipePath);
+    // 2. Ensure a clean, fresh FIFO pipe or streaming channel if not pre-created
+    if (customPipePath == null) {
+      await PlatformAdapter.createStreamPipe(pipePath);
+    }
 
     final session = ScrcpyStreamSession(
       id: windowId,
