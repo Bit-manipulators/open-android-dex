@@ -73,7 +73,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            clang cmake ninja-build pkg-config \
+            clang cmake ninja-build pkg-config make \
             libgtk-3-dev libavcodec-dev libavformat-dev libswscale-dev libavutil-dev \
             file curl tar desktop-file-utils adb scrcpy
 
@@ -107,6 +107,24 @@ jobs:
           fi
           ls -lh "$APPIMAGE"
           sha256sum "$APPIMAGE"
+
+          # Verify runtime link integrity and ensure no missing library errors
+          chmod +x "$APPIMAGE"
+          "$APPIMAGE" --appimage-extract
+          echo "Inspecting AppImage binary dependencies:"
+          LD_LIBRARY_PATH="squashfs-root/usr/lib:${LD_LIBRARY_PATH:-}" ldd squashfs-root/usr/bin/open_android_dex
+          MISSING=$(LD_LIBRARY_PATH="squashfs-root/usr/lib:${LD_LIBRARY_PATH:-}" ldd squashfs-root/usr/bin/open_android_dex 2>&1 | grep "not found" || true)
+          if [ -n "$MISSING" ]; then
+            echo "❌ Error: Missing libraries found inside AppImage:" >&2
+            echo "$MISSING" >&2
+            exit 1
+          fi
+          if LD_LIBRARY_PATH="squashfs-root/usr/lib:${LD_LIBRARY_PATH:-}" ldd squashfs-root/usr/bin/open_android_dex 2>&1 | grep "libgme" ; then
+            echo "❌ Error: libgme found in dependencies!" >&2
+            exit 1
+          fi
+          echo "✅ AppImage verified: zero missing libraries and zero libgme dependency!"
+          rm -rf squashfs-root
 
       - name: Upload Linux AppImage Artifact
         uses: actions/upload-artifact@v4

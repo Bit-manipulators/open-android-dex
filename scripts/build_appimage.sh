@@ -34,6 +34,17 @@ if ! command -v "${FLUTTER_BIN}" >/dev/null 2>&1; then
     exit 1
 fi
 
+# 1.5. Build Minimal Static FFmpeg
+# Builds self-contained static FFmpeg archives (libavcodec.a, libavformat.a, etc.)
+# to eliminate external distro dependency hell (libgme.so.0, libx264, libvpx, etc.)
+STATIC_FFMPEG_DIR="${REPO_ROOT}/build/ffmpeg_static"
+if [ "${BUILD_STATIC_FFMPEG:-1}" = "1" ]; then
+    echo "==> Ensuring minimal static FFmpeg is built..."
+    chmod +x "${REPO_ROOT}/scripts/build_static_ffmpeg.sh"
+    "${REPO_ROOT}/scripts/build_static_ffmpeg.sh" "${STATIC_FFMPEG_DIR}"
+    export PKG_CONFIG_PATH="${STATIC_FFMPEG_DIR}/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
+fi
+
 # 2. Build Linux Application in Release Mode
 echo "==> Building Flutter Linux Release..."
 "${FLUTTER_BIN}" build linux --release
@@ -71,10 +82,41 @@ cp -a "${BUNDLE_DIR}/data/"* "${APPDIR}/usr/bin/data/"
 # Create relative symlink so Flutter engine finds libapp.so at $ORIGIN/lib/libapp.so
 ln -sfn ../lib "${APPDIR}/usr/bin/lib"
 
-# Copy system dependencies that might vary across distros (FFmpeg & shared libs)
-for lib in libavcodec libavformat libswscale libavutil; do
-    find /usr/lib /usr/lib64 -name "${lib}*.so*" -exec cp -d {} "${APPDIR}/usr/lib/" \; 2>/dev/null || true
-done
+# Inspect binary dependencies: bundle shared libraries only if dynamically linked
+echo "==> Resolving shared library dependencies..."
+EXCLUDE_REGEX="^(ld-linux.*|libc\.so.*|libm\.so.*|libdl\.so.*|librt\.so.*|libpthread\.so.*|libresolv\.so.*|libutil\.so.*|libnss.*|libgcc_s\.so.*|libstdc\+\+\.so.*|libGL\.so.*|libGLX\.so.*|libOpenGL\.so.*|libEGL\.so.*|libdrm\.so.*|libgbm\.so.*|libglapi\.so.*|libvulkan\.so.*|libX11.*|libxcb.*|libXext.*|libXfixes.*|libXrender.*|libXi.*|libXrandr.*|libXcursor.*|libXinerama.*|libasound.*|libwayland.*)$"
+
+if objdump -p "${APPDIR}/usr/bin/open_android_dex" 2>/dev/null | grep -E "NEEDED.*libav(codec|format)" >/dev/null; then
+    echo "⚠️ Warning: open_android_dex is dynamically linked to FFmpeg. Recursively bundling non-base dependencies..."
+    COPIED_NEW=1
+    while [ $COPIED_NEW -eq 1 ]; do
+        COPIED_NEW=0
+        for elf in $(find "${APPDIR}/usr/bin" "${APPDIR}/usr/lib" -type f -exec file {} + 2>/dev/null | grep "ELF" | cut -d: -f1); do
+            for dep in $(ldd "$elf" 2>/dev/null | grep '=> /' | awk '{print $3}' || true); do
+                dep_name="$(basename "$dep")"
+                if [[ ! "$dep_name" =~ $EXCLUDE_REGEX ]]; then
+                    if [ ! -f "${APPDIR}/usr/lib/${dep_name}" ]; then
+                        echo "    Bundling non-base dependency: $dep_name"
+                        cp -d "$dep" "${APPDIR}/usr/lib/"
+                        COPIED_NEW=1
+                    fi
+                fi
+            done
+        done
+    done
+else
+    echo "✅ Verified: open_android_dex is statically linked against minimal FFmpeg (zero external codec .so dependencies)."
+fi
+
+# Verify dynamic link integrity
+echo "==> Verifying dynamic link integrity for AppDir..."
+MISSING_LIBS=$(LD_LIBRARY_PATH="${APPDIR}/usr/lib:${LD_LIBRARY_PATH:-}" ldd "${APPDIR}/usr/bin/open_android_dex" 2>&1 | grep "not found" || true)
+if [ -n "$MISSING_LIBS" ]; then
+    echo "❌ Error: Unresolved shared libraries detected in AppDir:" >&2
+    echo "$MISSING_LIBS" >&2
+    exit 1
+fi
+echo "✅ All dynamic dependencies successfully verified!"
 
 # Bundle standalone ADB, scrcpy, and scrcpy-server inside AppImage
 echo "==> Bundling portable ADB and scrcpy binaries..."
