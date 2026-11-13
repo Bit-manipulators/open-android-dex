@@ -24,16 +24,6 @@ class _DexDesktopScreenState extends State<DexDesktopScreen> {
   bool _isQuickSettingsOpen = false;
   bool _isNotificationsOpen = false;
 
-  void _openDefaultAppIfNone() {
-    if (_windowManager.openWindows.isEmpty && mounted) {
-      final size = MediaQuery.of(context).size;
-      _windowManager.openApp(
-        AppInfo.fromPackage('com.google.android.calculator'),
-        size,
-      );
-    }
-  }
-
   @override
   void initState() {
     super.initState();
@@ -41,26 +31,22 @@ class _DexDesktopScreenState extends State<DexDesktopScreen> {
     _adb.onDeviceStateChanged.listen((connected) {
       if (mounted) {
         setState(() {});
-        if (connected) {
-          _openDefaultAppIfNone();
-        }
       }
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final devices = await _adb.getConnectedDevices();
       if (devices.isNotEmpty || _adb.isDemoMode) {
-        // Device is already attached! Immediately launch default desktop app
         if (_adb.selectedDeviceSerial == null ||
             !devices.contains(_adb.selectedDeviceSerial)) {
           _adb.selectedDeviceSerial = _adb.getPreferredDevice(devices);
         }
-        _openDefaultAppIfNone();
+        if (mounted) setState(() {});
       } else {
         // Prompt for Connection Mode (Wired USB / Wireless QR) on initial startup
         if (mounted) {
           ConnectionModeDialog.show(context, onConnected: () {
-            _openDefaultAppIfNone();
+            if (mounted) setState(() {});
           });
         }
       }

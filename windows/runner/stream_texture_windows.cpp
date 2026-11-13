@@ -68,8 +68,14 @@ StreamTextureWindows::~StreamTextureWindows() {
 }
 
 void StreamTextureWindows::Stop() {
-  if (!is_running_) return;
+  if (is_stopped_.exchange(true)) return;
   is_running_ = false;
+
+  HANDLE h = pipe_handle_.exchange(INVALID_HANDLE_VALUE);
+  if (h != INVALID_HANDLE_VALUE) {
+    CancelIoEx(h, nullptr);
+    CloseHandle(h);
+  }
 
   if (worker_thread_.joinable()) {
     worker_thread_.join();
@@ -78,7 +84,13 @@ void StreamTextureWindows::Stop() {
 
 const FlutterDesktopPixelBuffer* StreamTextureWindows::CopyPixelBuffer(size_t width,
                                                                       size_t height) {
+  if (is_stopped_.load()) {
+    return nullptr;
+  }
   std::lock_guard<std::mutex> lock(mutex_);
+  if (is_stopped_.load()) {
+    return nullptr;
+  }
   if (has_new_frame_ && !ready_buffer_.empty()) {
     std::swap(render_buffer_, ready_buffer_);
     has_new_frame_ = false;
@@ -173,11 +185,10 @@ void StreamTextureWindows::WorkerLoop() {
 
 #else
   // Native Win32 Named Pipe / File reader fallback loop
-  HANDLE pipe_handle = INVALID_HANDLE_VALUE;
   bool is_named_pipe = (source_path_.rfind("\\\\.\\pipe\\", 0) == 0);
 
   if (is_named_pipe) {
-    pipe_handle = CreateNamedPipeA(
+    HANDLE h = CreateNamedPipeA(
         source_path_.c_str(),
         PIPE_ACCESS_INBOUND,
         PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT,
@@ -186,39 +197,47 @@ void StreamTextureWindows::WorkerLoop() {
         65536,
         3000,
         nullptr);
+    pipe_handle_.store(h);
   }
 
   while (is_running_) {
-    if (is_named_pipe && pipe_handle != INVALID_HANDLE_VALUE) {
-      ConnectNamedPipe(pipe_handle, nullptr);
+    HANDLE h = pipe_handle_.load();
+    if (is_named_pipe && h != INVALID_HANDLE_VALUE) {
+      BOOL connected = ConnectNamedPipe(h, nullptr) ? TRUE : (GetLastError() == ERROR_PIPE_CONNECTED);
+      if (!connected && !is_running_) break;
       std::vector<uint8_t> temp_chunk(65536);
       DWORD bytes_read = 0;
-      while (is_running_ && ReadFile(pipe_handle, temp_chunk.data(), static_cast<DWORD>(temp_chunk.size()), &bytes_read, nullptr)) {
+      while (is_running_ && h != INVALID_HANDLE_VALUE && ReadFile(h, temp_chunk.data(), static_cast<DWORD>(temp_chunk.size()), &bytes_read, nullptr)) {
         if (bytes_read > 0) {
           {
             std::lock_guard<std::mutex> lock(mutex_);
             has_new_frame_ = true;
           }
-          if (registrar_ && texture_id_ >= 0) {
+          if (registrar_ && texture_id_ >= 0 && !is_stopped_.load()) {
             registrar_->MarkTextureFrameAvailable(texture_id_);
           }
         }
+        h = pipe_handle_.load();
       }
-      DisconnectNamedPipe(pipe_handle);
+      if (h != INVALID_HANDLE_VALUE) {
+        DisconnectNamedPipe(h);
+      }
     } else {
       std::this_thread::sleep_for(std::chrono::milliseconds(33));
+      if (!is_running_) break;
       {
         std::lock_guard<std::mutex> lock(mutex_);
         has_new_frame_ = true;
       }
-      if (registrar_ && texture_id_ >= 0) {
+      if (registrar_ && texture_id_ >= 0 && !is_stopped_.load()) {
         registrar_->MarkTextureFrameAvailable(texture_id_);
       }
     }
   }
 
-  if (pipe_handle != INVALID_HANDLE_VALUE) {
-    CloseHandle(pipe_handle);
+  HANDLE final_h = pipe_handle_.exchange(INVALID_HANDLE_VALUE);
+  if (final_h != INVALID_HANDLE_VALUE) {
+    CloseHandle(final_h);
   }
 #endif
 }
@@ -280,12 +299,23 @@ static void HandleMethodCall(const flutter::MethodCall<flutter::EncodableValue>&
       }
     }
 
+    std::unique_ptr<StreamTextureWindows> texture_to_delete;
     {
       std::lock_guard<std::mutex> lock(g_textures_mutex);
       auto it = g_active_textures.find(texture_id);
       if (it != g_active_textures.end()) {
-        it->second->Stop();
+        texture_to_delete = std::move(it->second);
         g_active_textures.erase(it);
+      }
+    }
+
+    if (texture_to_delete) {
+      texture_to_delete->Stop();
+      auto* reg = texture_to_delete->registrar();
+      if (reg && texture_id >= 0) {
+        reg->UnregisterTexture(texture_id, [kept = std::move(texture_to_delete)]() {
+          // Safely destroyed after engine confirms unregistration!
+        });
       }
     }
 

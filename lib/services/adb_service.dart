@@ -836,21 +836,34 @@ class AdbService {
         }
       }
 
-      // 3. Add common built-in apps if installed
+      // 3. Add common built-in apps if installed (Google Pixel & Samsung Galaxy)
       final commonSysApps = [
         'com.google.android.calculator',
         'com.android.calculator2',
+        'com.sec.android.app.popupcalculator',
         'com.android.chrome',
+        'com.sec.android.app.sbrowser',
         'com.google.android.youtube',
         'com.google.android.apps.photos',
+        'com.sec.android.gallery3d',
         'com.google.android.gm',
         'com.google.android.apps.maps',
         'com.android.settings',
         'com.google.android.dialer',
+        'com.samsung.android.dialer',
         'com.google.android.apps.messaging',
+        'com.samsung.android.messaging',
         'com.google.android.deskclock',
+        'com.sec.android.app.clockpackage',
+        'com.sec.android.app.myfiles',
+        'com.sec.android.app.voicenote',
+        'com.sec.android.app.samsungapps',
+        'com.samsung.android.calendar',
+        'com.samsung.android.app.notes',
+        'com.samsung.android.app.contacts',
         'com.android.camera',
         'com.android.camera2',
+        'com.sec.android.app.camera',
       ];
 
       for (var sys in commonSysApps) {

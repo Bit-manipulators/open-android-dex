@@ -56,9 +56,43 @@ class AppInfo {
   static String _resolveName(String pkg) {
     final lower = pkg.toLowerCase();
 
+    // Specific Samsung Galaxy & One UI suite (S21 FE, etc.)
+    if (lower == 'com.sec.android.app.popupcalculator') return 'Calculator';
+    if (lower == 'com.sec.android.app.sbrowser' ||
+        lower == 'com.samsung.android.app.sbrowseredge') {
+      return 'Samsung Internet';
+    }
+    if (lower == 'com.sec.android.app.camera') return 'Camera';
+    if (lower == 'com.sec.android.gallery3d') return 'Gallery';
+    if (lower == 'com.sec.android.app.myfiles') return 'My Files';
+    if (lower == 'com.sec.android.app.clockpackage') return 'Clock';
+    if (lower == 'com.sec.android.app.voicenote') return 'Voice Recorder';
+    if (lower == 'com.sec.android.app.samsungapps') return 'Galaxy Store';
+    if (lower == 'com.sec.android.app.music') return 'Samsung Music';
+    if (lower == 'com.samsung.android.dialer' ||
+        lower == 'com.samsung.android.incallui') return 'Phone';
+    if (lower == 'com.samsung.android.messaging') return 'Messages';
+    if (lower == 'com.samsung.android.calendar') return 'Calendar';
+    if (lower == 'com.samsung.android.app.notes') return 'Samsung Notes';
+    if (lower == 'com.samsung.android.app.contacts') return 'Contacts';
+    if (lower == 'com.samsung.android.app.reminder') return 'Reminder';
+    if (lower == 'com.samsung.android.shealth' ||
+        lower == 'com.sec.android.app.shealth') return 'Samsung Health';
+    if (lower == 'com.samsung.android.oneconnect') return 'SmartThings';
+    if (lower == 'com.samsung.android.app.tips') return 'Tips';
+    if (lower == 'com.samsung.android.lool' ||
+        lower == 'com.samsung.android.sm') return 'Device Care';
+    if (lower == 'com.sec.android.easyMover') return 'Smart Switch';
+    if (lower == 'com.samsung.android.bixby.agent') return 'Bixby';
+    if (lower == 'com.samsung.android.game.gamehome') return 'Gaming Hub';
+    if (lower == 'com.samsung.android.weather') return 'Weather';
+    if (lower == 'com.samsung.android.spay' ||
+        lower == 'com.samsung.android.raja.wallet') return 'Samsung Wallet';
+
     // Well-known popular app mappings
     if (lower == 'com.google.android.calculator' ||
-        lower == 'com.android.calculator2') return 'Calculator';
+        lower == 'com.android.calculator2' ||
+        lower.contains('calculator')) return 'Calculator';
     if (lower == 'com.android.chrome') return 'Chrome';
     if (lower == 'com.google.android.youtube') return 'YouTube';
     if (lower == 'com.openai.chatgpt') return 'ChatGPT';
@@ -73,14 +107,25 @@ class AppInfo {
     if (lower == 'com.ubercab') return 'Uber';
     if (lower == 'com.google.android.gm') return 'Gmail';
     if (lower.contains('maps')) return 'Maps';
-    if (lower.contains('photos')) return 'Photos';
-    if (lower.contains('nbu.files') || lower == 'com.android.filemanager')
-      return 'Files';
+    if (lower.contains('photos') || lower.contains('gallery')) return 'Gallery';
+    if (lower.contains('nbu.files') ||
+        lower == 'com.android.filemanager' ||
+        lower.contains('myfiles') ||
+        lower.contains('filemanager')) return 'Files';
     if (lower.contains('camera')) return 'Camera';
     if (lower.contains('dialer') || lower.contains('phone')) return 'Phone';
-    if (lower.contains('messaging')) return 'Messages';
+    if (lower.contains('messaging') || lower.contains('mms')) return 'Messages';
     if (lower.contains('settings')) return 'Settings';
-    if (lower.contains('deskclock')) return 'Clock';
+    if (lower.contains('deskclock') ||
+        lower.contains('clockpackage') ||
+        lower.contains('clock')) return 'Clock';
+    if (lower.contains('voicenote') || lower.contains('soundrecorder')) {
+      return 'Voice Recorder';
+    }
+    if (lower.contains('notes') || lower.contains('memo')) return 'Notes';
+    if (lower.contains('calendar')) return 'Calendar';
+    if (lower.contains('contacts')) return 'Contacts';
+    if (lower == 'com.android.vending') return 'Play Store';
     if (lower.contains('spotify')) return 'Spotify';
     if (lower.contains('netflix')) return 'Netflix';
     if (lower.contains('linkedin')) return 'LinkedIn';
@@ -103,7 +148,7 @@ class AppInfo {
     if (lower.contains('phonepe')) return 'PhonePe';
     if (lower.contains('whereismytrain')) return 'Where Is My Train';
 
-    // Smart fallback: discard generic words like android, mobile, app, client
+    // Smart fallback: discard generic words like android, mobile, app, client, samsung, sec
     final parts = pkg.split('.');
     String candidate = parts.last;
     if (const {
@@ -114,7 +159,9 @@ class AppInfo {
       'frontend',
       'ui',
       'passenger',
-      'customer'
+      'customer',
+      'sec',
+      'samsung'
     }.contains(candidate.toLowerCase())) {
       if (parts.length >= 2) {
         candidate = parts[parts.length - 2];
@@ -129,7 +176,8 @@ class AppInfo {
     if (name.contains('calculator')) return Icons.calculate_rounded;
     if (name.contains('chrome') ||
         name.contains('firefox') ||
-        name.contains('browser')) return Icons.language_rounded;
+        name.contains('browser') ||
+        name.contains('internet')) return Icons.language_rounded;
     if (name.contains('youtube') ||
         name.contains('vlc') ||
         name.contains('video') ||
@@ -156,8 +204,22 @@ class AppInfo {
       return Icons.folder_rounded;
     }
     if (name.contains('clock')) return Icons.access_time_filled_rounded;
-    if (name.contains('mail') || name.contains('gmail'))
+    if (name.contains('mail') || name.contains('gmail')) {
       return Icons.mail_rounded;
+    }
+    if (name.contains('calendar') || name.contains('reminder')) {
+      return Icons.calendar_month_rounded;
+    }
+    if (name.contains('notes') || name.contains('memo')) {
+      return Icons.note_alt_rounded;
+    }
+    if (name.contains('voice') || name.contains('recorder')) {
+      return Icons.mic_rounded;
+    }
+    if (name.contains('store') || name.contains('market')) {
+      return Icons.shopping_bag_rounded;
+    }
+    if (name.contains('weather')) return Icons.wb_sunny_rounded;
     if (name.contains('maps') ||
         name.contains('train') ||
         name.contains('uber')) return Icons.map_rounded;

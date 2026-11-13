@@ -27,6 +27,7 @@ class StreamTextureWindows {
   ~StreamTextureWindows();
 
   int64_t texture_id() const { return texture_id_; }
+  flutter::TextureRegistrar* registrar() const { return registrar_; }
   void Stop();
 
  private:
@@ -48,7 +49,9 @@ class StreamTextureWindows {
 
   std::mutex mutex_;
   std::atomic<bool> is_running_{false};
+  std::atomic<bool> is_stopped_{false};
   std::atomic<bool> has_new_frame_{false};
+  std::atomic<HANDLE> pipe_handle_{INVALID_HANDLE_VALUE};
   std::thread worker_thread_;
 };
 

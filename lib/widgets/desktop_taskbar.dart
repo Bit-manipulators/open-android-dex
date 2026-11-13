@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../controllers/window_manager_controller.dart';
 import '../models/dex_window.dart';
 import '../services/adb_service.dart';
+import '../services/scrcpy_stream_service.dart';
 import 'app_icon_widget.dart';
 import 'connection_mode_dialog.dart';
 
@@ -152,23 +153,41 @@ class _DesktopTaskbarState extends State<DesktopTaskbar> {
               const SizedBox(width: 8),
 
               // 2. Android Nav Bar: Back, Home, Recents
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF171E2D),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildTaskbarIcon(Icons.arrow_back_ios_new_rounded, 'Back',
-                        () => adb.goBack()),
-                    _buildTaskbarIcon(
-                        Icons.circle_outlined, 'Home', () => adb.goHome()),
-                    _buildTaskbarIcon(Icons.crop_square_rounded, 'Recent Apps',
-                        () => adb.showRecents()),
-                  ],
-                ),
+              Builder(
+                builder: (context) {
+                  final activeId = widget.controller.activeWindowId;
+                  final displayId = activeId != null
+                      ? ScrcpyStreamService().getSession(activeId)?.displayId
+                      : null;
+                  return Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF171E2D),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildTaskbarIcon(
+                          Icons.arrow_back_ios_new_rounded,
+                          'Back',
+                          () => adb.goBack(displayId: displayId),
+                        ),
+                        _buildTaskbarIcon(
+                          Icons.circle_outlined,
+                          'Home',
+                          () => adb.goHome(displayId: displayId),
+                        ),
+                        _buildTaskbarIcon(
+                          Icons.crop_square_rounded,
+                          'Recent Apps',
+                          () => adb.showRecents(displayId: displayId),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
 
               const SizedBox(width: 12),

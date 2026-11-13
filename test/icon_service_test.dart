@@ -14,6 +14,34 @@ void main() {
       expect(updated.name, equals('Chrome'));
       expect(updated.packageName, equals('com.android.chrome'));
     });
+
+    test('resolves Samsung Galaxy suite package names to clean human names',
+        () {
+      expect(AppInfo.fromPackage('com.sec.android.app.popupcalculator').name,
+          equals('Calculator'));
+      expect(AppInfo.fromPackage('com.sec.android.app.sbrowser').name,
+          equals('Samsung Internet'));
+      expect(AppInfo.fromPackage('com.sec.android.app.camera').name,
+          equals('Camera'));
+      expect(AppInfo.fromPackage('com.sec.android.gallery3d').name,
+          equals('Gallery'));
+      expect(AppInfo.fromPackage('com.sec.android.app.myfiles').name,
+          equals('My Files'));
+      expect(AppInfo.fromPackage('com.sec.android.app.clockpackage').name,
+          equals('Clock'));
+      expect(AppInfo.fromPackage('com.sec.android.app.voicenote').name,
+          equals('Voice Recorder'));
+      expect(AppInfo.fromPackage('com.sec.android.app.samsungapps').name,
+          equals('Galaxy Store'));
+      expect(AppInfo.fromPackage('com.samsung.android.dialer').name,
+          equals('Phone'));
+      expect(AppInfo.fromPackage('com.samsung.android.messaging').name,
+          equals('Messages'));
+      expect(AppInfo.fromPackage('com.samsung.android.calendar').name,
+          equals('Calendar'));
+      expect(AppInfo.fromPackage('com.samsung.android.app.notes').name,
+          equals('Samsung Notes'));
+    });
   });
 
   group('IconExtractionService Tests', () {

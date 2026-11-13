@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/dex_window.dart';
 import '../services/adb_service.dart';
+import '../services/platform_adapter.dart';
 import '../services/scrcpy_stream_service.dart';
 import '../services/texture_stream_channel.dart';
 import '../services/touch_input_service.dart';
@@ -86,13 +87,12 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
     final maximizeChanged =
         widget.window.isMaximized != oldWidget.window.isMaximized;
 
-    if (maximizeChanged || widthDiff > 20 || heightDiff > 20) {
+    if (maximizeChanged || widthDiff > 100 || heightDiff > 100) {
       // Automatically adapt Android virtual display resolution to the new window shape.
-      // While dragging, the video scales smoothly. 450ms after the user releases or pauses
-      // resizing, the virtual display resolution automatically re-renders without needing
-      // to manually click "Adapt Size"!
+      // While dragging, the video scales smoothly. After the user releases or finishes
+      // resizing, the virtual display resolution automatically re-renders cleanly.
       _resizeDebounceTimer?.cancel();
-      _resizeDebounceTimer = Timer(const Duration(milliseconds: 450), () {
+      _resizeDebounceTimer = Timer(const Duration(milliseconds: 800), () {
         if (mounted) {
           _startStream();
         }
@@ -156,7 +156,21 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
 
       final oldTexId = _textureId;
 
-      // 1. Start or restart headless scrcpy session with graceful handshake
+      // 1. Prepare streaming pipe and register native texture listener FIRST
+      // This ensures named pipe / socket is listening before scrcpy attempts to connect
+      final safeId = widget.window.id.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_');
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final pipePath =
+          PlatformAdapter.getStreamPipePath('${safeId}_$timestamp');
+      await PlatformAdapter.createStreamPipe(pipePath);
+
+      final texId = await TextureStreamChannel.startStream(
+        path: pipePath,
+        width: targetW,
+        height: targetH,
+      );
+
+      // 2. Start headless scrcpy session connecting directly to the listening stream
       final session = await _streamService.startSession(
         windowId: widget.window.id,
         packageName: widget.window.app.packageName,
@@ -165,17 +179,8 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
         width: targetW,
         height: targetH,
         dpi: 240,
+        customPipePath: pipePath,
       );
-
-      // 2. Request native texture registration for the video stream
-      int? texId;
-      if (session != null) {
-        texId = await TextureStreamChannel.startStream(
-          path: session.pipePath,
-          width: targetW,
-          height: targetH,
-        );
-      }
 
       if (mounted) {
         _lastAdaptedWidth = targetW.toDouble();
