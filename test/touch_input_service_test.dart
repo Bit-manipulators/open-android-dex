@@ -155,7 +155,8 @@ void main() {
       expect(args[dIdx + 1], '2');
     });
 
-    test('does not pass -d when displayId is 0 (primary screen) or null', () async {
+    test('does not pass -d when displayId is 0 (primary screen) or null',
+        () async {
       await service.sendTap(
         serial: 'test-device',
         displayId: 0,

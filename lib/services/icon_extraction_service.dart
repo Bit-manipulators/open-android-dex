@@ -297,7 +297,17 @@ class IconExtractionService {
         for (final iconRes in iconCandidates) {
           final extractRes = await Process.run(
             PlatformAdapter.adbExecutable,
-            ['-s', serial, 'shell', 'unzip', '-p', apkPath, iconRes, '>', remoteIconTmp],
+            [
+              '-s',
+              serial,
+              'shell',
+              'unzip',
+              '-p',
+              apkPath,
+              iconRes,
+              '>',
+              remoteIconTmp
+            ],
           );
           if (extractRes.exitCode == 0) {
             final pullRes = await Process.run(
@@ -309,7 +319,9 @@ class IconExtractionService {
               ['-s', serial, 'shell', 'rm', '-f', remoteIconTmp],
             );
             final f = File(targetDevPath);
-            if (pullRes.exitCode == 0 && f.existsSync() && f.lengthSync() > 100) {
+            if (pullRes.exitCode == 0 &&
+                f.existsSync() &&
+                f.lengthSync() > 100) {
               try {
                 final globalPath = '$hostGlobalDir/$pkg.png';
                 if (!File(globalPath).existsSync()) {

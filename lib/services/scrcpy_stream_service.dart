@@ -86,7 +86,8 @@ class ScrcpyStreamService {
       );
 
       // If virtual display was requested, verify it didn't immediately fail on device
-      if (mode == ScrcpyDisplayMode.virtualDisplay && session?.process != null) {
+      if (mode == ScrcpyDisplayMode.virtualDisplay &&
+          session?.process != null) {
         final quickExit = await Future.any([
           session!.process!.exitCode.then((code) => code != 0 ? code : null),
           Future.delayed(const Duration(milliseconds: 900), () => null),

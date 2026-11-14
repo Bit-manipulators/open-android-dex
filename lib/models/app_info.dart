@@ -92,7 +92,8 @@ class AppInfo {
     // Xiaomi / Redmi (MIUI & HyperOS suite: Redmi Note 12 Pro, etc.)
     if (lower == 'com.miui.calculator') return 'Calculator';
     if (lower == 'com.miui.gallery') return 'Gallery';
-    if (lower == 'com.miui.cleanmaster' || lower == 'com.miui.securityadd') return 'Security';
+    if (lower == 'com.miui.cleanmaster' || lower == 'com.miui.securityadd')
+      return 'Security';
     if (lower == 'com.miui.notes') return 'Notes';
     if (lower == 'com.miui.weather2') return 'Weather';
     if (lower == 'com.miui.compass') return 'Compass';
@@ -257,8 +258,9 @@ class AppInfo {
     }
     if (name.contains('phone') || name.contains('dialer'))
       return Icons.call_rounded;
-    if (name.contains('music') || name.contains('spotify') || name.contains('fm'))
-      return Icons.music_note_rounded;
+    if (name.contains('music') ||
+        name.contains('spotify') ||
+        name.contains('fm')) return Icons.music_note_rounded;
     if (name.contains('terminal') || name.contains('termux'))
       return Icons.terminal_rounded;
     if (name.contains('github')) return Icons.code_rounded;

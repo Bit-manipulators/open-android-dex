@@ -39,7 +39,8 @@ void main() {
       expect(AdbService.isWirelessSerial('1234567890ABCDEF'), isFalse);
     });
 
-    test('supportsVirtualDisplay accurately requires Android 14+ (SDK >= 34)', () {
+    test('supportsVirtualDisplay accurately requires Android 14+ (SDK >= 34)',
+        () {
       adb.androidSdkVersion = 31; // Android 12 (e.g. Redmi Note 12 Pro)
       expect(adb.supportsVirtualDisplay, isFalse);
 
