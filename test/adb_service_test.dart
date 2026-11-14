@@ -38,6 +38,20 @@ void main() {
           isTrue);
       expect(AdbService.isWirelessSerial('1234567890ABCDEF'), isFalse);
     });
+
+    test('supportsVirtualDisplay accurately requires Android 14+ (SDK >= 34)', () {
+      adb.androidSdkVersion = 31; // Android 12 (e.g. Redmi Note 12 Pro)
+      expect(adb.supportsVirtualDisplay, isFalse);
+
+      adb.androidSdkVersion = 33; // Android 13
+      expect(adb.supportsVirtualDisplay, isFalse);
+
+      adb.androidSdkVersion = 34; // Android 14
+      expect(adb.supportsVirtualDisplay, isTrue);
+
+      adb.androidSdkVersion = 36; // Android 16 (e.g. Samsung Galaxy S21 FE)
+      expect(adb.supportsVirtualDisplay, isTrue);
+    });
   });
 
   group('TouchInputService Tests', () {

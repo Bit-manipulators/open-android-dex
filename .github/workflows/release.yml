@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       tag_name:
-        description: "Release Tag (e.g. v2.0.1)"
+        description: "Release Tag (e.g. v2.0.2)"
         required: false
-        default: "v2.0.1"
+        default: "v2.0.2"
       draft:
         description: "Create as Draft Release"
         type: boolean
@@ -89,7 +89,7 @@ jobs:
           else
             VER="${{ github.ref_name }}"
           fi
-          echo "version=${VER:-v2.0.1}" >> $GITHUB_OUTPUT
+          echo "version=${VER:-v2.0.2}" >> $GITHUB_OUTPUT
 
       - name: Build AppImage
         env:
@@ -156,9 +156,6 @@ jobs:
       - name: Install Flutter Dependencies
         run: flutter pub get
 
-      - name: Build Windows Application (Release)
-        run: flutter build windows --release
-
       - name: Resolve Release Version
         id: version
         shell: bash
@@ -168,9 +165,9 @@ jobs:
           else
             VER="${{ github.ref_name }}"
           fi
-          echo "version=${VER:-v2.0.1}" >> $GITHUB_OUTPUT
+          echo "version=${VER:-v2.0.2}" >> $GITHUB_OUTPUT
 
-      - name: Package Windows Artifacts
+      - name: Build & Package Windows Artifacts
         shell: pwsh
         env:
           APP_VERSION: ${{ steps.version.outputs.version }}
@@ -249,7 +246,7 @@ jobs:
             TAG="${{ github.ref_name }}"
             DRAFT="false"
           fi
-          echo "tag=${TAG:-v2.0.1}" >> $GITHUB_OUTPUT
+          echo "tag=${TAG:-v2.0.2}" >> $GITHUB_OUTPUT
           echo "draft=${DRAFT:-false}" >> $GITHUB_OUTPUT
 
       - name: Generate Release Notes
@@ -259,36 +256,35 @@ jobs:
           cat << 'EOF' > RELEASE_NOTES.md
           # Open Android DeX — __TAG__
 
-          Welcome to the cross-platform release of **Open Android DeX** (__TAG__)!
+          Welcome to the release of **Open Android DeX** (__TAG__)!
 
           ---
 
           ## 🚀 What's New in __TAG__
 
-          ### 🐛 Bug Fixes & Stability
-          - **Fixed Windows Resize Crash**: Resolved window crash caused by sub-pixel rounding and surface recreation during window resizing (#8).
-          - **Isolated Windows Installer Path & Identity**: Assigned dedicated application GUID `{9B5A3C72-84E1-4D6F-90D3-E6E450E1854F}` and installation path `{autopf}\Bit-Manipulators\Open Android DeX` to eliminate conflict with third-party apps (#7).
-          - **Multi-Display Window Routing**: Fixed issue where launched applications opened on physical phone display instead of the desktop compositor (#8).
-          - **Prevented Calculator Auto-Popup**: Eliminated unintended launch of Calculator app during desktop session initialization (#8).
-          - **Samsung Galaxy / One UI App Identifiers & Icons**: Added mapping for Samsung Galaxy system apps (Calculator, Samsung Internet, Gallery, My Files, Camera, Clock, Voice Recorder, etc.) (#8).
+          ### 🐛 Bug Fixes & Improvements (Resolves #11)
+          - **Windows 11 Video Stream Decoder (FFmpeg SDK Integration)**:
+            - Integrated Windows FFmpeg SDK (`avcodec`, `avformat`, `swscale`, `avutil`) into the Win32 desktop runner.
+            - Decodes headless scrcpy H.264 video streams directly from the Win32 Named Pipe into RGBA textures.
+            - Fixes the blank / pure black window issue when opening applications on Windows 11 (#11).
+            - Bundles FFmpeg runtime DLLs automatically into both the Installer and Portable packages.
+          - **Dynamic Virtual Display & Phone Screen Auto-Off**:
+            - Automatically detects device Android SDK version (`ro.build.version.sdk`).
+            - For devices on Android < 14 (API < 34, e.g., Redmi Note 12 Pro running Android 12/13), automatically defaults to primary display mirror mode with `--turn-screen-off` so the phone's physical screen remains off while the desktop window displays the application.
+            - Added rapid 900ms exit-detection fallback: if virtual display creation is rejected by OEM DisplayManager, it instantly falls back to mirror mode without crashing or hanging (#11).
+          - **Navigation & Touch Input Routing**:
+            - Guarded `input` keyevent, tap, swipe, and text commands to omit `-d` when `displayId <= 0` or null, ensuring full compatibility on primary display devices without command errors (#11).
+          - **App Icons & Xiaomi / MIUI Suite Mapping**:
+            - Enhanced `DexIconDumper` with safe reflection and exception isolation around `systemMain()`.
+            - Added direct APK extraction fallback (`res/mipmap-*/ic_launcher.png`) via `pm path` when Android security restricts system server contexts on OEM devices (#11).
+            - Added comprehensive suite mappings for Xiaomi MIUI/HyperOS (Calculator, Gallery, Security, Notes, Weather, Compass, Screen Recorder, Mi Video, Mi Music, FM Radio, Scanner, ShareMe, GetApps, File Manager) and Samsung One UI apps (#11).
 
-          ### 🪟 Windows 11 (x64) Support
-          - **Native Windows Desktop Runner**: Full multi-window compositor running natively under Win32.
-          - **In-Process Video Streaming**: Low-latency video texture streaming via `flutter::PixelBufferTexture`.
-          - **USB Connection Detection**: Automatic ADB device discovery and authorization handling.
-          - **Distributions**:
+          ### 📦 Distributions
+          - **Windows 11 (x64)**:
             - `Open-Android-DeX-Windows-x64-Setup.exe` (Complete Inno Setup installer)
             - `Open-Android-DeX-Windows-x64-Portable.zip` (Zero-install standalone package)
-
-          ### 🐧 Linux AppImage Distribution
-          - **Portable Single-File Release**: `Open-Android-DeX-Linux-x86_64.AppImage`.
-          - **Cross-Distro Compatibility**: Bundles Flutter engine, runtime libraries, and FFmpeg dependencies.
-          - **Dual Display Server Support**: Works seamlessly under Wayland (Hyprland, Sway, GNOME, KDE) and X11.
-
-          ### 📱 Core & Gesture Enhancements
-          - **Natural Trackpad & Touchpad Scrolling**: Two-finger smooth scrolling and pan/zoom mapping.
-          - **Real-Time Icon Caching**: Isolated per-device icon cache streaming.
-          - **Cross-Platform Architecture**: Unified `PlatformAdapter` handling paths, processes, and IPC.
+          - **Linux (x86_64)**:
+            - `Open-Android-DeX-Linux-x86_64.AppImage` (Self-contained executable for Wayland & X11)
 
           ---
 

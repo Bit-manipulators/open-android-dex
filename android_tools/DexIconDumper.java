@@ -21,12 +21,39 @@ public class DexIconDumper {
             Looper.prepareMainLooper();
 
             // Reflection to obtain system context without being an APK
-            Class<?> atClass = Class.forName("android.app.ActivityThread");
-            Method systemMainMethod = atClass.getMethod("systemMain");
-            Object activityThread = systemMainMethod.invoke(null);
-            Method getSysContextMethod = atClass.getMethod("getSystemContext");
-            Context context = (Context) getSysContextMethod.invoke(activityThread);
-            PackageManager pm = context.getPackageManager();
+            PackageManager pm = null;
+            try {
+                Class<?> atClass = Class.forName("android.app.ActivityThread");
+                Method systemMainMethod = atClass.getMethod("systemMain");
+                Object activityThread = systemMainMethod.invoke(null);
+                if (activityThread != null) {
+                    Method getSysContextMethod = atClass.getMethod("getSystemContext");
+                    Context context = (Context) getSysContextMethod.invoke(activityThread);
+                    if (context != null) {
+                        pm = context.getPackageManager();
+                    }
+                }
+            } catch (Throwable t1) {
+                try {
+                    Class<?> atClass = Class.forName("android.app.ActivityThread");
+                    Method currentMethod = atClass.getMethod("currentActivityThread");
+                    Object activityThread = currentMethod.invoke(null);
+                    if (activityThread != null) {
+                        Method getSysContextMethod = atClass.getMethod("getSystemContext");
+                        Context context = (Context) getSysContextMethod.invoke(activityThread);
+                        if (context != null) {
+                            pm = context.getPackageManager();
+                        }
+                    }
+                } catch (Throwable t2) {
+                    // Context not available in this shell environment
+                }
+            }
+
+            if (pm == null) {
+                System.out.println("DONE:0");
+                return;
+            }
 
             String outputDirPath = args.length > 0 ? args[0] : "/data/local/tmp/opendex_icons";
             File outDir = new File(outputDirPath);

@@ -73,6 +73,8 @@ class AdbService {
   bool isDemoMode = false;
   String deviceModel = 'Searching Device...';
   String deviceBrand = '';
+  int androidSdkVersion = 0;
+  bool get supportsVirtualDisplay => androidSdkVersion >= 34;
   int batteryLevel = 0;
   bool isCharging = false;
   List<AppInfo> installedApps = [];
@@ -499,6 +501,18 @@ class AdbService {
 
       if (m.isNotEmpty) deviceModel = m;
       if (b.isNotEmpty) deviceBrand = b;
+
+      final sdkRes = await adbRunner([
+        '-s',
+        selectedDeviceSerial!,
+        'shell',
+        'getprop',
+        'ro.build.version.sdk'
+      ]);
+      final s = (sdkRes.stdout as String).trim();
+      if (s.isNotEmpty) {
+        androidSdkVersion = int.tryParse(s) ?? 0;
+      }
     } catch (_) {}
   }
 
@@ -836,16 +850,18 @@ class AdbService {
         }
       }
 
-      // 3. Add common built-in apps if installed (Google Pixel & Samsung Galaxy)
+      // 3. Add common built-in apps if installed (Google Pixel, Samsung Galaxy, Xiaomi / MIUI)
       final commonSysApps = [
         'com.google.android.calculator',
         'com.android.calculator2',
         'com.sec.android.app.popupcalculator',
+        'com.miui.calculator',
         'com.android.chrome',
         'com.sec.android.app.sbrowser',
         'com.google.android.youtube',
         'com.google.android.apps.photos',
         'com.sec.android.gallery3d',
+        'com.miui.gallery',
         'com.google.android.gm',
         'com.google.android.apps.maps',
         'com.android.settings',
@@ -853,17 +869,34 @@ class AdbService {
         'com.samsung.android.dialer',
         'com.google.android.apps.messaging',
         'com.samsung.android.messaging',
+        'com.android.mms',
         'com.google.android.deskclock',
         'com.sec.android.app.clockpackage',
         'com.sec.android.app.myfiles',
+        'com.mi.android.globalFileexplorer',
+        'com.mi.android.globalfileexplorer',
+        'com.android.filemanager',
         'com.sec.android.app.voicenote',
         'com.sec.android.app.samsungapps',
         'com.samsung.android.calendar',
+        'com.xiaomi.calendar',
         'com.samsung.android.app.notes',
+        'com.miui.notes',
         'com.samsung.android.app.contacts',
+        'com.android.contacts',
         'com.android.camera',
         'com.android.camera2',
         'com.sec.android.app.camera',
+        'com.miui.cleanmaster',
+        'com.miui.weather2',
+        'com.miui.compass',
+        'com.miui.screenrecorder',
+        'com.miui.videoplayer',
+        'com.miui.player',
+        'com.miui.fm',
+        'com.xiaomi.scanner',
+        'com.xiaomi.midrop',
+        'com.xiaomi.market',
       ];
 
       for (var sys in commonSysApps) {
@@ -921,7 +954,7 @@ class AdbService {
     if (selectedDeviceSerial == null) return;
     try {
       final args = ['-s', selectedDeviceSerial!, 'shell', 'input'];
-      if (displayId != null) {
+      if (displayId != null && displayId > 0) {
         args.addAll(['-d', displayId.toString()]);
       }
       args.addAll(['keyevent', '$keyCode']);

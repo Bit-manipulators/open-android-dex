@@ -32,7 +32,7 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
   final _adb = AdbService();
   final _focusNode = FocusNode();
 
-  final ScrcpyDisplayMode _currentMode = ScrcpyDisplayMode.virtualDisplay;
+  ScrcpyDisplayMode _currentMode = ScrcpyDisplayMode.virtualDisplay;
   bool _isStreaming = false;
   bool _isAdapting = false;
   static const bool _preserveAspect = true;
@@ -169,6 +169,10 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
         width: targetW,
         height: targetH,
       );
+
+      _currentMode = _adb.supportsVirtualDisplay
+          ? ScrcpyDisplayMode.virtualDisplay
+          : ScrcpyDisplayMode.mirrorPrimary;
 
       // 2. Start headless scrcpy session connecting directly to the listening stream
       final session = await _streamService.startSession(

@@ -21,6 +21,30 @@ flutter config --enable-windows-desktop
 Write-Host "==> Fetching Flutter dependencies..."
 flutter pub get
 
+# 2.5 Ensure Windows FFmpeg SDK is available for hardware/multithreaded video stream decoding
+Write-Host "==> Ensuring Windows FFmpeg SDK is set up..."
+$DownloadsDir = "build\downloads"
+New-Item -ItemType Directory -Force -Path $DownloadsDir | Out-Null
+$FFmpegZip = "$DownloadsDir\ffmpeg-master-latest-win64-gpl-shared.zip"
+$FFmpegDestDir = "windows\ffmpeg"
+
+if (-not (Test-Path "$FFmpegDestDir\include\libavcodec\avcodec.h")) {
+    if (-not (Test-Path $FFmpegZip)) {
+        $FFmpegUrl = "https://github.com/FFmpeg-Builds/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl-shared.zip"
+        Write-Host "  Downloading Windows FFmpeg SDK from $FFmpegUrl..."
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        Invoke-WebRequest -Uri $FFmpegUrl -OutFile $FFmpegZip
+    }
+    Write-Host "  Extracting Windows FFmpeg SDK..."
+    $FFmpegExtractDir = "$DownloadsDir\ffmpeg_extracted"
+    New-Item -ItemType Directory -Force -Path $FFmpegExtractDir | Out-Null
+    Expand-Archive -Path $FFmpegZip -DestinationPath $FFmpegExtractDir -Force
+    $ExtractedSub = (Get-ChildItem -Path "$FFmpegExtractDir\ffmpeg-*" -Directory | Select-Object -First 1).FullName
+    New-Item -ItemType Directory -Force -Path $FFmpegDestDir | Out-Null
+    Copy-Item -Path "$ExtractedSub\*" -Destination $FFmpegDestDir -Recurse -Force
+}
+Write-Host "  ✅ Windows FFmpeg SDK ready at $FFmpegDestDir" -ForegroundColor Green
+
 # 3. Build Windows Release
 Write-Host "==> Compiling Windows 11 x64 Release..."
 flutter build windows --release
@@ -73,6 +97,15 @@ Copy-Item "$SourceDir\adb.exe" "$AssetsBinDir\" -Force -ErrorAction SilentlyCont
 Copy-Item "$SourceDir\scrcpy.exe" "$AssetsBinDir\" -Force -ErrorAction SilentlyContinue
 Copy-Item "$SourceDir\scrcpy-server" "$AssetsBinDir\" -Force -ErrorAction SilentlyContinue
 
+# Copy FFmpeg runtime DLLs into ReleaseDir and AssetsBinDir
+if (Test-Path "$FFmpegDestDir\bin") {
+    Write-Host "  Copying FFmpeg runtime DLLs into Release package ($ReleaseDir)..."
+    Get-ChildItem -Path "$FFmpegDestDir\bin\*.dll" | ForEach-Object {
+        Copy-Item -Path $_.FullName -Destination $ReleaseDir -Force
+        Copy-Item -Path $_.FullName -Destination $AssetsBinDir -Force -ErrorAction SilentlyContinue
+    }
+}
+
 # Copy MSVC runtime DLLs (msvcp140.dll, vcruntime140.dll) to ensure standalone execution on clean Windows systems
 Write-Host "  Checking for MSVC runtime DLLs to include..."
 $vcRedistDirs = @(
@@ -115,7 +148,7 @@ if (-not $iscc) {
 
 if (Test-Path $iscc) {
     Write-Host "==> Compiling Inno Setup Installer..."
-    $cleanVersion = if ($Version) { $Version.TrimStart('v') } else { "2.0.1" }
+    $cleanVersion = if ($Version) { $Version.TrimStart('v') } else { "2.0.2" }
     & $iscc "/DMyAppVersion=$cleanVersion" "/DOutputBaseFilename=$SetupBase" windows\packaging\installer.iss
     $InstallerSrc = "build\windows_installer\$SetupBase.exe"
     if (Test-Path $InstallerSrc) {

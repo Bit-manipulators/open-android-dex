@@ -28,6 +28,8 @@ class StreamTextureWindows {
 
   int64_t texture_id() const { return texture_id_; }
   flutter::TextureRegistrar* registrar() const { return registrar_; }
+  bool is_running() const { return is_running_.load(); }
+  bool is_stopped() const { return is_stopped_.load(); }
   void ResetTextureId() { texture_id_ = -1; }
   void Stop();
 

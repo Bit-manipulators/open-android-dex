@@ -73,16 +73,42 @@ class ScrcpyStreamService {
       await _inFlightStarts[windowId];
     }
 
-    final future = _doStartSession(
-      windowId: windowId,
-      packageName: packageName,
-      serial: serial,
-      mode: mode,
-      width: width,
-      height: height,
-      dpi: dpi,
-      customPipePath: customPipePath,
-    );
+    final future = () async {
+      final session = await _doStartSession(
+        windowId: windowId,
+        packageName: packageName,
+        serial: serial,
+        mode: mode,
+        width: width,
+        height: height,
+        dpi: dpi,
+        customPipePath: customPipePath,
+      );
+
+      // If virtual display was requested, verify it didn't immediately fail on device
+      if (mode == ScrcpyDisplayMode.virtualDisplay && session?.process != null) {
+        final quickExit = await Future.any([
+          session!.process!.exitCode.then((code) => code != 0 ? code : null),
+          Future.delayed(const Duration(milliseconds: 900), () => null),
+        ]);
+        if (quickExit != null) {
+          debugPrint(
+              '[ScrcpyStreamService] Virtual display failed (code $quickExit). Gracefully falling back to primary mirror mode.');
+          return await _doStartSession(
+            windowId: windowId,
+            packageName: packageName,
+            serial: serial,
+            mode: ScrcpyDisplayMode.mirrorPrimary,
+            width: width,
+            height: height,
+            dpi: dpi,
+            customPipePath: customPipePath,
+          );
+        }
+      }
+
+      return session;
+    }();
     _inFlightStarts[windowId] = future;
     try {
       return await future;

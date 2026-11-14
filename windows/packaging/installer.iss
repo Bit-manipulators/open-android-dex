@@ -3,7 +3,7 @@
 
 #define MyAppName "Open Android DeX"
 #ifndef MyAppVersion
-#define MyAppVersion "2.0.1"
+#define MyAppVersion "2.0.2"
 #endif
 #define MyAppPublisher "Bit-manipulators"
 #define MyAppURL "https://github.com/Bit-manipulators/open-android-dex"

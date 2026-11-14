@@ -155,6 +155,23 @@ void main() {
       expect(args[dIdx + 1], '2');
     });
 
+    test('does not pass -d when displayId is 0 (primary screen) or null', () async {
+      await service.sendTap(
+        serial: 'test-device',
+        displayId: 0,
+        localX: 200,
+        localY: 400,
+        viewportWidth: 400,
+        viewportHeight: 800,
+        deviceWidth: 1080,
+        deviceHeight: 2400,
+      );
+
+      expect(adbCalls, isNotEmpty);
+      final args = adbCalls.first;
+      expect(args.contains('-d'), isFalse);
+    });
+
     test(
         'small high-precision touchpad delta scales into healthy stroke (>160px)',
         () async {

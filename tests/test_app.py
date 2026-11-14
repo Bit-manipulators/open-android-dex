@@ -9,6 +9,22 @@ def test_well_known_apps():
     assert icon == "google-chrome"
     assert grad == 0
 
+    # Samsung One UI suite
+    assert "com.sec.android.app.popupcalculator" in WELL_KNOWN_APPS
+    assert WELL_KNOWN_APPS["com.sec.android.app.popupcalculator"][0] == "Calculator"
+    assert "com.sec.android.gallery3d" in WELL_KNOWN_APPS
+    assert WELL_KNOWN_APPS["com.sec.android.gallery3d"][0] == "Gallery"
+
+    # Xiaomi / MIUI suite
+    assert "com.miui.calculator" in WELL_KNOWN_APPS
+    assert WELL_KNOWN_APPS["com.miui.calculator"][0] == "Calculator"
+    assert "com.miui.gallery" in WELL_KNOWN_APPS
+    assert WELL_KNOWN_APPS["com.miui.gallery"][0] == "Gallery"
+    assert "com.miui.cleanmaster" in WELL_KNOWN_APPS
+    assert WELL_KNOWN_APPS["com.miui.cleanmaster"][0] == "Security"
+    assert "com.miui.notes" in WELL_KNOWN_APPS
+    assert WELL_KNOWN_APPS["com.miui.notes"][0] == "Notes"
+
 
 def test_resolve_app_meta():
     app = OpenAndroidDex()

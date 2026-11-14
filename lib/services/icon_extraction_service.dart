@@ -224,13 +224,109 @@ class IconExtractionService {
         'rm -rf $remoteOutputDir $remoteDex',
       ]);
 
-      // 6. Notify that extraction for this device is complete
+      // 6. Direct APK fallback for any packages that could not be dumped
+      final remainingMissing = packageNames
+          .where((pkg) => getCachedIconPath(pkg, serial: serial) == null)
+          .toList();
+      if (remainingMissing.isNotEmpty) {
+        await _extractIconsViaApkFallback(
+            serial, remainingMissing, hostDeviceDir, hostGlobalDir);
+      }
+
+      // 7. Notify that extraction for this device is complete
       _iconUpdatesController.add(serial);
     } catch (e) {
       debugPrint(
           '[IconExtractionService] Exception during extraction for $serial: $e');
     } finally {
       _extractingSerials.remove(serial);
+    }
+  }
+
+  /// Extracts launcher icon directly from installed APK as fallback when
+  /// system_server context is restricted by the Android OS.
+  Future<void> _extractIconsViaApkFallback(
+    String serial,
+    List<String> packages,
+    String hostDeviceDir,
+    String hostGlobalDir,
+  ) async {
+    for (final pkg in packages) {
+      if (getCachedIconPath(pkg, serial: serial) != null) continue;
+      try {
+        final pathRes = await Process.run(
+          PlatformAdapter.adbExecutable,
+          ['-s', serial, 'shell', 'pm', 'path', pkg],
+        );
+        if (pathRes.exitCode != 0) continue;
+        final lines = (pathRes.stdout as String).split('\n');
+        String? apkPath;
+        for (var line in lines) {
+          line = line.trim();
+          if (line.startsWith('package:')) {
+            apkPath = line.replaceFirst('package:', '').trim();
+            break;
+          }
+        }
+        if (apkPath == null || apkPath.isEmpty) continue;
+
+        final targetDevPath = '$hostDeviceDir/$pkg.png';
+        final remoteIconTmp = '/data/local/tmp/icon_${pkg}.png';
+
+        const iconCandidates = [
+          'res/mipmap-xxxhdpi-v4/ic_launcher.png',
+          'res/mipmap-xxhdpi-v4/ic_launcher.png',
+          'res/mipmap-xhdpi-v4/ic_launcher.png',
+          'res/mipmap-hdpi-v4/ic_launcher.png',
+          'res/mipmap-xxxhdpi/ic_launcher.png',
+          'res/mipmap-xxhdpi/ic_launcher.png',
+          'res/mipmap-xhdpi/ic_launcher.png',
+          'res/mipmap-hdpi/ic_launcher.png',
+          'res/drawable-xxxhdpi-v4/ic_launcher.png',
+          'res/drawable-xxhdpi-v4/ic_launcher.png',
+          'res/drawable-xhdpi-v4/ic_launcher.png',
+          'res/drawable-hdpi-v4/ic_launcher.png',
+          'res/drawable-xxxhdpi/ic_launcher.png',
+          'res/drawable-xxhdpi/ic_launcher.png',
+          'res/drawable-xhdpi/ic_launcher.png',
+          'res/drawable-hdpi/ic_launcher.png',
+          'res/mipmap-mdpi/ic_launcher.png',
+          'res/drawable/ic_launcher.png',
+        ];
+
+        for (final iconRes in iconCandidates) {
+          final extractRes = await Process.run(
+            PlatformAdapter.adbExecutable,
+            ['-s', serial, 'shell', 'unzip', '-p', apkPath, iconRes, '>', remoteIconTmp],
+          );
+          if (extractRes.exitCode == 0) {
+            final pullRes = await Process.run(
+              PlatformAdapter.adbExecutable,
+              ['-s', serial, 'pull', remoteIconTmp, targetDevPath],
+            );
+            await Process.run(
+              PlatformAdapter.adbExecutable,
+              ['-s', serial, 'shell', 'rm', '-f', remoteIconTmp],
+            );
+            final f = File(targetDevPath);
+            if (pullRes.exitCode == 0 && f.existsSync() && f.lengthSync() > 100) {
+              try {
+                final globalPath = '$hostGlobalDir/$pkg.png';
+                if (!File(globalPath).existsSync()) {
+                  f.copySync(globalPath);
+                }
+              } catch (_) {}
+
+              _singleIconController.add(SingleIconUpdate(
+                serial: serial,
+                packageName: pkg,
+                iconPath: targetDevPath,
+              ));
+              break;
+            }
+          }
+        }
+      } catch (_) {}
     }
   }
 }

@@ -42,6 +42,34 @@ void main() {
       expect(AppInfo.fromPackage('com.samsung.android.app.notes').name,
           equals('Samsung Notes'));
     });
+
+    test('resolves Xiaomi / MIUI & HyperOS suite package names to clean human names',
+        () {
+      expect(AppInfo.fromPackage('com.miui.calculator').name,
+          equals('Calculator'));
+      expect(AppInfo.fromPackage('com.miui.gallery').name,
+          equals('Gallery'));
+      expect(AppInfo.fromPackage('com.miui.cleanmaster').name,
+          equals('Security'));
+      expect(AppInfo.fromPackage('com.miui.notes').name,
+          equals('Notes'));
+      expect(AppInfo.fromPackage('com.miui.weather2').name,
+          equals('Weather'));
+      expect(AppInfo.fromPackage('com.miui.compass').name,
+          equals('Compass'));
+      expect(AppInfo.fromPackage('com.miui.screenrecorder').name,
+          equals('Screen Recorder'));
+      expect(AppInfo.fromPackage('com.miui.videoplayer').name,
+          equals('Mi Video'));
+      expect(AppInfo.fromPackage('com.miui.player').name,
+          equals('Mi Music'));
+      expect(AppInfo.fromPackage('com.xiaomi.scanner').name,
+          equals('Scanner'));
+      expect(AppInfo.fromPackage('com.xiaomi.calendar').name,
+          equals('Calendar'));
+      expect(AppInfo.fromPackage('com.mi.android.globalfileexplorer').name,
+          equals('File Manager'));
+    });
   });
 
   group('IconExtractionService Tests', () {

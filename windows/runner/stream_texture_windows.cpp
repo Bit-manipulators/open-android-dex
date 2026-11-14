@@ -107,86 +107,7 @@ const FlutterDesktopPixelBuffer* StreamTextureWindows::CopyPixelBuffer(size_t wi
 }
 
 void StreamTextureWindows::WorkerLoop() {
-#ifdef HAVE_FFMPEG
-  AVFormatContext* format_ctx = nullptr;
-  AVCodecContext* codec_ctx = nullptr;
-  SwsContext* sws_ctx = nullptr;
-  AVPacket* packet = av_packet_alloc();
-  AVFrame* frame = av_frame_alloc();
-  AVFrame* frame_rgba = av_frame_alloc();
-
-  int video_stream_idx = -1;
-  while (is_running_) {
-    if (avformat_open_input(&format_ctx, source_path_.c_str(), nullptr, nullptr) < 0) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      continue;
-    }
-    if (avformat_find_stream_info(format_ctx, nullptr) < 0) {
-      avformat_close_input(&format_ctx);
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      continue;
-    }
-    for (unsigned int i = 0; i < format_ctx->nb_streams; i++) {
-      if (format_ctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
-        video_stream_idx = i;
-        break;
-      }
-    }
-    if (video_stream_idx >= 0) break;
-    avformat_close_input(&format_ctx);
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-  }
-
-  if (video_stream_idx >= 0 && format_ctx) {
-    const AVCodec* codec = avcodec_find_decoder(format_ctx->streams[video_stream_idx]->codecpar->codec_id);
-    if (codec) {
-      codec_ctx = avcodec_alloc_context3(codec);
-      avcodec_parameters_to_context(codec_ctx, format_ctx->streams[video_stream_idx]->codecpar);
-      if (avcodec_open2(codec_ctx, codec, nullptr) == 0) {
-        sws_ctx = sws_getContext(codec_ctx->width, codec_ctx->height, codec_ctx->pix_fmt,
-                                 width_, height_, AV_PIX_FMT_RGBA,
-                                 SWS_BILINEAR, nullptr, nullptr, nullptr);
-
-        while (is_running_) {
-          if (av_read_frame(format_ctx, packet) < 0) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            continue;
-          }
-          if (packet->stream_index == video_stream_idx) {
-            if (avcodec_send_packet(codec_ctx, packet) == 0) {
-              while (avcodec_receive_frame(codec_ctx, frame) == 0) {
-                {
-                  std::lock_guard<std::mutex> lock(mutex_);
-                  uint8_t* dst_data[4] = {worker_buffer_.data(), nullptr, nullptr, nullptr};
-                  int dst_linesize[4] = {static_cast<int>(width_ * 4), 0, 0, 0};
-                  sws_scale(sws_ctx, frame->data, frame->linesize, 0, codec_ctx->height,
-                            dst_data, dst_linesize);
-                  std::swap(ready_buffer_, worker_buffer_);
-                  has_new_frame_ = true;
-                }
-                if (registrar_ && texture_id_ >= 0) {
-                  registrar_->MarkTextureFrameAvailable(texture_id_);
-                }
-              }
-            }
-          }
-          av_packet_unref(packet);
-        }
-      }
-    }
-  }
-
-  if (sws_ctx) sws_freeContext(sws_ctx);
-  if (codec_ctx) avcodec_free_context(&codec_ctx);
-  if (format_ctx) avformat_close_input(&format_ctx);
-  if (frame) av_frame_free(&frame);
-  if (frame_rgba) av_frame_free(&frame_rgba);
-  if (packet) av_packet_free(&packet);
-
-#else
-  // Native Win32 Named Pipe / File reader fallback loop
   bool is_named_pipe = (source_path_.rfind("\\\\.\\pipe\\", 0) == 0);
-
   if (is_named_pipe) {
     HANDLE h = CreateNamedPipeA(
         source_path_.c_str(),
@@ -195,11 +116,155 @@ void StreamTextureWindows::WorkerLoop() {
         1,
         65536,
         65536,
-        3000,
+        5000,
         nullptr);
     pipe_handle_.store(h);
   }
 
+#ifdef HAVE_FFMPEG
+  HANDLE pipe = pipe_handle_.load();
+  if (is_named_pipe && pipe != INVALID_HANDLE_VALUE) {
+    BOOL connected = ConnectNamedPipe(pipe, nullptr) ? TRUE : (GetLastError() == ERROR_PIPE_CONNECTED);
+    if (!connected && !is_running_) {
+      return;
+    }
+  }
+
+  struct PipeIoContext {
+    HANDLE handle;
+    std::atomic<bool>* running;
+    std::atomic<bool>* stopped;
+  };
+
+  PipeIoContext io_ctx{pipe, &is_running_, &is_stopped_};
+
+  auto read_packet = [](void* opaque, uint8_t* buf, int buf_size) -> int {
+    auto* ctx = static_cast<PipeIoContext*>(opaque);
+    if (!ctx || !ctx->running->load() || ctx->stopped->load()) {
+      return AVERROR_EOF;
+    }
+    HANDLE h = ctx->handle;
+    if (h == INVALID_HANDLE_VALUE) {
+      return AVERROR_EOF;
+    }
+    DWORD bytes_read = 0;
+    if (!ReadFile(h, buf, static_cast<DWORD>(buf_size), &bytes_read, nullptr)) {
+      return AVERROR_EOF;
+    }
+    if (bytes_read == 0) {
+      return AVERROR_EOF;
+    }
+    return static_cast<int>(bytes_read);
+  };
+
+  constexpr size_t kIoBufferSize = 65536;
+  auto* avio_buffer = static_cast<unsigned char*>(av_malloc(kIoBufferSize));
+  AVIOContext* avio_ctx = avio_alloc_context(
+      avio_buffer, kIoBufferSize, 0, &io_ctx, read_packet, nullptr, nullptr);
+
+  AVFormatContext* format_ctx = avformat_alloc_context();
+  if (format_ctx && avio_ctx) {
+    format_ctx->pb = avio_ctx;
+    format_ctx->flags |= AVFMT_FLAG_CUSTOM_IO;
+
+    auto interrupt_cb = [](void* opaque) -> int {
+      auto* self = static_cast<StreamTextureWindows*>(opaque);
+      if (!self || !self->is_running() || self->is_stopped()) {
+        return 1;
+      }
+      return 0;
+    };
+    format_ctx->interrupt_callback.callback = interrupt_cb;
+    format_ctx->interrupt_callback.opaque = this;
+
+    AVDictionary* opts = nullptr;
+    av_dict_set(&opts, "probesize", "262144", 0);
+    av_dict_set(&opts, "analyzeduration", "500000", 0);
+    av_dict_set(&opts, "fflags", "nobuffer", 0);
+    av_dict_set(&opts, "flags", "low_delay", 0);
+
+    bool opened = (avformat_open_input(&format_ctx, nullptr, nullptr, &opts) == 0);
+    if (opts) {
+      av_dict_free(&opts);
+    }
+
+    if (opened) {
+      if (avformat_find_stream_info(format_ctx, nullptr) >= 0) {
+        int video_stream_idx = -1;
+        for (unsigned int i = 0; i < format_ctx->nb_streams; i++) {
+          if (format_ctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
+            video_stream_idx = static_cast<int>(i);
+            break;
+          }
+        }
+
+        if (video_stream_idx >= 0) {
+          const AVCodec* codec = avcodec_find_decoder(
+              format_ctx->streams[video_stream_idx]->codecpar->codec_id);
+          if (codec) {
+            AVCodecContext* codec_ctx = avcodec_alloc_context3(codec);
+            avcodec_parameters_to_context(
+                codec_ctx, format_ctx->streams[video_stream_idx]->codecpar);
+            if (avcodec_open2(codec_ctx, codec, nullptr) == 0) {
+              SwsContext* sws_ctx = sws_getContext(
+                  codec_ctx->width, codec_ctx->height, codec_ctx->pix_fmt,
+                  width_, height_, AV_PIX_FMT_RGBA,
+                  SWS_BILINEAR, nullptr, nullptr, nullptr);
+
+              AVPacket* packet = av_packet_alloc();
+              AVFrame* frame = av_frame_alloc();
+
+              while (is_running_ && !is_stopped_) {
+                if (av_read_frame(format_ctx, packet) < 0) {
+                  break;
+                }
+                if (packet->stream_index == video_stream_idx) {
+                  if (avcodec_send_packet(codec_ctx, packet) == 0) {
+                    while (avcodec_receive_frame(codec_ctx, frame) == 0) {
+                      {
+                        std::lock_guard<std::mutex> lock(mutex_);
+                        uint8_t* dst_data[4] = {worker_buffer_.data(), nullptr, nullptr, nullptr};
+                        int dst_linesize[4] = {static_cast<int>(width_ * 4), 0, 0, 0};
+                        sws_scale(sws_ctx, frame->data, frame->linesize, 0,
+                                  codec_ctx->height, dst_data, dst_linesize);
+                        std::swap(ready_buffer_, worker_buffer_);
+                        has_new_frame_ = true;
+                      }
+                      if (registrar_ && texture_id_ >= 0 && !is_stopped_.load()) {
+                        registrar_->MarkTextureFrameAvailable(texture_id_);
+                      }
+                    }
+                  }
+                }
+                av_packet_unref(packet);
+              }
+
+              if (frame) av_frame_free(&frame);
+              if (packet) av_packet_free(&packet);
+              if (sws_ctx) sws_freeContext(sws_ctx);
+            }
+            if (codec_ctx) avcodec_free_context(&codec_ctx);
+          }
+        }
+      }
+      avformat_close_input(&format_ctx);
+    } else {
+      avformat_free_context(format_ctx);
+    }
+  }
+
+  if (avio_ctx) {
+    avio_context_free(&avio_ctx);
+  }
+
+  HANDLE final_h = pipe_handle_.exchange(INVALID_HANDLE_VALUE);
+  if (final_h != INVALID_HANDLE_VALUE) {
+    DisconnectNamedPipe(final_h);
+    CloseHandle(final_h);
+  }
+
+#else
+  // Native Win32 Named Pipe / File reader fallback loop
   while (is_running_) {
     HANDLE h = pipe_handle_.load();
     if (is_named_pipe && h != INVALID_HANDLE_VALUE) {

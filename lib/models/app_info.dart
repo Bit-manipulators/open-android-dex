@@ -89,6 +89,24 @@ class AppInfo {
     if (lower == 'com.samsung.android.spay' ||
         lower == 'com.samsung.android.raja.wallet') return 'Samsung Wallet';
 
+    // Xiaomi / Redmi (MIUI & HyperOS suite: Redmi Note 12 Pro, etc.)
+    if (lower == 'com.miui.calculator') return 'Calculator';
+    if (lower == 'com.miui.gallery') return 'Gallery';
+    if (lower == 'com.miui.cleanmaster' || lower == 'com.miui.securityadd') return 'Security';
+    if (lower == 'com.miui.notes') return 'Notes';
+    if (lower == 'com.miui.weather2') return 'Weather';
+    if (lower == 'com.miui.compass') return 'Compass';
+    if (lower == 'com.miui.screenrecorder') return 'Screen Recorder';
+    if (lower == 'com.miui.videoplayer') return 'Mi Video';
+    if (lower == 'com.miui.player') return 'Mi Music';
+    if (lower == 'com.miui.fm') return 'FM Radio';
+    if (lower == 'com.xiaomi.scanner') return 'Scanner';
+    if (lower == 'com.xiaomi.calendar') return 'Calendar';
+    if (lower == 'com.xiaomi.midrop') return 'ShareMe';
+    if (lower == 'com.xiaomi.market') return 'GetApps';
+    if (lower == 'com.mi.android.globalfileexplorer') return 'File Manager';
+    if (lower == 'com.mi.android.globalminusscreen') return 'App Vault';
+
     // Well-known popular app mappings
     if (lower == 'com.google.android.calculator' ||
         lower == 'com.android.calculator2' ||
@@ -148,7 +166,7 @@ class AppInfo {
     if (lower.contains('phonepe')) return 'PhonePe';
     if (lower.contains('whereismytrain')) return 'Where Is My Train';
 
-    // Smart fallback: discard generic words like android, mobile, app, client, samsung, sec
+    // Smart fallback: discard generic words like android, mobile, app, client, samsung, sec, miui, xiaomi
     final parts = pkg.split('.');
     String candidate = parts.last;
     if (const {
@@ -161,7 +179,10 @@ class AppInfo {
       'passenger',
       'customer',
       'sec',
-      'samsung'
+      'samsung',
+      'miui',
+      'xiaomi',
+      'global',
     }.contains(candidate.toLowerCase())) {
       if (parts.length >= 2) {
         candidate = parts[parts.length - 2];
@@ -190,6 +211,9 @@ class AppInfo {
         name.contains('perplexity')) return Icons.psychology_rounded;
     if (name.contains('camera')) return Icons.camera_alt_rounded;
     if (name.contains('settings')) return Icons.settings_rounded;
+    if (name.contains('security') || name.contains('cleanmaster')) {
+      return Icons.security_rounded;
+    }
     if (name.contains('contacts')) return Icons.contacts_rounded;
     if (name.contains('photos') ||
         name.contains('gallery') ||
@@ -220,6 +244,8 @@ class AppInfo {
       return Icons.shopping_bag_rounded;
     }
     if (name.contains('weather')) return Icons.wb_sunny_rounded;
+    if (name.contains('compass')) return Icons.explore_rounded;
+    if (name.contains('scanner')) return Icons.qr_code_scanner_rounded;
     if (name.contains('maps') ||
         name.contains('train') ||
         name.contains('uber')) return Icons.map_rounded;
@@ -231,7 +257,7 @@ class AppInfo {
     }
     if (name.contains('phone') || name.contains('dialer'))
       return Icons.call_rounded;
-    if (name.contains('music') || name.contains('spotify'))
+    if (name.contains('music') || name.contains('spotify') || name.contains('fm'))
       return Icons.music_note_rounded;
     if (name.contains('terminal') || name.contains('termux'))
       return Icons.terminal_rounded;

@@ -116,7 +116,7 @@ class TouchInputService {
 
     try {
       final args = ['-s', serial, 'shell', 'input'];
-      if (displayId != null) {
+      if (displayId != null && displayId > 0) {
         args.addAll(['-d', displayId.toString()]);
       }
       args.addAll(['tap', target.x.toString(), target.y.toString()]);
@@ -221,7 +221,7 @@ class TouchInputService {
 
     try {
       final args = ['-s', serial, 'shell', 'input'];
-      if (displayId != null) {
+      if (displayId != null && displayId > 0) {
         args.addAll(['-d', displayId.toString()]);
       }
       args.addAll([
@@ -299,7 +299,7 @@ class TouchInputService {
 
       try {
         final args = ['-s', serial!, 'shell', 'input'];
-        if (displayId != null) {
+        if (displayId != null && displayId > 0) {
           args.addAll(['-d', displayId.toString()]);
         }
         args.addAll([
@@ -585,7 +585,7 @@ class TouchInputService {
         final durationMs = (effectiveLen * 0.18).clamp(75.0, 130.0).round();
 
         final args = ['-s', serial, 'shell', 'input'];
-        if (_activeScrollDisplayId != null) {
+        if (_activeScrollDisplayId != null && _activeScrollDisplayId! > 0) {
           args.addAll(['-d', _activeScrollDisplayId.toString()]);
         }
         args.addAll([
@@ -632,7 +632,7 @@ class TouchInputService {
         .replaceAll('`', r'\`');
     try {
       final args = ['-s', serial, 'shell', 'input'];
-      if (displayId != null) {
+      if (displayId != null && displayId > 0) {
         args.addAll(['-d', displayId.toString()]);
       }
       args.addAll(['text', escaped]);
@@ -648,7 +648,7 @@ class TouchInputService {
     if (serial == null) return;
     try {
       final args = ['-s', serial, 'shell', 'input'];
-      if (displayId != null) {
+      if (displayId != null && displayId > 0) {
         args.addAll(['-d', displayId.toString()]);
       }
       args.addAll(['keyevent', keyCode.toString()]);

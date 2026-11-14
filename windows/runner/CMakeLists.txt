@@ -37,5 +37,27 @@ target_link_libraries(${BINARY_NAME} PRIVATE flutter flutter_wrapper_app flutter
 target_link_libraries(${BINARY_NAME} PRIVATE "dwmapi.lib")
 target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
 
+# Windows FFmpeg SDK Integration for hardware/multithreaded video stream decoding
+set(FFMPEG_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../ffmpeg" CACHE PATH "Path to FFmpeg SDK")
+if(NOT EXISTS "${FFMPEG_DIR}/include/libavcodec/avcodec.h")
+  if(EXISTS "${CMAKE_SOURCE_DIR}/ffmpeg/include/libavcodec/avcodec.h")
+    set(FFMPEG_DIR "${CMAKE_SOURCE_DIR}/ffmpeg")
+  elseif(EXISTS "${CMAKE_SOURCE_DIR}/../build/ffmpeg_windows/include/libavcodec/avcodec.h")
+    set(FFMPEG_DIR "${CMAKE_SOURCE_DIR}/../build/ffmpeg_windows")
+  elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../../build/ffmpeg_windows/include/libavcodec/avcodec.h")
+    set(FFMPEG_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../build/ffmpeg_windows")
+  endif()
+endif()
+
+if(EXISTS "${FFMPEG_DIR}/include/libavcodec/avcodec.h")
+  message(STATUS "Found Windows FFmpeg SDK at: ${FFMPEG_DIR}")
+  target_compile_definitions(${BINARY_NAME} PRIVATE "HAVE_FFMPEG")
+  target_include_directories(${BINARY_NAME} PRIVATE "${FFMPEG_DIR}/include")
+  target_link_directories(${BINARY_NAME} PRIVATE "${FFMPEG_DIR}/lib")
+  target_link_libraries(${BINARY_NAME} PRIVATE avcodec avformat avutil swscale)
+else()
+  message(STATUS "Notice: FFmpeg SDK not detected at ${FFMPEG_DIR}; building in fallback mode.")
+endif()
+
 # Run the Flutter tool portions of the build. This must not be removed.
 add_dependencies(${BINARY_NAME} flutter_assemble)
