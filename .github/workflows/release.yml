@@ -7,13 +7,13 @@ on:
   workflow_dispatch:
     inputs:
       tag_name:
-        description: "Release Tag (e.g. v2.0.0)"
+        description: "Release Tag (e.g. v2.0.1)"
         required: false
-        default: "v2.0.0"
+        default: "v2.0.1"
       draft:
         description: "Create as Draft Release"
         type: boolean
-        default: true
+        default: false
 
 permissions:
   contents: write
@@ -89,7 +89,7 @@ jobs:
           else
             VER="${{ github.ref_name }}"
           fi
-          echo "version=${VER:-v2.0.0}" >> $GITHUB_OUTPUT
+          echo "version=${VER:-v2.0.1}" >> $GITHUB_OUTPUT
 
       - name: Build AppImage
         env:
@@ -168,7 +168,7 @@ jobs:
           else
             VER="${{ github.ref_name }}"
           fi
-          echo "version=${VER:-v2.0.0}" >> $GITHUB_OUTPUT
+          echo "version=${VER:-v2.0.1}" >> $GITHUB_OUTPUT
 
       - name: Package Windows Artifacts
         shell: pwsh
@@ -206,8 +206,8 @@ jobs:
           path: build/release_artifacts/Open-Android-DeX-*-Windows-x64-Portable.zip
           retention-days: 7
 
-  create-draft-release:
-    name: 📦 Publish Draft GitHub Release
+  publish-release:
+    name: 📦 Publish GitHub Release
     needs: [build-linux-appimage, build-windows]
     runs-on: ubuntu-latest
     steps:
@@ -247,22 +247,30 @@ jobs:
             DRAFT="${{ github.event.inputs.draft }}"
           else
             TAG="${{ github.ref_name }}"
-            DRAFT="true"
+            DRAFT="false"
           fi
-          echo "tag=${TAG:-v2.0.0}" >> $GITHUB_OUTPUT
-          echo "draft=${DRAFT:-true}" >> $GITHUB_OUTPUT
+          echo "tag=${TAG:-v2.0.1}" >> $GITHUB_OUTPUT
+          echo "draft=${DRAFT:-false}" >> $GITHUB_OUTPUT
 
       - name: Generate Release Notes
         id: notes
         run: |
+          TAG="${{ steps.vars.outputs.tag }}"
           cat << 'EOF' > RELEASE_NOTES.md
-          # Open Android DeX — Release Release
+          # Open Android DeX — __TAG__
 
-          Welcome to the new cross-platform release of **Open Android DeX**, adding official **Windows 11 (x64)** and portable **Linux (AppImage)** releases!
+          Welcome to the cross-platform release of **Open Android DeX** (__TAG__)!
 
           ---
 
-          ## 🚀 What's New
+          ## 🚀 What's New in __TAG__
+
+          ### 🐛 Bug Fixes & Stability
+          - **Fixed Windows Resize Crash**: Resolved window crash caused by sub-pixel rounding and surface recreation during window resizing (#8).
+          - **Isolated Windows Installer Path & Identity**: Assigned dedicated application GUID `{9B5A3C72-84E1-4D6F-90D3-E6E450E1854F}` and installation path `{autopf}\Bit-Manipulators\Open Android DeX` to eliminate conflict with third-party apps (#7).
+          - **Multi-Display Window Routing**: Fixed issue where launched applications opened on physical phone display instead of the desktop compositor (#8).
+          - **Prevented Calculator Auto-Popup**: Eliminated unintended launch of Calculator app during desktop session initialization (#8).
+          - **Samsung Galaxy / One UI App Identifiers & Icons**: Added mapping for Samsung Galaxy system apps (Calculator, Samsung Internet, Gallery, My Files, Camera, Clock, Voice Recorder, etc.) (#8).
 
           ### 🪟 Windows 11 (x64) Support
           - **Native Windows Desktop Runner**: Full multi-window compositor running natively under Win32.
@@ -287,9 +295,10 @@ jobs:
           ## 📋 Release Checksums (SHA-256)
           EOF
 
+          sed -i "s/__TAG__/${TAG}/g" RELEASE_NOTES.md
           cat release_files/SHA256SUMS.txt >> RELEASE_NOTES.md
 
-      - name: Create Draft Release on GitHub
+      - name: Publish Release on GitHub
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.vars.outputs.tag }}
@@ -297,5 +306,6 @@ jobs:
           body_path: RELEASE_NOTES.md
           draft: ${{ steps.vars.outputs.draft == 'true' }}
           prerelease: false
+          make_latest: true
           files: |
             release_files/*

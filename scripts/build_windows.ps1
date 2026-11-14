@@ -115,7 +115,7 @@ if (-not $iscc) {
 
 if (Test-Path $iscc) {
     Write-Host "==> Compiling Inno Setup Installer..."
-    $cleanVersion = if ($Version) { $Version.TrimStart('v') } else { "2.0.0" }
+    $cleanVersion = if ($Version) { $Version.TrimStart('v') } else { "2.0.1" }
     & $iscc "/DMyAppVersion=$cleanVersion" "/DOutputBaseFilename=$SetupBase" windows\packaging\installer.iss
     $InstallerSrc = "build\windows_installer\$SetupBase.exe"
     if (Test-Path $InstallerSrc) {
