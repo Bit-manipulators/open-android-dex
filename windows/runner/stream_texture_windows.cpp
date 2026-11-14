@@ -299,7 +299,7 @@ static void HandleMethodCall(const flutter::MethodCall<flutter::EncodableValue>&
       }
     }
 
-    std::unique_ptr<StreamTextureWindows> texture_to_delete;
+    std::shared_ptr<StreamTextureWindows> texture_to_delete;
     {
       std::lock_guard<std::mutex> lock(g_textures_mutex);
       auto it = g_active_textures.find(texture_id);
@@ -313,7 +313,8 @@ static void HandleMethodCall(const flutter::MethodCall<flutter::EncodableValue>&
       texture_to_delete->Stop();
       auto* reg = texture_to_delete->registrar();
       if (reg && texture_id >= 0) {
-        reg->UnregisterTexture(texture_id, [kept = std::move(texture_to_delete)]() {
+        texture_to_delete->ResetTextureId();
+        reg->UnregisterTexture(texture_id, [texture_to_delete]() {
           // Safely destroyed after engine confirms unregistration!
         });
       }
