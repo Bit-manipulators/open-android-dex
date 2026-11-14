@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       tag_name:
-        description: "Release Tag (e.g. v2.0.2)"
+        description: "Release Tag (e.g. v2.0.3)"
         required: false
-        default: "v2.0.2"
+        default: "v2.0.3"
       draft:
         description: "Create as Draft Release"
         type: boolean
@@ -89,7 +89,7 @@ jobs:
           else
             VER="${{ github.ref_name }}"
           fi
-          echo "version=${VER:-v2.0.2}" >> $GITHUB_OUTPUT
+          echo "version=${VER:-v2.0.3}" >> $GITHUB_OUTPUT
 
       - name: Build AppImage
         env:
@@ -165,7 +165,7 @@ jobs:
           else
             VER="${{ github.ref_name }}"
           fi
-          echo "version=${VER:-v2.0.2}" >> $GITHUB_OUTPUT
+          echo "version=${VER:-v2.0.3}" >> $GITHUB_OUTPUT
 
       - name: Build & Package Windows Artifacts
         shell: pwsh
@@ -180,13 +180,41 @@ jobs:
           $Setup = (Get-ChildItem build\release_artifacts\Open-Android-DeX-*-Windows-x64-Setup.exe | Select-Object -First 1).FullName
           $Zip = (Get-ChildItem build\release_artifacts\Open-Android-DeX-*-Windows-x64-Portable.zip | Select-Object -First 1).FullName
           if (-not $Setup -or -not (Test-Path $Setup) -or (Get-Item $Setup).Length -lt 100000) {
-            Write-Error "Installer is missing or invalid size."
+            Write-Error "❌ Error: Installer is missing or invalid size."
             exit 1
           }
           if (-not $Zip -or -not (Test-Path $Zip) -or (Get-Item $Zip).Length -lt 100000) {
-            Write-Error "Portable ZIP is missing or invalid size."
+            Write-Error "❌ Error: Portable ZIP is missing or invalid size."
             exit 1
           }
+
+          # Deep inspect Portable ZIP: verify open_android_dex.exe and runtime dependencies
+          Write-Host "==> Verifying contents of Portable ZIP ($Zip)..."
+          $tempExtract = "build\temp_verify_zip"
+          Expand-Archive -Path $Zip -DestinationPath $tempExtract -Force
+          $ZipExe = "$tempExtract\open_android_dex.exe"
+          if (-not (Test-Path $ZipExe) -or (Get-Item $ZipExe).Length -lt 100000) {
+            Write-Error "❌ CRITICAL: open_android_dex.exe is MISSING or corrupt inside Portable ZIP!"
+            exit 1
+          }
+          $ZipFlutterDll = "$tempExtract\flutter_windows.dll"
+          if (-not (Test-Path $ZipFlutterDll)) {
+            Write-Error "❌ CRITICAL: flutter_windows.dll is MISSING inside Portable ZIP!"
+            exit 1
+          }
+          $ZipAdb = "$tempExtract\adb.exe"
+          if (-not (Test-Path $ZipAdb)) {
+            Write-Error "❌ CRITICAL: adb.exe is MISSING inside Portable ZIP!"
+            exit 1
+          }
+          $ZipScrcpy = "$tempExtract\scrcpy.exe"
+          if (-not (Test-Path $ZipScrcpy)) {
+            Write-Error "❌ CRITICAL: scrcpy.exe is MISSING inside Portable ZIP!"
+            exit 1
+          }
+          Remove-Item -Recurse -Force $tempExtract
+          Write-Host "  ✅ Portable ZIP verified: open_android_dex.exe and all dependencies present!" -ForegroundColor Green
+
           Get-FileHash -Algorithm SHA256 $Setup, $Zip | Format-Table
 
       - name: Upload Windows Setup Artifact
@@ -246,7 +274,7 @@ jobs:
             TAG="${{ github.ref_name }}"
             DRAFT="false"
           fi
-          echo "tag=${TAG:-v2.0.2}" >> $GITHUB_OUTPUT
+          echo "tag=${TAG:-v2.0.3}" >> $GITHUB_OUTPUT
           echo "draft=${DRAFT:-false}" >> $GITHUB_OUTPUT
 
       - name: Generate Release Notes
@@ -262,22 +290,20 @@ jobs:
 
           ## 🚀 What's New in __TAG__
 
-          ### 🐛 Bug Fixes & Improvements (Resolves #11)
-          - **Windows 11 Video Stream Decoder (FFmpeg SDK Integration)**:
-            - Integrated Windows FFmpeg SDK (`avcodec`, `avformat`, `swscale`, `avutil`) into the Win32 desktop runner.
-            - Decodes headless scrcpy H.264 video streams directly from the Win32 Named Pipe into RGBA textures.
-            - Fixes the blank / pure black window issue when opening applications on Windows 11 (#11).
-            - Bundles FFmpeg runtime DLLs automatically into both the Installer and Portable packages.
-          - **Dynamic Virtual Display & Phone Screen Auto-Off**:
-            - Automatically detects device Android SDK version (`ro.build.version.sdk`).
-            - For devices on Android < 14 (API < 34, e.g., Redmi Note 12 Pro running Android 12/13), automatically defaults to primary display mirror mode with `--turn-screen-off` so the phone's physical screen remains off while the desktop window displays the application.
-            - Added rapid 900ms exit-detection fallback: if virtual display creation is rejected by OEM DisplayManager, it instantly falls back to mirror mode without crashing or hanging (#11).
-          - **Navigation & Touch Input Routing**:
-            - Guarded `input` keyevent, tap, swipe, and text commands to omit `-d` when `displayId <= 0` or null, ensuring full compatibility on primary display devices without command errors (#11).
-          - **App Icons & Xiaomi / MIUI Suite Mapping**:
-            - Enhanced `DexIconDumper` with safe reflection and exception isolation around `systemMain()`.
-            - Added direct APK extraction fallback (`res/mipmap-*/ic_launcher.png`) via `pm path` when Android security restricts system server contexts on OEM devices (#11).
-            - Added comprehensive suite mappings for Xiaomi MIUI/HyperOS (Calculator, Gallery, Security, Notes, Weather, Compass, Screen Recorder, Mi Video, Mi Music, FM Radio, Scanner, ShareMe, GetApps, File Manager) and Samsung One UI apps (#11).
+          ### 🐛 Bug Fixes & Packaging Improvements (Resolves #12)
+          - **Windows Executable & Packaging Fix (Resolves #12)**:
+            - Resolved `open_android_dex.exe` missing from the Windows Portable ZIP and Setup Installer packages.
+            - Fixed MSVC compiler warning flags (`/WX`) failing on Windows FFmpeg SDK headers (`libavutil/common.h`).
+            - Added MSVC warning suppression pragmas (`#pragma warning(disable: 4244 4267 4101 4189 4996)`) and marked FFmpeg include paths as SYSTEM headers.
+            - Dynamically initialize and resize SwsContext for video stream decoding on Windows, preventing null pointer issues during initial frame rendering.
+            - Added strict exit code propagation and artifact existence assertions to `scripts/build_windows.ps1`.
+            - Added explicit non-wildcard executable checks in `windows/packaging/installer.iss` ensuring Inno Setup fails if `open_android_dex.exe` is absent.
+            - Enforced post-build validation in CI extracting Portable ZIPs to guarantee `open_android_dex.exe` presence in all distributed packages.
+          - **All v2.0.2 Enhancements Included**:
+            - Windows 11 video stream decoding via Windows FFmpeg SDK.
+            - Dynamic virtual display & phone screen auto-off for Android < 14 (API < 34).
+            - Xiaomi / MIUI / HyperOS and Samsung One UI system app icon extractions.
+            - Guarded input injection routing for primary and virtual displays.
 
           ### 📦 Distributions
           - **Windows 11 (x64)**:

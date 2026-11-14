@@ -48,13 +48,30 @@ Write-Host "  ✅ Windows FFmpeg SDK ready at $FFmpegDestDir" -ForegroundColor G
 # 3. Build Windows Release
 Write-Host "==> Compiling Windows 11 x64 Release..."
 flutter build windows --release
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "❌ Fatal Error: flutter build windows --release failed with exit code $LASTEXITCODE"
+    exit $LASTEXITCODE
+}
 
 $ReleaseDir = "build\windows\x64\runner\Release"
 $OutDir = "build\release_artifacts"
 if (-not (Test-Path $ReleaseDir)) {
-    Write-Error "Build output directory not found at $ReleaseDir"
+    Write-Error "❌ Fatal Error: Build output directory not found at $ReleaseDir"
     exit 1
 }
+
+$MainExe = "$ReleaseDir\open_android_dex.exe"
+if (-not (Test-Path $MainExe) -or (Get-Item $MainExe).Length -lt 100000) {
+    Write-Error "❌ Fatal Error: Main application binary open_android_dex.exe not found or invalid size at $MainExe"
+    exit 1
+}
+
+$FlutterDll = "$ReleaseDir\flutter_windows.dll"
+if (-not (Test-Path $FlutterDll)) {
+    Write-Error "❌ Fatal Error: flutter_windows.dll not found at $FlutterDll"
+    exit 1
+}
+Write-Host "  ✅ Verified compiled application binary ($MainExe) and runtime DLLs." -ForegroundColor Green
 
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 
@@ -140,6 +157,23 @@ $ZipPath = "$OutDir\$ZipFilename"
 Write-Host "==> Creating Portable ZIP at $ZipPath..."
 Compress-Archive -Path "$ReleaseDir\*" -DestinationPath $ZipPath -Force
 
+# Verify ZIP package integrity: ensure open_android_dex.exe is present inside
+Write-Host "==> Verifying Portable ZIP contents..."
+$zipArchive = [System.IO.Compression.ZipFile]::OpenRead($ZipPath)
+$foundExe = $false
+foreach ($entry in $zipArchive.Entries) {
+    if ($entry.Name -eq "open_android_dex.exe") {
+        $foundExe = $true
+        break
+    }
+}
+$zipArchive.Dispose()
+if (-not $foundExe) {
+    Write-Error "❌ Fatal Error: Portable ZIP was assembled without open_android_dex.exe!"
+    exit 1
+}
+Write-Host "  ✅ Portable ZIP verified: open_android_dex.exe is present." -ForegroundColor Green
+
 # 5. Compile Inno Setup Installer (if ISCC is installed)
 $iscc = (Get-Command iscc.exe -ErrorAction SilentlyContinue).Source
 if (-not $iscc) {
@@ -148,13 +182,19 @@ if (-not $iscc) {
 
 if (Test-Path $iscc) {
     Write-Host "==> Compiling Inno Setup Installer..."
-    $cleanVersion = if ($Version) { $Version.TrimStart('v') } else { "2.0.2" }
+    $cleanVersion = if ($Version) { $Version.TrimStart('v') } else { "2.0.3" }
     & $iscc "/DMyAppVersion=$cleanVersion" "/DOutputBaseFilename=$SetupBase" windows\packaging\installer.iss
-    $InstallerSrc = "build\windows_installer\$SetupBase.exe"
-    if (Test-Path $InstallerSrc) {
-        Copy-Item $InstallerSrc "$OutDir\$SetupBase.exe" -Force
-        Write-Host "  ✅ Setup Installer: $OutDir\$SetupBase.exe" -ForegroundColor Green
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "❌ Fatal Error: Inno Setup compilation failed with exit code $LASTEXITCODE"
+        exit $LASTEXITCODE
     }
+    $InstallerSrc = "build\windows_installer\$SetupBase.exe"
+    if (-not (Test-Path $InstallerSrc) -or (Get-Item $InstallerSrc).Length -lt 100000) {
+        Write-Error "❌ Fatal Error: Inno Setup output installer not found or invalid at $InstallerSrc"
+        exit 1
+    }
+    Copy-Item $InstallerSrc "$OutDir\$SetupBase.exe" -Force
+    Write-Host "  ✅ Setup Installer: $OutDir\$SetupBase.exe" -ForegroundColor Green
 } else {
     Write-Host "⚠️ Notice: Inno Setup 6 (ISCC.exe) not found. Portable ZIP created successfully." -ForegroundColor Yellow
 }

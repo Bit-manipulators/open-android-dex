@@ -31,6 +31,11 @@ target_compile_definitions(${BINARY_NAME} PRIVATE "FLUTTER_VERSION_BUILD=${FLUTT
 # Disable Windows macros that collide with C++ standard library functions.
 target_compile_definitions(${BINARY_NAME} PRIVATE "NOMINMAX")
 
+# Disable treat-warnings-as-errors for runner and silence MSVC warnings from third-party headers
+if(MSVC)
+  target_compile_options(${BINARY_NAME} PRIVATE /WX- /wd4244 /wd4267 /wd4101 /wd4189 /wd4996)
+endif()
+
 # Add dependency libraries and include directories. Add any application-specific
 # dependencies here.
 target_link_libraries(${BINARY_NAME} PRIVATE flutter flutter_wrapper_app flutter_wrapper_plugin)
@@ -52,7 +57,7 @@ endif()
 if(EXISTS "${FFMPEG_DIR}/include/libavcodec/avcodec.h")
   message(STATUS "Found Windows FFmpeg SDK at: ${FFMPEG_DIR}")
   target_compile_definitions(${BINARY_NAME} PRIVATE "HAVE_FFMPEG")
-  target_include_directories(${BINARY_NAME} PRIVATE "${FFMPEG_DIR}/include")
+  target_include_directories(${BINARY_NAME} SYSTEM PRIVATE "${FFMPEG_DIR}/include")
   target_link_directories(${BINARY_NAME} PRIVATE "${FFMPEG_DIR}/lib")
   target_link_libraries(${BINARY_NAME} PRIVATE avcodec avformat avutil swscale)
 else()

@@ -3,7 +3,7 @@
 
 #define MyAppName "Open Android DeX"
 #ifndef MyAppVersion
-#define MyAppVersion "2.0.2"
+#define MyAppVersion "2.0.3"
 #endif
 #define MyAppPublisher "Bit-manipulators"
 #define MyAppURL "https://github.com/Bit-manipulators/open-android-dex"
@@ -43,6 +43,8 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
+; Explicitly require main application binary so packaging fails if compilation failed
+Source: "..\..\build\windows\x64\runner\Release\open_android_dex.exe"; DestDir: "{app}"; Flags: ignoreversion
 ; Copy all build artifacts from the Flutter Windows release output
 Source: "..\..\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Also allow bundling from release package folder if running from CI

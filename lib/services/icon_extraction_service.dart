@@ -271,7 +271,7 @@ class IconExtractionService {
         if (apkPath == null || apkPath.isEmpty) continue;
 
         final targetDevPath = '$hostDeviceDir/$pkg.png';
-        final remoteIconTmp = '/data/local/tmp/icon_${pkg}.png';
+        final remoteIconTmp = '/data/local/tmp/icon_$pkg.png';
 
         const iconCandidates = [
           'res/mipmap-xxxhdpi-v4/ic_launcher.png',

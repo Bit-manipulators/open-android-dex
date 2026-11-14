@@ -6,12 +6,19 @@
 #include <iostream>
 
 #ifdef HAVE_FFMPEG
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable: 4244 4267 4101 4189 4996 4310 4702)
+#endif
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libavutil/imgutils.h>
 #include <libswscale/swscale.h>
 }
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 #endif
 
 static std::map<int64_t, std::unique_ptr<StreamTextureWindows>> g_active_textures;
@@ -206,10 +213,10 @@ void StreamTextureWindows::WorkerLoop() {
             avcodec_parameters_to_context(
                 codec_ctx, format_ctx->streams[video_stream_idx]->codecpar);
             if (avcodec_open2(codec_ctx, codec, nullptr) == 0) {
-              SwsContext* sws_ctx = sws_getContext(
-                  codec_ctx->width, codec_ctx->height, codec_ctx->pix_fmt,
-                  width_, height_, AV_PIX_FMT_RGBA,
-                  SWS_BILINEAR, nullptr, nullptr, nullptr);
+              SwsContext* sws_ctx = nullptr;
+              int last_src_w = 0;
+              int last_src_h = 0;
+              int last_src_fmt = -1;
 
               AVPacket* packet = av_packet_alloc();
               AVFrame* frame = av_frame_alloc();
@@ -221,17 +228,32 @@ void StreamTextureWindows::WorkerLoop() {
                 if (packet->stream_index == video_stream_idx) {
                   if (avcodec_send_packet(codec_ctx, packet) == 0) {
                     while (avcodec_receive_frame(codec_ctx, frame) == 0) {
-                      {
-                        std::lock_guard<std::mutex> lock(mutex_);
-                        uint8_t* dst_data[4] = {worker_buffer_.data(), nullptr, nullptr, nullptr};
-                        int dst_linesize[4] = {static_cast<int>(width_ * 4), 0, 0, 0};
-                        sws_scale(sws_ctx, frame->data, frame->linesize, 0,
-                                  codec_ctx->height, dst_data, dst_linesize);
-                        std::swap(ready_buffer_, worker_buffer_);
-                        has_new_frame_ = true;
-                      }
-                      if (registrar_ && texture_id_ >= 0 && !is_stopped_.load()) {
-                        registrar_->MarkTextureFrameAvailable(texture_id_);
+                      int fw = frame->width;
+                      int fh = frame->height;
+                      if (fw > 0 && fh > 0) {
+                        if (!sws_ctx || last_src_w != fw || last_src_h != fh ||
+                            last_src_fmt != frame->format) {
+                          if (sws_ctx) sws_freeContext(sws_ctx);
+                          last_src_w = fw;
+                          last_src_h = fh;
+                          last_src_fmt = frame->format;
+                          sws_ctx = sws_getContext(
+                              fw, fh, static_cast<AVPixelFormat>(frame->format),
+                              width_, height_, AV_PIX_FMT_RGBA,
+                              SWS_BILINEAR, nullptr, nullptr, nullptr);
+                        }
+                        if (sws_ctx) {
+                          std::lock_guard<std::mutex> lock(mutex_);
+                          uint8_t* dst_data[4] = {worker_buffer_.data(), nullptr, nullptr, nullptr};
+                          int dst_linesize[4] = {static_cast<int>(width_ * 4), 0, 0, 0};
+                          sws_scale(sws_ctx, frame->data, frame->linesize, 0,
+                                    fh, dst_data, dst_linesize);
+                          std::swap(ready_buffer_, worker_buffer_);
+                          has_new_frame_ = true;
+                        }
+                        if (registrar_ && texture_id_ >= 0 && !is_stopped_.load()) {
+                          registrar_->MarkTextureFrameAvailable(texture_id_);
+                        }
                       }
                     }
                   }
