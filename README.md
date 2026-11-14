@@ -97,17 +97,17 @@ Precompiled, validated releases are distributed via [GitHub Releases](https://gi
 
 | Feature | Status | Description |
 | :--- | :--- | :--- |
-| **Windows 11 (x64) Compositor** | ✅ **Implemented** | Native Win32 desktop runner, texture streaming, and installer |
+| **Windows 11 (x64) Compositor** | ✅ **Implemented** | Native Win32 desktop runner, texture streaming, and bundled installer/portable packages |
 | **Linux AppImage Distribution** | ✅ **Implemented** | Standalone portable bundle with Wayland and X11 support |
 | **8-Way Window Resizing** | ✅ **Implemented** | Smooth edge and corner dragging with geometry persistence |
 | **Z-Index Window Ordering** | ✅ **Implemented** | Active window elevation, focus switching, and drop shadows |
-| **In-Process Video Textures** | ✅ **Implemented** | Native C++ decoding from headless scrcpy pipelines |
+| **In-Process Video Textures** | ✅ **Implemented** | Hardware/multithreaded FFmpeg C-API decoding on Windows & Linux direct to GPU textures |
 | **Trackpad & Touchpad Scrolling** | ✅ **Implemented** | Two-finger smooth scrolling and natural pan/zoom gestures |
 | **DeX Bottom Taskbar** | ✅ **Implemented** | 9-dot launcher, Android navigation (Back, Home, Recents), clock |
-| **App Drawer & Search** | ✅ **Implemented** | Dynamic package querying with real-time text filtering |
+| **App Drawer & OEM Icons** | ✅ **Implemented** | Samsung One UI & Xiaomi MIUI/HyperOS app suite recognition, DEX icon dumper + APK fallback extraction |
 | **Staged Boot Sequencer** | ✅ **Implemented** | 5-step detection and health check (ADB → Device → Link → scrcpy) |
 | **Media Volume Control** | ✅ **Implemented** | Hardware volume stepping and mute toggles via ADB |
-| **Android Virtual Displays** | 🟡 **Partially Implemented** | Uses `--new-display` on Android 14+; auto-adapts on resize |
+| **Android Display Compatibility** | ✅ **Implemented** | Isolated virtual displays on Android 14+ (`--new-display`); low-latency primary mirror with automatic screen-off (`--turn-screen-off`) on Android 10–13 |
 | **Real-Time Notification Sync** | 🟡 **Partially Implemented** | `dumpsys` polling in desktop; Companion daemon in Kotlin |
 | **Audio Forwarding to Host** | 🔵 **Planned** | PipeWire / PulseAudio / WASAPI integration via scrcpy tunnel |
 | **Bidirectional Clipboard Sync** | 🔵 **Planned** | Automatic copy-paste synchronization between host and phone |
@@ -142,7 +142,8 @@ For full technical diagrams, data flows, and IPC details, refer to [`docs/ARCHIT
 * **Window Engine:** Draggable and 8-direction resizable window frames with active focus management, smooth two-finger trackpad/touchpad scrolling, and minimize/maximize memory.
 * **Streaming Engine:**
   - **Linux:** Headless `scrcpy` writes live H.264 video to an IPC named pipe (`$XDG_RUNTIME_DIR/opendex/`), which [`stream_texture.cc`](linux/stream_texture.cc) decodes into an `FlPixelBufferTexture` rendered in real-time.
-  - **Windows 11:** Headless `scrcpy.exe` streams to a Win32 Named Pipe (`\\.\pipe\opendex_stream_*`), which [`stream_texture_windows.cpp`](windows/runner/stream_texture_windows.cpp) decodes into a GPU-accelerated `flutter::PixelBufferTexture`.
+  - **Windows 11:** Headless `scrcpy.exe` streams to a Win32 Named Pipe (`\\.\pipe\opendex_stream_*`), which [`stream_texture_windows.cpp`](windows/runner/stream_texture_windows.cpp) decodes into a GPU-accelerated `flutter::PixelBufferTexture` via embedded FFmpeg C-API decoding (`avcodec`, `avformat`, `swscale`, `avutil`).
+* **Adaptive Display Manager:** Dynamically probes the device Android SDK version (`ro.build.version.sdk`). Automatically routes application windows to isolated virtual displays on Android 14+ (`--new-display`), or to high-frame-rate primary screen mirror mode with `--turn-screen-off` on Android 10–13, complete with automatic 900ms process monitoring and fail-safe recovery.
 
 ### 2. Python / GTK4 Shell (Lightweight Fallback: Linux)
 * **Code Location:** [`app.py`](app.py) and supporting Python modules
@@ -159,11 +160,12 @@ For full technical diagrams, data flows, and IPC details, refer to [`docs/ARCHIT
 
 ### Windows 11 Host
 * **Operating System:** Windows 11 (64-bit x64) or Windows 10 Build 19041+
-* **Tools:**
+* **Pre-bundled:** The official Installer and Portable packages already bundle `adb.exe`, `scrcpy.exe`, `scrcpy-server`, and all required FFmpeg & MSVC runtime DLLs.
+* **Tools (for running from source):**
   * `adb.exe` ([Android SDK Platform-Tools](https://developer.android.com/tools/releases/platform-tools))
   * `scrcpy.exe` ([Genymobile scrcpy 2.0+](https://github.com/Genymobile/scrcpy/releases))
-  * OEM Android USB Drivers (Google, Samsung, Motorola, etc.)
-  * (For building from source) Visual Studio 2022 with C++ desktop workload & Flutter SDK 3.24+
+  * OEM Android USB Drivers (Google, Samsung, Xiaomi, Motorola, etc.)
+  * Visual Studio 2022 with C++ desktop workload & Flutter SDK 3.24+
 
 ### Linux Host
 * **Operating System:** Linux (Arch Linux, Ubuntu 20.04+, Debian 11+, Fedora 36+)
@@ -176,9 +178,13 @@ For full technical diagrams, data flows, and IPC details, refer to [`docs/ARCHIT
   * Flutter SDK 3.24+ (for building from source)
 
 ### Android Device Support
-* Any smartphone, tablet, or handheld running **Android 10 through Android 16**.
+* Any smartphone, tablet, or handheld running **Android 10 through Android 16** (API Level 29–36).
+* **OEM Compatibility**: Verified on **Samsung Galaxy** (One UI), **Xiaomi / Redmi / POCO** (MIUI / HyperOS), **Google Pixel**, **Motorola**, and generic AOSP.
+* **Display Operating Modes**:
+  - **Android 14+ (API 34+)**: Uses `--new-display` to create isolated, resizable secondary virtual displays while your phone screen stays free.
+  - **Android 10–13 (API 29–33)**: Seamlessly operates via primary display streaming with `--turn-screen-off` so your phone display remains powered off while the desktop window displays the application.
 * **USB Debugging** enabled in *Developer Options*.
-* (Optional) **Wireless Debugging** (Android 11+) supported via QR code pairing.
+* (Optional) **Wireless Debugging** (Android 11+) supported via QR code pairing or IP:port.
 
 ---
 
@@ -200,9 +206,12 @@ python3 app.py --demo
 
 ### Running on Windows 11
 
-1. Download and run **`Open-Android-DeX-Windows-x64-Setup.exe`** (or extract the portable ZIP).
-2. Connect your phone via USB and enable USB Debugging.
-3. Launch Open Android DeX from your Start Menu or Desktop.
+1. Download the pre-built Windows release from [GitHub Releases](https://github.com/Bit-manipulators/open-android-dex/releases/latest):
+   - **`Open-Android-DeX-v2.0.2-Windows-x64-Setup.exe`**: Standard installer with desktop shortcut and clean uninstallation.
+   - **`Open-Android-DeX-v2.0.2-Windows-x64-Portable.zip`**: Zero-install standalone archive.
+   *(Both packages come pre-bundled with `adb.exe`, `scrcpy.exe`, `scrcpy-server`, and all required FFmpeg & MSVC runtime DLLs).*
+2. Connect your Android device via USB and enable **USB Debugging** (accept the RSA fingerprint prompt on your phone).
+3. Launch Open Android DeX from your Start Menu, Desktop, or extracted portable directory.
 4. See [`docs/WINDOWS_SETUP.md`](docs/WINDOWS_SETUP.md) for full driver and configuration details.
 
 ### Running the Linux AppImage
