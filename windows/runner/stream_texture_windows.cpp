@@ -185,8 +185,8 @@ void StreamTextureWindows::WorkerLoop() {
     format_ctx->interrupt_callback.opaque = this;
 
     AVDictionary* opts = nullptr;
-    av_dict_set(&opts, "probesize", "262144", 0);
-    av_dict_set(&opts, "analyzeduration", "500000", 0);
+    av_dict_set(&opts, "probesize", "32768", 0);
+    av_dict_set(&opts, "analyzeduration", "0", 0);
     av_dict_set(&opts, "fflags", "nobuffer", 0);
     av_dict_set(&opts, "flags", "low_delay", 0);
 
@@ -213,6 +213,8 @@ void StreamTextureWindows::WorkerLoop() {
             avcodec_parameters_to_context(
                 codec_ctx, format_ctx->streams[video_stream_idx]->codecpar);
             if (avcodec_open2(codec_ctx, codec, nullptr) == 0) {
+              codec_ctx->flags |= AV_CODEC_FLAG_LOW_DELAY;
+              codec_ctx->flags2 |= AV_CODEC_FLAG2_FAST;
               SwsContext* sws_ctx = nullptr;
               int last_src_w = 0;
               int last_src_h = 0;
@@ -240,7 +242,7 @@ void StreamTextureWindows::WorkerLoop() {
                           sws_ctx = sws_getContext(
                               fw, fh, static_cast<AVPixelFormat>(frame->format),
                               width_, height_, AV_PIX_FMT_RGBA,
-                              SWS_BILINEAR, nullptr, nullptr, nullptr);
+                              SWS_FAST_BILINEAR, nullptr, nullptr, nullptr);
                         }
                         if (sws_ctx) {
                           std::lock_guard<std::mutex> lock(mutex_);

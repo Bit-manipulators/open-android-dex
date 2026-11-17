@@ -23,6 +23,7 @@ class _AppDrawerDialogState extends State<AppDrawerDialog> {
   final _searchController = TextEditingController();
   final _searchFocusNode = FocusNode();
   String _searchQuery = '';
+  bool _hideSystemApps = true;
   StreamSubscription? _deviceSub;
 
   @override
@@ -75,7 +76,13 @@ class _AppDrawerDialogState extends State<AppDrawerDialog> {
     final adb = AdbService();
     final allApps = adb.installedApps;
 
-    final filtered = allApps.where((app) {
+    final baseApps = allApps.where((app) {
+      if (_searchQuery.trim().isNotEmpty) return true;
+      if (_hideSystemApps && app.isSystemApp) return false;
+      return true;
+    }).toList();
+
+    final filtered = baseApps.where((app) {
       return app.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           app.packageName.toLowerCase().contains(_searchQuery.toLowerCase());
     }).toList();
@@ -172,6 +179,72 @@ class _AppDrawerDialogState extends State<AppDrawerDialog> {
                             ),
                           ),
                         ),
+                      ),
+                      const SizedBox(height: 10),
+                      // Filter Options & App Stats Row
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '${filtered.length} ${filtered.length == 1 ? "App" : "Apps"}',
+                            style: const TextStyle(
+                              color: Color(0xFF94A3B8),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          InkWell(
+                            onTap: () {
+                              setState(() {
+                                _hideSystemApps = !_hideSystemApps;
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(16),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: _hideSystemApps
+                                    ? const Color(0xFF1E293B)
+                                    : const Color(0xFF2563EB).withOpacity(0.25),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: _hideSystemApps
+                                      ? const Color(0xFF334155)
+                                      : const Color(0xFF3B82F6),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    _hideSystemApps
+                                        ? Icons.visibility_off_rounded
+                                        : Icons.visibility_rounded,
+                                    size: 13,
+                                    color: _hideSystemApps
+                                        ? const Color(0xFF94A3B8)
+                                        : const Color(0xFF60A5FA),
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Text(
+                                    _hideSystemApps
+                                        ? 'System Apps (Hidden)'
+                                        : 'System Apps (Shown)',
+                                    style: TextStyle(
+                                      color: _hideSystemApps
+                                          ? const Color(0xFFCBD5E1)
+                                          : const Color(0xFF93C5FD),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

@@ -4,6 +4,7 @@ import '../models/dex_window.dart';
 import '../services/adb_service.dart';
 import '../services/scrcpy_stream_service.dart';
 import 'app_icon_widget.dart';
+import 'display_resolution_dialog.dart';
 import 'embedded_stream_viewport.dart';
 
 class ResizableWindowFrame extends StatefulWidget {
@@ -333,6 +334,11 @@ class _ResizableWindowFrameState extends State<ResizableWindowFrame> {
               () => AdbService().showRecents(
                 displayId: ScrcpyStreamService().getSession(win.id)?.displayId,
               ),
+            ),
+            _buildNavButton(
+              Icons.aspect_ratio_rounded,
+              'Resolution & DPI Presets',
+              () => DisplayResolutionDialog.show(context),
             ),
             const SizedBox(width: 6),
             Container(width: 1, height: 16, color: const Color(0xFF333333)),

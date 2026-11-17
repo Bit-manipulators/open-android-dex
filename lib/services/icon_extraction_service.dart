@@ -295,47 +295,72 @@ class IconExtractionService {
         ];
 
         for (final iconRes in iconCandidates) {
-          final extractRes = await Process.run(
-            PlatformAdapter.adbExecutable,
-            [
-              '-s',
-              serial,
-              'shell',
-              'unzip',
-              '-p',
-              apkPath,
-              iconRes,
-              '>',
-              remoteIconTmp
-            ],
-          );
-          if (extractRes.exitCode == 0) {
-            final pullRes = await Process.run(
-              PlatformAdapter.adbExecutable,
-              ['-s', serial, 'pull', remoteIconTmp, targetDevPath],
-            );
-            await Process.run(
-              PlatformAdapter.adbExecutable,
-              ['-s', serial, 'shell', 'rm', '-f', remoteIconTmp],
-            );
-            final f = File(targetDevPath);
-            if (pullRes.exitCode == 0 &&
-                f.existsSync() &&
-                f.lengthSync() > 100) {
-              try {
-                final globalPath = '$hostGlobalDir/$pkg.png';
-                if (!File(globalPath).existsSync()) {
-                  f.copySync(globalPath);
-                }
-              } catch (_) {}
+          bool extracted = false;
 
-              _singleIconController.add(SingleIconUpdate(
-                serial: serial,
-                packageName: pkg,
-                iconPath: targetDevPath,
-              ));
-              break;
+          // 1. First attempt: Direct stream via adb exec-out into host buffer
+          try {
+            final execOutRes = await Process.run(
+              PlatformAdapter.adbExecutable,
+              ['-s', serial, 'exec-out', 'unzip', '-p', apkPath, iconRes],
+              stdoutEncoding: null,
+            );
+            if (execOutRes.exitCode == 0 &&
+                execOutRes.stdout is List<int> &&
+                (execOutRes.stdout as List<int>).length > 100) {
+              final bytes = execOutRes.stdout as List<int>;
+              final f = File(targetDevPath);
+              f.writeAsBytesSync(bytes);
+              extracted = true;
             }
+          } catch (_) {}
+
+          // 2. Second attempt: sh -c with proper shell redirection on device
+          if (!extracted) {
+            try {
+              final extractRes = await Process.run(
+                PlatformAdapter.adbExecutable,
+                [
+                  '-s',
+                  serial,
+                  'shell',
+                  'sh',
+                  '-c',
+                  "unzip -p '$apkPath' '$iconRes' > '$remoteIconTmp'",
+                ],
+              );
+              if (extractRes.exitCode == 0) {
+                final pullRes = await Process.run(
+                  PlatformAdapter.adbExecutable,
+                  ['-s', serial, 'pull', remoteIconTmp, targetDevPath],
+                );
+                await Process.run(
+                  PlatformAdapter.adbExecutable,
+                  ['-s', serial, 'shell', 'rm', '-f', remoteIconTmp],
+                );
+                final f = File(targetDevPath);
+                if (pullRes.exitCode == 0 &&
+                    f.existsSync() &&
+                    f.lengthSync() > 100) {
+                  extracted = true;
+                }
+              }
+            } catch (_) {}
+          }
+
+          if (extracted && File(targetDevPath).existsSync()) {
+            try {
+              final globalPath = '$hostGlobalDir/$pkg.png';
+              if (!File(globalPath).existsSync()) {
+                File(targetDevPath).copySync(globalPath);
+              }
+            } catch (_) {}
+
+            _singleIconController.add(SingleIconUpdate(
+              serial: serial,
+              packageName: pkg,
+              iconPath: targetDevPath,
+            ));
+            break;
           }
         }
       } catch (_) {}

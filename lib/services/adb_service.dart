@@ -77,6 +77,7 @@ class AdbService {
   bool get supportsVirtualDisplay => androidSdkVersion >= 34;
   int batteryLevel = 0;
   bool isCharging = false;
+  bool isPhoneScreenOff = false;
   List<AppInfo> installedApps = [];
 
   // Extended DeX System States (Volume, Connectivity, Media, Notifications)
@@ -141,15 +142,15 @@ class AdbService {
     currentMediaArtist = 'Workstation Sound';
     isMediaPlaying = true;
     installedApps = [
-      AppInfo.fromPackage('com.android.chrome'),
-      AppInfo.fromPackage('com.google.android.calculator'),
-      AppInfo.fromPackage('com.android.settings'),
-      AppInfo.fromPackage('com.android.documentsui'),
-      AppInfo.fromPackage('com.android.messaging'),
-      AppInfo.fromPackage('com.android.vending'),
-      AppInfo.fromPackage('com.google.android.apps.photos'),
-      AppInfo.fromPackage('com.google.android.youtube'),
-      AppInfo.fromPackage('com.termux'),
+      AppInfo.fromPackage('com.android.chrome', null, false),
+      AppInfo.fromPackage('com.google.android.calculator', null, true),
+      AppInfo.fromPackage('com.android.settings', null, true),
+      AppInfo.fromPackage('com.android.documentsui', null, true),
+      AppInfo.fromPackage('com.android.messaging', null, false),
+      AppInfo.fromPackage('com.android.vending', null, false),
+      AppInfo.fromPackage('com.google.android.apps.photos', null, false),
+      AppInfo.fromPackage('com.google.android.youtube', null, false),
+      AppInfo.fromPackage('com.termux', null, false),
     ];
     activeNotifications = [
       NotificationItem(
@@ -513,6 +514,58 @@ class AdbService {
       if (s.isNotEmpty) {
         androidSdkVersion = int.tryParse(s) ?? 0;
       }
+
+      // Enable Developer Options multi-window and resizable activities to prevent blank screens
+      try {
+        await adbRunner([
+          '-s',
+          selectedDeviceSerial!,
+          'shell',
+          'settings',
+          'put',
+          'global',
+          'force_resizable_activities',
+          '1'
+        ]);
+        await adbRunner([
+          '-s',
+          selectedDeviceSerial!,
+          'shell',
+          'settings',
+          'put',
+          'global',
+          'enable_freeform_support',
+          '1'
+        ]);
+        await adbRunner([
+          '-s',
+          selectedDeviceSerial!,
+          'shell',
+          'settings',
+          'put',
+          'global',
+          'force_desktop_mode_on_external_displays',
+          '1'
+        ]);
+      } catch (_) {}
+
+      // Detect physical phone screen on/off state
+      try {
+        final pwrRes = await adbRunner(
+            ['-s', selectedDeviceSerial!, 'shell', 'dumpsys', 'power']);
+        if (pwrRes.exitCode == 0) {
+          final out = pwrRes.stdout as String;
+          if (out.contains('Display Power: state=OFF') ||
+              out.contains('mHoldingDisplaySuspendBlocker=false') ||
+              out.contains('mScreenState=0')) {
+            isPhoneScreenOff = true;
+          } else if (out.contains('Display Power: state=ON') ||
+              out.contains('mHoldingDisplaySuspendBlocker=true') ||
+              out.contains('mScreenState=2')) {
+            isPhoneScreenOff = false;
+          }
+        }
+      } catch (_) {}
     } catch (_) {}
   }
 
@@ -736,6 +789,52 @@ class AdbService {
   Future<void> wakeUp() => sendKeyEvent(224);
   Future<void> takeScreenshot() => sendKeyEvent(120);
 
+  Future<void> togglePhoneScreen([String? serial]) async {
+    if (isDemoMode) {
+      isPhoneScreenOff = !isPhoneScreenOff;
+      _deviceStateController.add(true);
+      return;
+    }
+    final s = serial ?? selectedDeviceSerial;
+    if (s == null) return;
+    try {
+      if (!isPhoneScreenOff) {
+        await adbRunner(
+            ['-s', s, 'shell', 'input', 'keyevent', 'KEYCODE_SLEEP']);
+        isPhoneScreenOff = true;
+      } else {
+        await adbRunner(
+            ['-s', s, 'shell', 'input', 'keyevent', 'KEYCODE_WAKEUP']);
+        await adbRunner(['-s', s, 'shell', 'wm', 'dismiss-keyguard']);
+        isPhoneScreenOff = false;
+      }
+      _deviceStateController.add(true);
+    } catch (_) {}
+  }
+
+  Future<void> setPhoneScreenOff(bool off, [String? serial]) async {
+    if (isDemoMode) {
+      isPhoneScreenOff = off;
+      _deviceStateController.add(true);
+      return;
+    }
+    final s = serial ?? selectedDeviceSerial;
+    if (s == null) return;
+    try {
+      if (off) {
+        await adbRunner(
+            ['-s', s, 'shell', 'input', 'keyevent', 'KEYCODE_SLEEP']);
+        isPhoneScreenOff = true;
+      } else {
+        await adbRunner(
+            ['-s', s, 'shell', 'input', 'keyevent', 'KEYCODE_WAKEUP']);
+        await adbRunner(['-s', s, 'shell', 'wm', 'dismiss-keyguard']);
+        isPhoneScreenOff = false;
+      }
+      _deviceStateController.add(true);
+    } catch (_) {}
+  }
+
   Future<void> setBrightness(int val) async {
     screenBrightness = val.clamp(0, 255);
     _deviceStateController.add(true);
@@ -804,13 +903,90 @@ class AdbService {
     } catch (_) {}
   }
 
+  static bool isInternalSystemDaemon(String pkg) {
+    final lower = pkg.toLowerCase();
+    if (lower.startsWith('com.android.internal.') ||
+        lower.startsWith('com.android.cts.') ||
+        lower.startsWith('com.android.traceur') ||
+        lower.startsWith('com.android.systemui') ||
+        lower.startsWith('com.android.keychain') ||
+        lower.startsWith('com.android.carrierconfig') ||
+        lower.startsWith('com.android.stk') ||
+        lower.startsWith('com.android.certinstaller') ||
+        lower.startsWith('com.android.shell') ||
+        lower.startsWith('com.android.wallpaper.livepicker') ||
+        lower.startsWith('com.android.providers.') ||
+        lower.startsWith('com.google.android.overlay.') ||
+        lower.startsWith('com.google.android.feedback') ||
+        lower.startsWith('com.google.android.setupwizard') ||
+        lower.startsWith('com.google.android.onetimeinitializer') ||
+        lower.startsWith('com.google.android.partnersetup') ||
+        lower.startsWith('com.google.android.syncadapters.') ||
+        lower.startsWith('com.google.android.ext.services') ||
+        lower.startsWith('com.google.android.ext.shared') ||
+        lower.startsWith('com.google.android.marvin.talkback') ||
+        lower.startsWith('com.sec.android.soagent') ||
+        lower.startsWith('com.sec.android.app.wlantest') ||
+        lower.startsWith('com.sec.android.app.secsetupwizard') ||
+        lower.startsWith('com.sec.android.app.setupwizardlegalprovider') ||
+        lower.startsWith('com.sec.android.app.safetyinformation') ||
+        lower.startsWith('com.sec.android.app.billing') ||
+        lower.startsWith('com.sec.android.app.launcher') ||
+        lower.startsWith('com.samsung.android.authfw') ||
+        lower.startsWith('com.samsung.android.tapack.authfw') ||
+        lower.startsWith('com.samsung.android.allshare.service.mediashare') ||
+        lower.startsWith('com.samsung.android.beaconmanager') ||
+        lower.startsWith('com.samsung.android.mcfds') ||
+        lower.startsWith('com.samsung.android.mobileservice') ||
+        lower.startsWith('com.samsung.android.mdx') ||
+        lower.startsWith('com.samsung.android.smartface') ||
+        lower.startsWith('com.samsung.android.smartcallprovider') ||
+        lower.startsWith('com.samsung.android.service.livedrawing') ||
+        lower.startsWith('com.samsung.android.app.telephonyui') ||
+        lower.startsWith('com.miui.guardprovider') ||
+        lower.startsWith('com.miui.hybrid') ||
+        lower.startsWith('com.miui.msa.global') ||
+        lower.startsWith('com.miui.analytics') ||
+        lower.startsWith('com.xiaomi.xmsf') ||
+        lower.startsWith('com.xiaomi.joyose')) {
+      return true;
+    }
+    if (lower.contains('.overlay') ||
+        lower.contains('setupwizard') ||
+        lower.contains('.stub') ||
+        lower.contains('hiddenmenu') ||
+        lower.contains('wlantest') ||
+        lower.contains('cutout.emulation')) {
+      return true;
+    }
+    return false;
+  }
+
   Future<List<AppInfo>> fetchInstalledApps([String? targetSerial]) async {
     final serial = targetSerial ?? selectedDeviceSerial;
     if (serial == null) return [];
     try {
+      final thirdPartyPackages = <String>{};
       final packages = <String>{};
 
-      // 1. Query all launcher apps on device
+      // 1. First query 3rd-party user packages (-3)
+      final res3 = await adbRunner(
+          ['-s', serial, 'shell', 'pm', 'list', 'packages', '-3']);
+
+      if (res3.exitCode == 0) {
+        for (var line in (res3.stdout as String).split('\n')) {
+          line = line.trim();
+          if (line.startsWith('package:')) {
+            final pkg = line.replaceFirst('package:', '').trim();
+            if (pkg.isNotEmpty && !isInternalSystemDaemon(pkg)) {
+              thirdPartyPackages.add(pkg);
+              packages.add(pkg);
+            }
+          }
+        }
+      }
+
+      // 2. Query launcher apps on device
       try {
         final launcherRes = await adbRunner([
           '-s',
@@ -831,24 +1007,14 @@ class AdbService {
           for (final m in matches) {
             final pkg = m.group(1);
             if (pkg != null && pkg.isNotEmpty) {
-              packages.add(pkg.trim());
+              final clean = pkg.trim();
+              if (!isInternalSystemDaemon(clean)) {
+                packages.add(clean);
+              }
             }
           }
         }
       } catch (_) {}
-
-      // 2. Also ensure 3rd-party packages (-3) are queried
-      final res3 = await adbRunner(
-          ['-s', serial, 'shell', 'pm', 'list', 'packages', '-3']);
-
-      if (res3.exitCode == 0) {
-        for (var line in (res3.stdout as String).split('\n')) {
-          line = line.trim();
-          if (line.startsWith('package:')) {
-            packages.add(line.replaceFirst('package:', '').trim());
-          }
-        }
-      }
 
       // 3. Add common built-in apps if installed (Google Pixel, Samsung Galaxy, Xiaomi / MIUI)
       final commonSysApps = [
@@ -910,7 +1076,8 @@ class AdbService {
       final extractor = IconExtractionService();
       final apps = packages.map((pkg) {
         final cached = extractor.getCachedIconPath(pkg, serial: serial);
-        return AppInfo.fromPackage(pkg, cached);
+        final isSystem = !thirdPartyPackages.contains(pkg);
+        return AppInfo.fromPackage(pkg, cached, isSystem);
       }).toList();
       apps.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
       if (selectedDeviceSerial == serial) {

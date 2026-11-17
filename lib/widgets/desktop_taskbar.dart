@@ -119,7 +119,7 @@ class _DesktopTaskbarState extends State<DesktopTaskbar> {
         // 1. Taskbar Main Bar
         Container(
           height: 52,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 8),
           decoration: BoxDecoration(
             color: const Color(0xFF0F131D).withOpacity(0.92),
             border: const Border(
@@ -329,7 +329,46 @@ class _DesktopTaskbarState extends State<DesktopTaskbar> {
                   ),
                 ),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 4),
+
+              // Phone Screen Toggle (Screen On / Screen Off)
+              Tooltip(
+                message: adb.isPhoneScreenOff
+                    ? 'Phone Screen: Off (Click to turn on)'
+                    : 'Phone Screen: On (Click to turn off)',
+                child: InkWell(
+                  onTap: () async {
+                    await adb.togglePhoneScreen();
+                    setState(() {});
+                  },
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: adb.isPhoneScreenOff
+                          ? const Color(0xFF2563EB)
+                          : const Color(0xFF172033),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: adb.isPhoneScreenOff
+                            ? const Color(0xFF60A5FA)
+                            : const Color(0xFF2D3C5C),
+                      ),
+                    ),
+                    child: Icon(
+                      adb.isPhoneScreenOff
+                          ? Icons.screen_lock_portrait_rounded
+                          : Icons.smartphone_rounded,
+                      size: 14,
+                      color: adb.isPhoneScreenOff
+                          ? Colors.white
+                          : const Color(0xFF94A3B8),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
 
               // Device Capsule
               Tooltip(
@@ -340,7 +379,7 @@ class _DesktopTaskbarState extends State<DesktopTaskbar> {
                   borderRadius: BorderRadius.circular(20),
                   child: Container(
                     padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                     decoration: BoxDecoration(
                       color: const Color(0xFF172033),
                       borderRadius: BorderRadius.circular(20),
@@ -368,20 +407,25 @@ class _DesktopTaskbarState extends State<DesktopTaskbar> {
                                   ? const Color(0xFF34D399)
                                   : const Color(0xFF64748B)),
                         ),
-                        const SizedBox(width: 6),
-                        Text(
-                          adb.deviceModel,
-                          style: const TextStyle(
-                              color: Color(0xFFCBD5E1),
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w500),
+                        const SizedBox(width: 4),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 100),
+                          child: Text(
+                            adb.deviceModel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                color: Color(0xFFCBD5E1),
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w500),
+                          ),
                         ),
                       ],
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 4),
 
               // Battery Capsule
               Container(

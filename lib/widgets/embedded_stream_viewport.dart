@@ -149,9 +149,31 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
         });
       }
 
-      final targetW = (widget.window.width.toInt() & ~1).clamp(360, 3840);
-      final targetH =
-          ((widget.window.height - 36).toInt() & ~1).clamp(360, 3840);
+      int targetW = (widget.window.width.toInt() & ~1).clamp(360, 3840);
+      int targetH = ((widget.window.height - 36).toInt() & ~1).clamp(360, 3840);
+      int dpi = 240;
+
+      final preset = _streamService.activePreset;
+      if (!preset.isAuto) {
+        if (preset.width != null) {
+          targetW = preset.width!;
+        } else if (_streamService.customWidth != null) {
+          targetW = _streamService.customWidth!;
+        }
+
+        if (preset.height != null) {
+          targetH = preset.height!;
+        } else if (_streamService.customHeight != null) {
+          targetH = _streamService.customHeight!;
+        }
+
+        if (preset.dpi != null) {
+          dpi = preset.dpi!;
+        } else if (_streamService.customDpi != null) {
+          dpi = _streamService.customDpi!;
+        }
+      }
+
       _streamAspect = targetW / targetH;
 
       final oldTexId = _textureId;
@@ -182,7 +204,7 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
         mode: _currentMode,
         width: targetW,
         height: targetH,
-        dpi: 240,
+        dpi: dpi,
         customPipePath: pipePath,
       );
 
@@ -190,7 +212,11 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
         _lastAdaptedWidth = targetW.toDouble();
         _lastAdaptedHeight = (targetH + 36).toDouble();
         setState(() {
-          _textureId = texId;
+          if (session?.isRunning ?? false) {
+            _textureId = texId;
+          } else {
+            _textureId ??= texId;
+          }
           _isStreaming = session?.isRunning ?? false;
           _statusMessage = _isStreaming
               ? (_currentMode == ScrcpyDisplayMode.virtualDisplay
@@ -201,7 +227,9 @@ class _EmbeddedStreamViewportState extends State<EmbeddedStreamViewport> {
       }
 
       // 3. Safely stop old texture stream after Flutter widget has adopted new textureId
-      if (oldTexId != null && oldTexId != texId) {
+      if (oldTexId != null &&
+          oldTexId != texId &&
+          (session?.isRunning ?? false)) {
         TextureStreamChannel.stopStream(oldTexId);
       }
     } finally {

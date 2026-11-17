@@ -53,6 +53,50 @@ void main() {
       adb.androidSdkVersion = 36; // Android 16 (e.g. Samsung Galaxy S21 FE)
       expect(adb.supportsVirtualDisplay, isTrue);
     });
+
+    test('togglePhoneScreen toggles phone screen state', () async {
+      adb.isDemoMode = true;
+      adb.isPhoneScreenOff = false;
+
+      await adb.togglePhoneScreen();
+      expect(adb.isPhoneScreenOff, isTrue);
+
+      await adb.togglePhoneScreen();
+      expect(adb.isPhoneScreenOff, isFalse);
+
+      await adb.setPhoneScreenOff(true);
+      expect(adb.isPhoneScreenOff, isTrue);
+    });
+
+    test('isInternalSystemDaemon identifies internal background packages', () {
+      expect(AdbService.isInternalSystemDaemon('com.android.traceur'), isTrue);
+      expect(AdbService.isInternalSystemDaemon('com.android.systemui'), isTrue);
+      expect(AdbService.isInternalSystemDaemon('com.sec.android.app.wlantest'),
+          isTrue);
+      expect(AdbService.isInternalSystemDaemon('com.samsung.android.authfw'),
+          isTrue);
+      expect(
+          AdbService.isInternalSystemDaemon(
+              'com.sec.android.app.SecSetupWizard'),
+          isTrue);
+      expect(AdbService.isInternalSystemDaemon('com.google.android.feedback'),
+          isTrue);
+      expect(
+          AdbService.isInternalSystemDaemon(
+              'com.google.android.overlay.modules.ext.services'),
+          isTrue);
+
+      // User-facing apps should NOT be daemons
+      expect(AdbService.isInternalSystemDaemon('com.android.chrome'), isFalse);
+      expect(
+          AdbService.isInternalSystemDaemon(
+              'com.sec.android.app.popupcalculator'),
+          isFalse);
+      expect(AdbService.isInternalSystemDaemon('com.sec.android.gallery3d'),
+          isFalse);
+      expect(AdbService.isInternalSystemDaemon('com.google.android.youtube'),
+          isFalse);
+    });
   });
 
   group('TouchInputService Tests', () {

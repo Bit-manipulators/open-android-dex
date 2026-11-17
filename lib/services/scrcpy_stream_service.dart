@@ -13,6 +13,24 @@ enum ScrcpyDisplayMode {
   mirrorPrimary,
 }
 
+class ResolutionPreset {
+  final String id;
+  final String label;
+  final int? width;
+  final int? height;
+  final int? dpi;
+  final bool isAuto;
+
+  const ResolutionPreset({
+    required this.id,
+    required this.label,
+    this.width,
+    this.height,
+    this.dpi,
+    this.isAuto = false,
+  });
+}
+
 class ScrcpyStreamSession {
   final String id;
   final String packageName;
@@ -46,6 +64,87 @@ class ScrcpyStreamService {
   factory ScrcpyStreamService() => _instance;
   ScrcpyStreamService._internal();
 
+  static const List<ResolutionPreset> presets = [
+    ResolutionPreset(
+      id: 'auto',
+      label: 'Auto (Fit Window)',
+      isAuto: true,
+    ),
+    ResolutionPreset(
+      id: '1080p',
+      label: '1080p FHD (1920x1080 @ 240 DPI)',
+      width: 1920,
+      height: 1080,
+      dpi: 240,
+    ),
+    ResolutionPreset(
+      id: '16_10',
+      label: '16:10 Widescreen (1920x1200 @ 240 DPI)',
+      width: 1920,
+      height: 1200,
+      dpi: 240,
+    ),
+    ResolutionPreset(
+      id: '720p',
+      label: '720p HD (1280x720 @ 160 DPI)',
+      width: 1280,
+      height: 720,
+      dpi: 160,
+    ),
+    ResolutionPreset(
+      id: '900p',
+      label: '900p HD+ (1600x900 @ 200 DPI)',
+      width: 1600,
+      height: 900,
+      dpi: 200,
+    ),
+    ResolutionPreset(
+      id: '2k',
+      label: '2K QHD (2560x1440 @ 280 DPI)',
+      width: 2560,
+      height: 1440,
+      dpi: 280,
+    ),
+    ResolutionPreset(
+      id: 'tablet',
+      label: 'Tablet Widescreen (1280x800 @ 200 DPI)',
+      width: 1280,
+      height: 800,
+      dpi: 200,
+    ),
+    ResolutionPreset(
+      id: 'phone',
+      label: 'Phone Portrait (1080x2400 @ 420 DPI)',
+      width: 1080,
+      height: 2400,
+      dpi: 420,
+    ),
+    ResolutionPreset(
+      id: 'custom',
+      label: 'Custom Resolution',
+    ),
+  ];
+
+  ResolutionPreset activePreset = presets[0];
+  int? customWidth;
+  int? customHeight;
+  int? customDpi;
+
+  void setResolutionPreset(ResolutionPreset preset,
+      {int? customW, int? customH, int? customD}) {
+    activePreset = preset;
+    if (customW != null) customWidth = customW;
+    if (customH != null) customHeight = customH;
+    if (customD != null) customDpi = customD;
+  }
+
+  void clearCustomResolution() {
+    activePreset = presets[0];
+    customWidth = null;
+    customHeight = null;
+    customDpi = null;
+  }
+
   final Map<String, ScrcpyStreamSession> _activeSessions = {};
   final Map<String, Future<ScrcpyStreamSession?>> _inFlightStarts = {};
   static int _nextPort = 27183;
@@ -73,15 +172,39 @@ class ScrcpyStreamService {
       await _inFlightStarts[windowId];
     }
 
+    int effectiveWidth = width;
+    int effectiveHeight = height;
+    int effectiveDpi = dpi;
+
+    if (!activePreset.isAuto) {
+      if (activePreset.width != null) {
+        effectiveWidth = activePreset.width!;
+      } else if (customWidth != null) {
+        effectiveWidth = customWidth!;
+      }
+
+      if (activePreset.height != null) {
+        effectiveHeight = activePreset.height!;
+      } else if (customHeight != null) {
+        effectiveHeight = customHeight!;
+      }
+
+      if (activePreset.dpi != null) {
+        effectiveDpi = activePreset.dpi!;
+      } else if (customDpi != null) {
+        effectiveDpi = customDpi!;
+      }
+    }
+
     final future = () async {
       final session = await _doStartSession(
         windowId: windowId,
         packageName: packageName,
         serial: serial,
         mode: mode,
-        width: width,
-        height: height,
-        dpi: dpi,
+        width: effectiveWidth,
+        height: effectiveHeight,
+        dpi: effectiveDpi,
         customPipePath: customPipePath,
       );
 
@@ -100,9 +223,9 @@ class ScrcpyStreamService {
             packageName: packageName,
             serial: serial,
             mode: ScrcpyDisplayMode.mirrorPrimary,
-            width: width,
-            height: height,
-            dpi: dpi,
+            width: effectiveWidth,
+            height: effectiveHeight,
+            dpi: effectiveDpi,
             customPipePath: customPipePath,
           );
         }
@@ -174,13 +297,15 @@ class ScrcpyStreamService {
       '--max-fps=60',
       '--stay-awake',
       '--no-audio',
+      '--video-buffer=0',
       '--video-codec-options=i-frame-interval=1',
-      '--start-app=$packageName',
+      '--start-app=+$packageName',
     ];
 
     if (mode == ScrcpyDisplayMode.virtualDisplay) {
       args.add('--new-display=${evenW}x$evenH/$dpi');
       args.add('--no-vd-system-decorations');
+      args.add('--no-vd-destroy-content');
     } else {
       args.add('--turn-screen-off');
     }

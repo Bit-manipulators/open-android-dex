@@ -6,8 +6,8 @@ class AppInfo {
   final IconData icon;
   final List<Color> gradientColors;
   final String category;
-
   final String? iconPath;
+  final bool isSystemApp;
 
   const AppInfo({
     required this.packageName,
@@ -16,6 +16,7 @@ class AppInfo {
     required this.gradientColors,
     this.category = 'App',
     this.iconPath,
+    this.isSystemApp = false,
   });
 
   AppInfo copyWith({
@@ -25,6 +26,7 @@ class AppInfo {
     List<Color>? gradientColors,
     String? category,
     String? iconPath,
+    bool? isSystemApp,
   }) {
     return AppInfo(
       packageName: packageName ?? this.packageName,
@@ -33,10 +35,12 @@ class AppInfo {
       gradientColors: gradientColors ?? this.gradientColors,
       category: category ?? this.category,
       iconPath: iconPath ?? this.iconPath,
+      isSystemApp: isSystemApp ?? this.isSystemApp,
     );
   }
 
-  static AppInfo fromPackage(String pkg, [String? iconPath]) {
+  static AppInfo fromPackage(String pkg,
+      [String? iconPath, bool isSystemApp = false]) {
     final lower = pkg.toLowerCase();
     String name = _resolveName(pkg);
     IconData icon = _resolveIcon(lower, name.toLowerCase());
@@ -50,6 +54,7 @@ class AppInfo {
       gradientColors: colors,
       category: category,
       iconPath: iconPath,
+      isSystemApp: isSystemApp,
     );
   }
 
@@ -88,6 +93,18 @@ class AppInfo {
     if (lower == 'com.samsung.android.weather') return 'Weather';
     if (lower == 'com.samsung.android.spay' ||
         lower == 'com.samsung.android.raja.wallet') return 'Samsung Wallet';
+    if (lower == 'com.samsung.android.app.sharelive') return 'Quick Share';
+    if (lower == 'com.samsung.android.video') return 'Video Player';
+    if (lower == 'com.samsung.android.app.soundpicker') return 'Sound Picker';
+    if (lower == 'com.samsung.android.forest') return 'Digital Wellbeing';
+    if (lower == 'com.samsung.android.fmm') return 'SmartThings Find';
+    if (lower == 'com.samsung.android.app.galaxyfinder') return 'Finder';
+    if (lower == 'com.google.android.googlequicksearchbox') return 'Google';
+    if (lower == 'com.google.android.apps.googleassistant') return 'Assistant';
+    if (lower == 'com.google.android.apps.walletnfcrel') return 'Google Wallet';
+    if (lower == 'com.google.android.keep') return 'Keep Notes';
+    if (lower == 'com.google.android.apps.tachyon') return 'Google Meet';
+    if (lower == 'com.google.android.apps.docs') return 'Google Drive';
 
     // Xiaomi / Redmi (MIUI & HyperOS suite: Redmi Note 12 Pro, etc.)
     if (lower == 'com.miui.calculator') return 'Calculator';
@@ -270,6 +287,20 @@ class AppInfo {
     if (name.contains('pay') ||
         name.contains('wallet') ||
         name.contains('bank')) return Icons.account_balance_wallet_rounded;
+    if (name.contains('health') || name.contains('fit')) {
+      return Icons.favorite_rounded;
+    }
+    if (name.contains('share')) return Icons.share_rounded;
+    if (name.contains('search') ||
+        name.contains('finder') ||
+        name.contains('google')) {
+      return Icons.search_rounded;
+    }
+    if (name.contains('assistant')) return Icons.assistant_rounded;
+    if (name.contains('meet')) return Icons.video_call_rounded;
+    if (name.contains('drive') || name.contains('cloud')) {
+      return Icons.cloud_rounded;
+    }
     return Icons.apps_rounded;
   }
 
