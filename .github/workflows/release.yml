@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       tag_name:
-        description: "Release Tag (e.g. v2.0.3)"
+        description: "Release Tag (e.g. v2.0.4)"
         required: false
-        default: "v2.0.3"
+        default: "v2.0.4"
       draft:
         description: "Create as Draft Release"
         type: boolean
@@ -89,7 +89,7 @@ jobs:
           else
             VER="${{ github.ref_name }}"
           fi
-          echo "version=${VER:-v2.0.3}" >> $GITHUB_OUTPUT
+          echo "version=${VER:-v2.0.4}" >> $GITHUB_OUTPUT
 
       - name: Build AppImage
         env:
@@ -165,7 +165,7 @@ jobs:
           else
             VER="${{ github.ref_name }}"
           fi
-          echo "version=${VER:-v2.0.3}" >> $GITHUB_OUTPUT
+          echo "version=${VER:-v2.0.4}" >> $GITHUB_OUTPUT
 
       - name: Build & Package Windows Artifacts
         shell: pwsh
@@ -274,7 +274,7 @@ jobs:
             TAG="${{ github.ref_name }}"
             DRAFT="false"
           fi
-          echo "tag=${TAG:-v2.0.3}" >> $GITHUB_OUTPUT
+          echo "tag=${TAG:-v2.0.4}" >> $GITHUB_OUTPUT
           echo "draft=${DRAFT:-false}" >> $GITHUB_OUTPUT
 
       - name: Generate Release Notes
@@ -290,20 +290,48 @@ jobs:
 
           ## 🚀 What's New in __TAG__
 
-          ### 🐛 Bug Fixes & Packaging Improvements (Resolves #12)
-          - **Windows Executable & Packaging Fix (Resolves #12)**:
-            - Resolved `open_android_dex.exe` missing from the Windows Portable ZIP and Setup Installer packages.
-            - Fixed MSVC compiler warning flags (`/WX`) failing on Windows FFmpeg SDK headers (`libavutil/common.h`).
-            - Added MSVC warning suppression pragmas (`#pragma warning(disable: 4244 4267 4101 4189 4996)`) and marked FFmpeg include paths as SYSTEM headers.
-            - Dynamically initialize and resize SwsContext for video stream decoding on Windows, preventing null pointer issues during initial frame rendering.
-            - Added strict exit code propagation and artifact existence assertions to `scripts/build_windows.ps1`.
-            - Added explicit non-wildcard executable checks in `windows/packaging/installer.iss` ensuring Inno Setup fails if `open_android_dex.exe` is absent.
-            - Enforced post-build validation in CI extracting Portable ZIPs to guarantee `open_android_dex.exe` presence in all distributed packages.
-          - **All v2.0.2 Enhancements Included**:
-            - Windows 11 video stream decoding via Windows FFmpeg SDK.
-            - Dynamic virtual display & phone screen auto-off for Android < 14 (API < 34).
-            - Xiaomi / MIUI / HyperOS and Samsung One UI system app icon extractions.
-            - Guarded input injection routing for primary and virtual displays.
+          ### ⚡ Ultra-Low Latency & Desktop Multi-Window Mode (Resolves #13)
+          - **Eliminated Stream Latency (<15ms)**:
+            - Configured native Windows FFmpeg decoder with zero stream analysis delay (`analyzeduration = 0`, `probesize = 32768`).
+            - Enabled `AV_CODEC_FLAG_LOW_DELAY`, `AV_CODEC_FLAG2_FAST`, and ultra-fast bilinear scaling (`SWS_FAST_BILINEAR`).
+            - Added `--video-buffer=0` to eliminate client-side video frame buffering.
+          - **Proper Desktop Display Attachment**:
+            - Switched app launching to `--start-app=+$packageName` (force new task) so apps open directly in the virtual desktop window instead of sticking to the phone's primary portrait screen.
+
+          ### 🖥️ Blank Screen & Maximize Fix (Resolves #14)
+          - **Automatic Developer Options Configuration**:
+            - Automatically injects Android multi-window compatibility settings (`force_resizable_activities 1`, `enable_freeform_support 1`, `force_desktop_mode_on_external_displays 1`) via ADB on connection.
+          - **Non-Destructive Resizing**:
+            - Enabled `--no-vd-destroy-content` to preserve running app contexts during window resizing and display reconfiguration.
+            - Viewport retains previous video frames while re-negotiating resolution textures, eliminating blank/black flashes on window maximize.
+
+          ### 📐 Custom Resolution & DPI Controls (Resolves #15)
+          - **Display Resolution Settings Dialog**:
+            - Choose from 8 curated presets:
+              - **Auto (Window Adaptive)**: Dynamically scales to exact window dimensions
+              - **1080p Desktop**: 1920×1080 @ 240 DPI
+              - **16:10 Widescreen**: 1920×1200 @ 240 DPI
+              - **720p HD**: 1280×720 @ 180 DPI
+              - **900p HD+**: 1600×900 @ 210 DPI
+              - **2K QHD**: 2560×1440 @ 320 DPI
+              - **Tablet / DeX Pad**: 1600×1000 @ 220 DPI
+              - **Phone Portrait**: 1080×2340 @ 420 DPI
+            - **Custom Resolution & DPI**: Specify custom width (320–7680), height (240–4320), and DPI (96–640).
+            - Accessible directly from the **Quick Settings Panel** or from the window title bar action icon.
+
+          ### 📱 Physical Phone Screen Power Toggle (Resolves #16)
+          - **Save Battery & Prevent Screen Burn-In**:
+            - Added **Phone Screen** tile in the Quick Settings panel to toggle the physical device screen off or on at any time.
+            - Added a quick-toggle screen button in the taskbar system tray for 1-click access.
+            - Keeps the DeX desktop streaming session completely active while the phone display is turned off.
+
+          ### 🗂️ Clean App Drawer & Robust Icon Extraction (Resolves #17)
+          - **Default Hidden System Apps**:
+            - Automatically filters out internal Android background daemons (`Traceur`, `SystemUI`, Knox authentication, carrier overlays).
+            - Genuine system apps (Settings, Camera, Files, Gallery, Phone, etc.) are separated from user apps.
+            - App Drawer hides system apps by default with an interactive pill toggle to reveal them anytime.
+          - **Reliable Icon Extraction**:
+            - Replaced faulty device shell redirection with direct `adb exec-out` binary streaming and clean base64 piping, ensuring icons extract reliably across Samsung One UI and Android 16.
 
           ### 📦 Distributions
           - **Windows 11 (x64)**:

@@ -20,7 +20,7 @@ An open-source desktop environment that transforms your Android smartphone or ta
     <img src="https://img.shields.io/badge/Download%20for-Windows%2011-0078d4?style=for-the-badge&logo=windows&logoColor=white&labelColor=24292f" alt="Download Open Android DeX for Windows 11" />
   </a>
   <a href="https://github.com/Bit-manipulators/open-android-dex/releases/latest">
-    <img src="https://img.shields.io/badge/All%20Releases-v2.0.3-informational?style=for-the-badge&logo=github&logoColor=white&labelColor=24292f" alt="View All Releases" />
+    <img src="https://img.shields.io/badge/All%20Releases-v2.0.4-informational?style=for-the-badge&logo=github&logoColor=white&labelColor=24292f" alt="View All Releases" />
   </a>
 </p>
 
@@ -81,12 +81,12 @@ An open-source desktop environment that transforms your Android smartphone or ta
 Precompiled, validated releases are distributed via [GitHub Releases](https://github.com/Bit-manipulators/open-android-dex/releases/latest):
 
 ### 🪟 Windows 11 (x64)
-* **Installer:** [`Open-Android-DeX-Windows-x64-Setup.exe`](https://github.com/Bit-manipulators/open-android-dex/releases/latest/download/Open-Android-DeX-Windows-x64-Setup.exe) ([Direct v2.0.3 link](https://github.com/Bit-manipulators/open-android-dex/releases/download/v2.0.3/Open-Android-DeX-v2.0.3-Windows-x64-Setup.exe)) — Standard setup wizard with Desktop & Start Menu integration and uninstaller.
-* **Portable Package:** [`Open-Android-DeX-Windows-x64-Portable.zip`](https://github.com/Bit-manipulators/open-android-dex/releases/latest/download/Open-Android-DeX-Windows-x64-Portable.zip) ([Direct v2.0.3 link](https://github.com/Bit-manipulators/open-android-dex/releases/download/v2.0.3/Open-Android-DeX-v2.0.3-Windows-x64-Portable.zip)) — Standalone folder; extract and launch `open_android_dex.exe` anywhere with zero installation.
+* **Installer:** [`Open-Android-DeX-Windows-x64-Setup.exe`](https://github.com/Bit-manipulators/open-android-dex/releases/latest/download/Open-Android-DeX-Windows-x64-Setup.exe) ([Direct v2.0.4 link](https://github.com/Bit-manipulators/open-android-dex/releases/download/v2.0.4/Open-Android-DeX-v2.0.4-Windows-x64-Setup.exe)) — Standard setup wizard with Desktop & Start Menu integration and uninstaller.
+* **Portable Package:** [`Open-Android-DeX-Windows-x64-Portable.zip`](https://github.com/Bit-manipulators/open-android-dex/releases/latest/download/Open-Android-DeX-Windows-x64-Portable.zip) ([Direct v2.0.4 link](https://github.com/Bit-manipulators/open-android-dex/releases/download/v2.0.4/Open-Android-DeX-v2.0.4-Windows-x64-Portable.zip)) — Standalone folder; extract and launch `open_android_dex.exe` anywhere with zero installation.
 * 📖 Detailed setup & driver instructions: [`docs/WINDOWS_SETUP.md`](docs/WINDOWS_SETUP.md)
 
 ### 🐧 Linux (x86_64 AppImage)
-* **Portable AppImage:** [`Open-Android-DeX-Linux-x86_64.AppImage`](https://github.com/Bit-manipulators/open-android-dex/releases/latest/download/Open-Android-DeX-Linux-x86_64.AppImage) ([Direct v2.0.3 link](https://github.com/Bit-manipulators/open-android-dex/releases/download/v2.0.3/Open-Android-DeX-v2.0.3-Linux-x86_64.AppImage)) — Self-contained executable bundling all required Flutter and multimedia shared libraries.
+* **Portable AppImage:** [`Open-Android-DeX-Linux-x86_64.AppImage`](https://github.com/Bit-manipulators/open-android-dex/releases/latest/download/Open-Android-DeX-Linux-x86_64.AppImage) ([Direct v2.0.4 link](https://github.com/Bit-manipulators/open-android-dex/releases/download/v2.0.4/Open-Android-DeX-v2.0.4-Linux-x86_64.AppImage)) — Self-contained executable bundling all required Flutter and multimedia shared libraries.
   ```bash
   chmod +x Open-Android-DeX-Linux-x86_64.AppImage
   ./Open-Android-DeX-Linux-x86_64.AppImage
@@ -209,8 +209,8 @@ python3 app.py --demo
 ### Running on Windows 11
 
 1. Download the pre-built Windows release from [GitHub Releases](https://github.com/Bit-manipulators/open-android-dex/releases/latest):
-   - **`Open-Android-DeX-v2.0.3-Windows-x64-Setup.exe`**: Standard installer with desktop shortcut and clean uninstallation.
-   - **`Open-Android-DeX-v2.0.3-Windows-x64-Portable.zip`**: Zero-install standalone archive.
+   - **`Open-Android-DeX-v2.0.4-Windows-x64-Setup.exe`**: Standard installer with desktop shortcut and clean uninstallation.
+   - **`Open-Android-DeX-v2.0.4-Windows-x64-Portable.zip`**: Zero-install standalone archive.
    *(Both packages come pre-bundled with `adb.exe`, `scrcpy.exe`, `scrcpy-server`, and all required FFmpeg & MSVC runtime DLLs).*
 2. Connect your Android device via USB and enable **USB Debugging** (accept the RSA fingerprint prompt on your phone).
 3. Launch Open Android DeX from your Start Menu, Desktop, or extracted portable directory.

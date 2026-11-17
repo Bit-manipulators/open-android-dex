@@ -182,7 +182,7 @@ if (-not $iscc) {
 
 if (Test-Path $iscc) {
     Write-Host "==> Compiling Inno Setup Installer..."
-    $cleanVersion = if ($Version) { $Version.TrimStart('v') } else { "2.0.3" }
+    $cleanVersion = if ($Version) { $Version.TrimStart('v') } else { "2.0.4" }
     & $iscc "/DMyAppVersion=$cleanVersion" "/DOutputBaseFilename=$SetupBase" windows\packaging\installer.iss
     if ($LASTEXITCODE -ne 0) {
         Write-Error "❌ Fatal Error: Inno Setup compilation failed with exit code $LASTEXITCODE"
